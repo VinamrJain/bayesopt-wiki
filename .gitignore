@@ -24,6 +24,8 @@ papers/
 # PoC / scratch (parser comparisons, temp extracts)
 _poc_parse/
 _parse_eval/
+**/_marker_out/
+*_marker_run.log
 
 # Archive — superseded drafts, not authoritative
 _archive/
