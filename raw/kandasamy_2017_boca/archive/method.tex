@@ -1,0 +1,187 @@
+
+\section{\mfgpucbtwo}
+\label{sec:mfgpucb}
+
+% We now present our \mfgpucbtwos algorithm.
+\mfgpucbtwos is a sequential strategy to select a domain point $\xt\in\Xcal$ and
+fidelity $\zt\in\Zcal$ at time $t$ based on previous observations.
+At time $t$, we will first
+construct an upper confidence bound for the function $\func$ we wish to optimise.
+It takes the form,
+\begin{align*}
+\utilt(x) = \mutmo(x) + \betath \sigmatmo(x).
+\numberthis
+\label{eqn:mfucb}
+\end{align*}
+Recall from~\eqref{eqn:munsigman} that $\mutmo,\sigmatmo$ are the posterior mean and
+standard deviation of $\func$,
+i.e. $\gunc$ restricted to $\zhf$, using the observations from the previous $t-1$ time
+steps.
+We will specify $\betat$ in Section~\ref{sec:theory}.
+Following other UCB algorithms, our next point $\xt$ in the domain $\Xcal$ for evaluating
+$\gunc$ is a maximiser of $\utilt$, i.e. $\xt \in \argmax_{x\in\Xcal} \utilt(x)$.
+
+Next, we need to determine the fidelity $\zt\in\Zcal$ to query $g$.
+For this we will first select a subset $\candfidelst(\xt)$ of $\Zcal$ as follows,
+% \begin{align*}
+% \candfidelst(\xt) =
+% %   \{\zhf\}\cup\big
+%     \bigg\{z\in\Zcal\;:\;\; &\cost(z) < \cost(\zhf), \\[-0.10in]
+%     &\tautmo(z,\xt) >
+%       \sqrt{\kernelscale}\bigg(\hspace{-0.02in}\frac{\cost(z)}{\cost(\zhf)}
+%         \hspace{-0.02in}\bigg)^{\frac{1}{d'}}
+%         \inffunc(z), \\
+%     &\inffunc(z) > \frac{\inffunc(\diamz) }{\betath}
+%       \bigg\}.
+% \numberthis\label{eqn:candfidelst}
+% \end{align*}
+\begin{align*}
+&\candfidelst(\xt) = 
+%   \{\zhf\}\cup\big
+    \bigg\{z\in\Zcal\,:\,\;\cost(z) < \cost(\zhf),
+    \quad\tautmo(z,\xt) > \gamma(z), \\
+    &\hspace{1.25in}\inffunc(z) > \frac{\inffunc(\diamz) }{\betath}
+      \bigg\}, 
+\numberthis\label{eqn:candfidelst}
+\\[0.05in]
+&\textrm{where } \quad\gamma(z) =\,
+      \sqrt{\kernelscale}\;
+        \inffunc(z)\;
+        \bigg(\hspace{-0.02in}\frac{\cost(z)}{\cost(\zhf)}
+        \hspace{-0.02in}\bigg)^{\frac{1}{d+p+2}}
+\,.
+\end{align*}
+Here, $\inffunc$ is the information gap function in~\eqref{eqn:inffunc},
+$\tautmo$ is the posterior standard deviation of $g$,
+and $\diamz = \argmax_{z\in\Zcal}\|z-\zhf\|$.
+When $\Zcal=[0,1]^p$, $\diamz \leq \sqrt{p}$.
+We filter out the fidelities we consider at time $t$ using three conditions as
+specified above.
+We elaborate on these conditions in more detail in Section~\ref{sec:fidelSelection}.
+If $\candfidelst$ is not empty, we choose the cheapest fidelity in this
+set, i.e. $\zt \in \argmin_{z\in\candfidelst}\cost(z)$.
+If $\candfidelst$ is empty, we choose $\zt = \zhf$.
+% Otherwise, we choose $\zt = \zhf$.
+
+We have summarised the resulting procedure below in Algorithm~\ref{alg:mfgpucbtwo}.
+An important advantage of \mfgpucbtwos is that it only requires specifying
+the GP hyper-parameters for $\gunc$ such as the kernel $\kernel$.
+In practice, this can be achieved by various effective heuristics such as maximising the
+GP marginal likelihood or cross validation which are standard in most \bayos{} methods.
+In contrast, \mfgpucbones of~\citet{kandasamy16mfbo} requires tuning several other
+hyper-parameters.
+
+\insertAlgoMFGPUCBTwo
+
+\subsection{Fidelity Selection Criterion}
+\label{sec:fidelSelection}
+
+We will now provide an intuitive justification for the three conditions in the
+ selection criterion for $\zt$, specifically ~\eqref{eqn:candfidelst}.
+Recall that we query $\zhf$ only if $\candfidelst(\xt)$ is empty.
+The first condition, $\cost(z) < \cost(\zhf)$ is fairly obvious;
+since we wish to optimise $g(\zhf, \cdot)$ and since we are not rewarded for queries at
+other fidelities, there
+is no reason to consider fidelities that are more expensive than $\zhf$. 
+
+The second condition, $\tautmo(z,\xt) > \gamma(z)$ says that we will only consider
+fidelities where the posterior
+variance is larger than a threshold
+$\gamma(z) = \sqrt{\kernelscale}\inffunc(z)(\cost(z)/\cost(\zhf))^{1/(p+d+2)}$,
+ which depends critically on two
+quantities, the cost function $\cost$ and the information gap $\inffunc$.
+First, a reasonable multi-fidelity strategy should be inclined to query cheap
+fidelities and learn about $\gunc$ before querying expensive fidelities.
+This is the case with \mfgpucbtwo; as $\gamma(z)$ decreases with $\cost(z)$, it becomes
+easier for cheap $z$ to satisfy $\tautmo(z,\xt)>\gamma(z)$ and be included in
+$\candfidelst$ at time $t$.
+As we choose $\zt$ to be the minimiser of $\cost$ in $\candfidelst$,
+a cheaper fidelity will always be chosen over expensive ones if included in $\candfidelst$.
+Secondly, if $z$ is far away from $\zhf$ it contains less information
+about $g(\zhf,\cdot)$.
+A reasonable strategy should be discouraged from making such queries.
+This is precisely the role of the information gap $\inffunc$ which is increasing with
+$\|z-\zhf\|$.
+As we move away from $\zhf$, $\gamma(z)$ increases and
+it becomes harder to satisfy $\tautmo(z,\xt)>\gamma(z)$.
+Therefore, $z$ far away from $\zhf$ are  less likely
+to be included in $\candfidelst(\xt)$ and be considered for evaluation.
+Our analysis reveals that setting $\gamma$ as in~\eqref{eqn:candfidelst} is a
+reasonable way to manage this trade off between cost and information where
+cheaper fidelities cost less, but provide less accurate information about the
+function $\func$ we wish to optimise.
+
+To provide more intuition for the second condition,
+recall that for the SE kernel, $\inffunc(z) \approx \|z-\zhf\|/\hz$ where $\hz$ is the
+bandwidth of $\phiz$.
+If $\gunc$ is very smooth across $\Zcal$, then the lower fidelities provide more
+information about $g(\zhf,\cdot)$.
+One should expect a reasonable strategy
+to exploit such information considerably as it is cheaper.
+Indeed, large $\hz$ reduces the threshold $\gamma(z)$ across the
+entire $\Zcal$, causing $\candfidelst$ to be nonempty and \mfgpucbtwos to
+consider lower fidelities extensively before proceeding to $\zhf$.
+On the other hand, if $\hz$ is small and $\gunc$ is not smooth across $\Zcal$, the
+threshold $\gamma(z)$ will be large for all $z$. 
+Then $\candfidelst$ vanishes fast and the algorithm will aggressively
+skip lower fidelities and proceed to $\zhf$.
+Thus, this behaviour of \mfgpucbtwos is sensible in the SE kernel case.
+It is worth noting that the second condition is similar in
+spirit to~\citet{kandasamy16mfbo} where they proceed from a lower to higher
+fidelity only when the lower fidelity variance is smaller than a threshold.
+However, while they treat the threshold as a hyper-parameter, we are able to explicitly
+specify theoretically motivated values for it.
+
+
+Finally, the third condition in~\eqref{eqn:candfidelst},
+$\inffunc(z) > \inffunc(\diamz)/\betath$, 
+says that we should only pick
+fidelities where the information gap $\inffunc$ is large.
+Since $\inffunc$ is increasing as we move away from
+$\zhf$, it says we will only consider fidelities outside a neighbourhood of $\zhf$.
+Such a condition is necessary when dealing with continuous fidelities to
+prevent pathological situations where an algorithm might get arbitrarily close to
+$\zhf$ but not actually query \emph{at} $\zhf$.
+This condition breaks the continuum and forces \bocas to pick $\zhf$ instead of
+querying very close to it.
+Observe that as $\betat$ is increasing with $t$, this neighborhood is shrinking with time
+and therefore the algorithm will eventually have the opportunity to evaluate fidelities
+close to $\zhf$.
+Next, we describe our theoretical results.
+
+\input{theory}
+
+
+% \subsection{Practical Implementation}
+% \label{sec:implementation}
+
+
+% \subsection{Beyond Continuous Fidelity spaces and Domains}
+% \label{sec:extensions}
+
+\textbf{Extensions:}
+While we have focused on continuous $\Zcal$ due to their wide ranging
+practical applications, many of the ideas here can be extended to other settings.
+If $\Zcal$ is a discrete subset of $[0,1]^p$ our ideas here can be extended
+straightforwardly.
+We reiterate that this will \emph{not} be the same as the finite fidelity
+\mfgpucbones algorithm  since the assumptions are significantly different.
+In particular,~\citet{kandasamy16mfbo} are not able to effectively share
+information across fidelities as we do.
+We also believe that Algorithm~\ref{alg:mfgpucbtwo} can be extended to arbitrary fidelity
+spaces $\Zcal$ as long as a kernel can be defined over $\Zcal$.
+% Another avenue for future work would be to study different choices for
+% $\Zcal$ kernel where 
+% These questions are left for future work.
+% In particular when $\Xcal$ is a discrete set, the analysis can be extended in a
+% straightforward way.
+Our results can also be straightforwardly extended for discrete domains $\Xcal$
+and various kernel choices for $\phix$ by mimicking the proofs
+from~\citet{srinivas10gpbandits}.
+As with most nonparametric methods, \mfgpucbtwos scales poorly with
+dimension due to the dependence on $\IGn$.
+Due to this reason, we also confine our experiments to small $p,d$.
+This can be alleviated by assuming additional structure on
+$\func,\gunc$~\citep{djolonga13highdimbandits,kandasamy15addBO}.
+
+

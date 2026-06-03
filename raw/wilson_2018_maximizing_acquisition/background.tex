@@ -1,0 +1,128 @@
+%!TEX root=main.tex
+
+\section{Background}
+\label{sect:background}
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/overview_part1.pdf}
+\vspace{-20pt}
+\caption{(a) Pseudo-code for standard BO's ``outer-loop'' with parallelism \parallelism{}; the inner optimization problem is boxed in red. (b--c) GP-based belief and expected utility (EI), given four initial observations `\legendDot'. The aim of the inner optimization problem is to find the optimal query `\legendStar'. (d) Time to compute \(2^{14}\) evaluations of \MC \qEI{} using a GP surrogate for varied observation counts and degrees of parallelism. Runtimes fall off at the final step because \parallelism{} decreases to accommodate evaluation budget \(T=1,024\).
+}
+\label{fig:overview_pt1}
+\end{center}
+\end{figure}
+
+Bayesian optimization relies on both a surrogate model \model{} and an acquisition function \Acq{} to define a strategy for efficiently maximizing a \blackbox{} function \f{}. At each ``outer-loop'' iteration (\warn{Figure~\ref{fig:overview_pt1}a}), this strategy is used to choose a set of queries \X{} whose evaluation advances the search process.  
+% 
+This section reviews related concepts and closes with discussion of the associated inner optimization problem. 
+% 
+For an in-depth review of BO, we defer to the recent survey \cite{shahriari-ieee16}.
+%
+
+Without loss of generality, we assume BO strategies evaluate \parallelism{}  designs \(\X \in \reals^{\parallelism \times \xdim}\) in parallel so that setting \(\parallelism=1\) recovers purely sequential decision-making. 
+%
+We denote available information regarding \f{} as \(\data = \{(\x_{i}, \y_{i})\}_{i=1}^{\ldots}\) and, for notational convenience, assume noiseless observations \(\Y = f(\X)\).
+% 
+Additionally, we refer to \Acq's parameters (such as an improvement threshold) as \acqParams{} and to \model's parameters as \hypers{}.
+% Similarly, we refer to \Acq's parameters (such as an improvement threshold) as \acqParams{}.
+% \ask{jw: Do we need to explicitly state that the subscript \data{} is a reminder that these may be data-dependent} 
+% 
+% To avoid confusion, subscript \data{} is used to denote the fact that parameters (such as an improvement threshold \level) may depend on \data{}.
+% 
+% We denote available information regarding \f{} at time \(t\) as \(\data_{t} = \{(\x_{i}, \y_{i})\}_{i=1}^{t}\) and any parameters associated with surrogate model \model{} and acquisition function \Acq{} as \hypers{} and \acqParams{}, respectively.
+% % 
+% To avoid confusion, subscript \data{} is used to denote the fact that parameters (such as an improvement threshold \level) may depend on \data{}.
+% % 
+% Strictly for notational convenience, we assume noiseless observations \(\Y = f(\X)\). 
+Henceforth, direct reference to these terms will be omitted where possible.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                     Surrogates
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Surrogate models}
+A surrogate model \model{} provides a probabilistic interpretation of \f{} whereby possible explanations for the function are seen as draws \(\version{\f} \sim p(\f | \data)\). In some cases, this belief is expressed as an explicit ensemble of sample functions \cite{hernandez-nips14,springenberg2016bayesian,wang2017max}. 
+% 
+More commonly however, \model{} dictates the parameters \(\rparams\) of a (joint) distribution over the function's behavior at a finite set of points \X{}. 
+% 
+By first tuning the model's (hyper)parameters \(\hypers\) to explain for \(\data\), a belief is formed as \(p(\Y|\X, \data) = p(\Y; \rparams)\) with \(\rparams \gets \model(\X; \hypers)\). Throughout, \(\rparams \gets \model(\X; \hypers)\) is used to denote that belief \(p\)'s parameters \rparams{} are specified by model \model{} evaluated at \X.
+% 
+A member of this latter category, the Gaussian process prior (GP) is the most widely used surrogate and induces a multivariate normal belief \(\rparams \triangleq (\means,\Cov) \gets \model(\X; \hypers)\) such that \(p(\Y; \rparams) = \gaussian(\Y; \means, \Cov)\) for any finite set \X{} (see \warn{Figure~\ref{fig:overview_pt1}b}).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          Acquisition Functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Acquisition functions}
+With few exceptions, acquisition functions amount to integrals defined in terms of a belief \(p\) over the unknown outcomes \(\Y = \{\y_{1},\ldots,\y_{\parallelism}\}\) revealed when evaluating a \blackbox{} function \f{} at corresponding input locations \(\X = \{\x_{1},\ldots,\x_{\parallelism}\}\). 
+%
+This formulation naturally occurs as part of a Bayesian approach whereby the value of querying \X{} is determined by accounting for the utility provided by possible outcomes \(\sample{\Y} \sim p(\Y|\X, \data)\). 
+% 
+Denoting the chosen utility function as \acq{}, this paradigm leads to acquisition functions defined as expectations
+\begin{align}
+\Acq(\X; \data, \acqParams)
+	= \E_{\Y}\left[\acq(\Y; \acqParams)\right]
+	= \int \acq(\Y; \acqParams) p(\Y|\X, \data{}) d\Y\,.
+\label{eq:expected_utility}
+\end{align}
+A seeming exception to this rule, \emph{non-myopic} acquisition functions assign value by further considering how different realizations of \(\sample{\data}_{\parallelism} \gets \data \cup \{(\x_{i},\sample{\y}_{i})\}_{i=1}^{\parallelism}\) impact our broader understanding of \f{} and usually correspond to more complex, nested integrals. \warn{Figure~\ref{fig:overview_pt1}c} portrays a prototypical acquisition surface and Table~\ref{table:reparameterizations} exemplifies popular, myopic and non-myopic instances of~\eqref{eq:expected_utility}.
+%
+\begin{table}
+\begin{center}
+\input{tables/reparameterizations.tex}
+\captionsetup{width=1.0\textwidth}
+\vspace{4pt}
+\caption{
+% 
+% Examples of reparameterizable acquisition functions; the final two columns indicate Monte Carlo differentiability \warn{\(\nabla\Acq_{m}\)} (Section~\ref{sect:differentiability}) and myopic maximality \MM{} (Section~\ref{sect:myopic_maximal}). 
+Examples of reparameterizable acquisition functions; the final column indicates whether they belong to the \MM{} family (Section~\ref{sect:myopic_maximal}). 
+% 
+Glossary: \(\heaviside^{+/-}\) denotes the right-/left-continuous Heaviside step function; \relu{} and \sigmoid{} rectified linear and sigmoid nonlinearities, respectively; \entropy{} the Shannon entropy; \(\alpha\) an improvement threshold; \(\tau\) a temperature parameter; \(\Chol\T{\Chol} \triangleq \Cov\) the Cholesky factor; and, residuals \(\resids \sim \gaussian\left(\zeros, \Cov\right)\). Lastly, non-myopic acquisition function (\ES{} and \KG) are assumed to be defined using a discretization. Terms associated with the query set and discretization are respectively denoted via subscripts \(a\) and \(b\).}
+\label{table:reparameterizations}
+\end{center}
+\vspace{-12pt}
+\end{table}
+% \ask[inline]{FH: this table is still very dense and full of notation, so we should try to be as gentle on the reader as we can be. We never define what the two different parts of Monte Carlo differentiation mean (and I actually don't even recall myself right now). Also, the non-myopic entries are really opaque to me -- e.g., how exactly are the following terms defined? $\Y_a$, $\Y_b$, $\Cov_{b,a}$, $\E_{\Y_{b}|\Y_{a}}$.
+% I honestly couldn't explain this if anyone asked me. Could we please give full details on these in the appendix? (This would also still be OK for the final final version after the conference.)}
+% \reply[inline]{JW: I agree that the notation surrounding non-myopic formulations is obscure. Definitely worth considering adding an appendix for this later on.}
+% \ask[inline]{JW: By "two different parts of MC differentiation" are you referring to reparameterization' and interchangeability?}
+% \reply[inline]{FH: I am referring to the Y/Y, N/Y in the table. Does this mean differentiable without tricks and differentiable after applying the concrete distribution? That would make sense, but I haven't seen that written anywhere.}
+% \reply[inline]{JW: Ah, I see. I totally missed that. Yes, that's exactly  what the Y/N means, but as you've pointed out its never stated. To be honest, I think we should just get rid of said column?}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                     Inner Optimization Problem
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Inner optimization problem}
+Maximizing acquisition functions plays a crucial role in BO as the process through which abstract machinery (\eg{} model \model{} and acquisition function \Acq) yields concrete actions (\eg{} decisions regarding sets of queries \X). 
+% 
+Despite its importance however, this inner optimization problem is \temp{often neglected}. 
+% 
+This lack of emphasis is largely attributable to a greater focus on creating new and improved machinery as well as on applying BO to new types of problems. 
+Moreover, elementary examples of BO facilitate \Acq's maximization.
+% 
+For example, optimizing a single query \(\x \in \reals^{\xdim}\) is usually straightforward when \x{} is low-dimensional and \Acq{} is myopic.
+
+
+Outside these textbook examples, however, BO's inner optimization problem becomes qualitatively more difficult to solve. 
+%
+In virtually all cases, acquisition functions are non-convex (frequently due to the non-convexity of plausible explanations for \f{}).
+% 
+Accordingly, increases in input dimensionality \xdim{} can be prohibitive to efficient query optimization. In the generalized setting with parallelism \(\parallelism \ge 1\), this issue is exacerbated by the additional scaling in \parallelism. While this combination of non-convexity and (acquisition) dimensionality is problematic, the routine intractability of both non-myopic and parallel acquisition poses a commensurate challenge.
+
+As is generally true of integrals, the majority of acquisition functions are intractable. 
+% 
+Even Gaussian integrals, which are often preferred because they lead to analytic solutions for certain instances of~\eqref{eq:expected_utility}, are only tractable in a handful of special cases~\cite{genz92numerical,gassmann02,cunningham2011epmgp}.
+% 
+To circumvent the lack of closed-form solutions, researchers have proposed a wealth of diverse methods. 
+% 
+Approximation strategies~\cite{cunningham2011epmgp, desautels2014parallelizing, wang2017max}, which replace a quantity of interest with a more readily computable one, work well in practice but may not to converge to the true value.  
+% 
+In contrast, bespoke solutions~\cite{genz92numerical, ginsbourger2010kriging, chevalier2013fast} provide \mbox{(near-)}analytic expressions but typically do not scale well with dimensionality.\footnote{By \emph{near-analytic}, we refer to cases where an expression contains terms that cannot be computed exactly but for which high-quality solvers exist (\eg{} low-dimensional multivariate normal CDF estimators \cite{genz92numerical,genz2004numerical}).} 
+% 
+Lastly, \MC methods~\cite{osborne2009gaussian,snoek-nips12a,hennig-jmlr12a} are highly versatile and generally unbiased, but are often perceived as non-differentiable and, therefore, inefficient for purposes of maximizing \Acq{}. 
+% 
+
+Regardless of the method however, the (often drastic) increase in cost when evaluating \Acq's proxy acts as a barrier to efficient query optimization, and these costs increase over time as shown in \warn{Figure~1d}.
+% 
+In an effort to address these problems, we now go inside the outer-loop and focus on efficient methods for maximizing acquisition functions.

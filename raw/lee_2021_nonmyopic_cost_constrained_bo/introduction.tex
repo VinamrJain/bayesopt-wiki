@@ -1,0 +1,34 @@
+Bayesian optimization (BO) is a class of methods for global optimization of expensive black-box functions. 
+In BO, a probabilistic surrogate model is used to approximate the objective and future evaluations are selected via an acquisition function. 
+BO has been successfully applied to applications such as robotic gait control~\citep{calandra2016bayesian}, sensor set selection~\citep{garnett2010bayesian}, and neural network hyperparameter tuning~\citep{snoek2012practical,turner2021bayesian}.
+BO is favored for these tasks because of its sample-efficient nature.
+Achieving this sample-efficiency requires BO to balance exploration and exploitation. 
+However, standard acquisition functions such as expected improvement (EI) are often too greedy in practice. 
+As a result, they perform poorly on multimodal problems~\citep{hernandez2014predictive} and have provably sub-optimal performance in certain settings, e.g., bandit problems~\citep{srinivas2009gaussian}. 
+A key research goal in BO is developing less greedy acquisition functions~\citep{shahriari2016botutorial}. 
+Examples include predictive entropy search (PES)~\citep{hernandez2014predictive} or knowledge gradient (KG)~\citep{frazier2008knowledge}. 
+\citet{lam2016bayesian} frame the exploration-exploitation trade-off as a balance between immediate and future rewards in a continuous state and action space Markov decision process (MDP). 
+In this framework, \textit{non-myopic} acquisition functions are optimal MDP policies, and promise better performance by considering the impact of future evaluations up to a given BO budget (also referred to as the \textit{horizon}). 
+
+While BO budgets are typically given in iterations, this implicitly measures convergence in terms of iteration count and assumes uniform evaluation cost. 
+For many practical BO applications, evaluation costs may vary in different regions of the search space. 
+For example, the time spent on neural network training increases with layer size; the cost of different drug compounds vary; and control actions in optimal control have differing complexities. 
+In all these cases, standard BO is often unable to achieve fast convergence in terms of unit cost. 
+Motivated by these examples, we develop methods that improve convergence when measured by cost. 
+This cost may be time, energy, or money, and the goal is to minimize the objective given a cost budget. 
+
+\begin{figure*}[!ht] 
+    \centering
+    \includegraphics[width=\textwidth]{histogram_variations.pdf}
+    \caption{Runtime distribution, log-scaled, of $5000$ randomly selected points for the $k$-nearest-neighbors (KNN), Multi-layer Perceptron (MLP), Support Vector Machine (SVM), Decision Tree (DT), and Random Forest (RF) hyperparameter optimization problems, each trained on the OpenML w2a dataset ~\citep{OpenML2013}. The runtimes vary, often by an order of magnitude or more.}
+    \label{fig:variations}
+\end{figure*}
+
+\textit{Cost-constrained BO} measures convergence with these alternative cost metrics for which standard BO methods are unsuited. 
+We extend non-myopic BO to handle the cost-constrained setting. Our contributions follow:
+\begin{itemize}
+    \item We analyze failure modes of common approaches to cost-constrained BO, in which greedy behavior results in poor per-cost performance.  
+    \item To avoid overly greedy behavior, we formulate cost-constrained BO as an instance of a constrained Markov decision process (CMDP). This formulation is a novel extension of recent research on non-myopic BO which uses a simpler Markov decision process (MDP) formulation. 
+    \item We introduce an approximation to the optimal constrained MDP policy based on rollout of feasible trajectories. Rollout is a popular class of approximate MDP solutions in which future BO realizations and their corresponding values are simulated using the surrogate and then averaged.
+    \item We validate the performance of our methods on a set of practical hyperparameter optimization problems and a sensor set selection problem.
+\end{itemize}

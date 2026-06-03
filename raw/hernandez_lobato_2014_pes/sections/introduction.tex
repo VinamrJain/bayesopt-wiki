@@ -1,0 +1,135 @@
+
+\section{Introduction}
+
+Bayesian optimization techniques form a successful 
+approach for optimizing black-box functions \cite{Brochu:2009}. The goal
+of these methods is to find the global maximizer of a nonlinear and generally non-convex function $f$
+whose derivatives are unavailable. Furthermore, the evaluations of $f$ are usually corrupted by noise and
+the process that queries $f$ can be computationally or economically very expensive. To address these challenges,
+Bayesian optimization devotes additional effort to modeling the unknown function $f$ and its behavior.
+These additional computations aim to minimize the number of evaluations that are needed to find the global optima.
+
+Optimization problems are widespread in science and engineering and as a result
+so are Bayesian approaches to this problem.  Bayesian optimization has
+successfully been used in robotics to adjust the parameters of a robot's
+controller to maximize gait speed and smoothness~\citep{Lizotte:2007} as well as
+parameter tuning for computer graphics~\cite{Brochu:2007}. Another example
+application in drug discovery is to find the chemical derivative of a particular
+molecule that best treats a given disease~\cite{negoescu:2011}.  Finally,
+Bayesian optimization can also be used to find optimal hyper-parameter values
+for statistical~\cite{Wang:2013} and machine learning techniques
+\citep{Snoek:2012}.
+
+As described above, we are interested in finding the global maximizer $\xopt=\argmax_{\x\in\X} f(\x)$
+of a function $f$ over some bounded domain, typically $\X\subset\R^d$. We 
+assume that $f(\x)$ can only be evaluated via queries to a black-box that
+provides noisy outputs of the form $y_i\sim \Normal(f(\x_i), \sigma^2)$. We
+note, however, that our framework can be extended to other non-Gaussian
+likelihoods. In this setting, we describe a sequential search algorithm that,
+after $n$ iterations, proposes to evaluate $f$ at some location $\x_{n+1}$. To
+make this decision the algorithm conditions on all previous observations
+$\D_n=\{(\x_1,y_1),\dots,(\x_n,y_n)\}$. After $N$ iterations the algorithm 
+makes a final recommendation $\xrec_N$ for the global maximizer of the latent function $f$.  
+
+We take a Bayesian approach to the problem described above and use a probabilistic model for the
+latent function $f$ to guide the search and to select $\xrec_N$.
+In this work we use a zero-mean Gaussian process (GP) prior for $f$
+\cite{Rasmussen:2006}. This prior is specified by a positive-definite kernel
+function $k(\x,\x')$. Given any finite collection of points
+$\{\x_1,\dots,\x_n\}$, the values of $f$ at these points are jointly zero-mean
+Gaussian with covariance matrix $\vK_n$, where $[\vK_n]_{ij}=k(\x_i,\x_j)$. For
+the Gaussian likelihood described above, the vector of concatenated observations $\vy_n$
+is also jointly Gaussian with zero-mean. Therefore, at any
+location $\x$, the latent function $f(\x)$ conditioned on past observations
+$\D_n$ is then Gaussian with marginal mean $\mu_n(\x)$ and variance $v_n(\x)$
+given by
+\begin{align}
+    \mu_n(\x) 
+    &= \vk_n(\x)\T(\vK_n+\sigma^2\vI)^{-1}\vy_n\,, &
+    v_n(\x)
+    &= k(\x,\x) - \vk_n(\x)\T(\vK_n+\sigma^2\vI)^{-1}\vk_n(\x)\,,
+    \label{eq:gpvar}
+\end{align}
+where $\vk_n(\x)$ is a vector of cross-covariance terms between $\x$ and
+$\{\x_1,\dots,\x_n\}$.
+
+Bayesian optimization techniques use the above predictive distribution $p(f(\x)|\D_n)$
+to guide the search for the global maximizer $\xopt$. In particular, 
+$p(f(\x)|\D_n)$ is used during the computation of an acquisition function $\alpha_n(\x)$
+that is optimized at each iteration to determine the next evaluation location $\x_{n+1}$.
+This process is shown in Algorithm~\ref{alg:bo}. Intuitively, the acquisition function
+$\alpha_n(\x)$ should be high in areas where the maxima is most likely to lie given the current data.
+However, $\alpha_n(\x)$ should also encourage exploration of the search space to
+guarantee that the recommendation $\xrec_N$ is a global optimum of $f$, not just a global
+optimum of the posterior mean.  Several acquisition functions have been proposed
+in the literature. Some examples are the probability of
+improvement~\citep{Kushner:1964}, the expected improvement~\citep{Mockus:1978}
+or upper confidence bounds~\citep{Srinivas:2010}.  Alternatively, one can
+combine several of these acquisition functions~\citep{Hoffman:2011}.
+
+\begin{figure}
+\vspace{-1.5em}
+\setlength{\tabcolsep}{0pt}
+\begin{tabular}{p{0.5\textwidth} p{0.5\textwidth}}
+\vspace{0pt}
+\begin{minipage}{0.48\textwidth}
+\begin{algorithm}[H]
+    \caption{Generic Bayesian optimization}
+    \label{alg:bo}
+    {\footnotesize
+    \begin{algorithmic}[1]
+        \REQUIRE a black-box with unknown mean $f$
+        \FOR{$n=1,\dots,N$}
+            \STATE select $\x_n = \argmax_{\x\in\X}\alpha_{n-1}(\x)$
+            \STATE query the black-box at $\x_n$ to obtain $y_n$
+            \STATE augment data $\D_n = \D_{n-1} \cup \{(\x_n, y_n)\}$
+        \ENDFOR
+        \RETURN $\xrec_N=\argmax_{\x\in\X} \mu_N(\x)$
+        \vspace{3.2em}
+    \end{algorithmic}}
+    \end{algorithm}
+\end{minipage}
+&
+\vspace{0pt}
+\begin{minipage}{0.48\textwidth}
+    \begin{algorithm}[H]
+    \caption{PES acquisition function}
+    \label{alg:pes}
+    {\footnotesize
+    \begin{algorithmic}[1]
+        \REQUIRE a candidate $\x$; data $\D_n$
+        \STATE \tikzmark{a}sample $M$ hyperparameter values $\{\vpsi\i\}$
+        \FOR{$i=1,\dots,M$}
+            \STATE sample $f\i\sim p(f|\D_n, \vphi, \vpsi\i)$
+            \STATE set $\xopt\i\gets\argmax_{\x\in\X} f\i(\x)$
+            \STATE compute $\vm_0\i$, $\vV_0\i$ and $\widetilde\vm\i$, $\widetilde\vv\i$
+            \STATE compute $v_n\i(\x)$ and $v_n\i(\x|\xopt\i)$
+        \ENDFOR
+        \RETURN $\alpha_n(\x)$ as in (\ref{eq:marginalizedObjective})
+    \end{algorithmic}}
+    \end{algorithm}
+\end{minipage}
+\end{tabular}
+\begin{tikzpicture}[remember picture, overlay]
+    \node
+    [draw=green!80!black, very thick, dotted, rectangle, anchor=north west,
+     minimum width=5.8cm,
+     minimum height=2.05cm]
+    (box) at ($(a) + (-0.5, 0.30)$) {};
+    \node[text=green!80!black, rotate=-90, anchor=south] at (box.east) {precomputed};
+\end{tikzpicture}
+\vspace{-1em}
+\end{figure}
+
+The acquisition functions described above are based on optimistic estimates of
+the latent function $f$ which implicitly trade off between exploiting the
+posterior mean and exploring based on the uncertainty.  We instead follow the
+approach described in \cite{HennigSchuler:2012} and aim to maximize the expected
+gain of information on the posterior distribution of the global maximizer
+$\xopt$.  In Section~\ref{sec:method} we derive a rearrangement of this
+acquisition function and a corresponding approximation that we call Predictive
+Entropy Search (PES). PES is more accurate than the approximation used in
+\cite{HennigSchuler:2012}.  In Section~\ref{sec:experiments} we empirically
+evaluate this claim on both synthetic and real-world problems and show that this
+leads to real gains in performance.
+

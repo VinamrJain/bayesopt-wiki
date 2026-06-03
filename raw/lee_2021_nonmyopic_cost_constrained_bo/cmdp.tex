@@ -1,0 +1,70 @@
+We might think of cost-constrained BO as the following constrained optimization problem: 
+\begin{equation*}
+    \begin{split}
+    & \min_{\textbf{X} \in 2^\Omega} \min_{\bx \in \textbf{X}} f(\bx) \\
+    & \text{subject to } \sum_{\bx \in \textbf{X}} c(\bx) \leq \tau. 
+    \end{split}
+\end{equation*}
+Because our optimization domain is $2^\Omega$, i.e., the power set of $\Omega$, we have a nested minimization problem. 
+We assume $f(\bx)$ outputs not only its value, but also its evaluation cost determined by a cost function $c(\bx)$ ---which is also black-box. 
+Our goal is to minimize $f(\bx)$ subject to the total evaluation cost not exceeding $\tau$. 
+This is a pre-specified upper bound on the total cost, such as compute time, dollars, or energy consumption.\looseness-1
+
+One recent research direction in BO has been the development of nonmyopic BO~\citep{lam2016bayesian, lam2017lookahead, yue2019lookahead, frazier2018, lee2020efficient, jiang2020efficient}, which account for the impact of future evaluations and are thus able to make better decisions. 
+These decisions are computed by modeling BO as an MDP and then approximating its optimal policy. 
+We aim to leverage this MDP framework to make similarly principled, nonmyopic decisions in the cost-constrained setting. 
+We do this by extending the MDP to a CMDP, which takes into account variable evaluation costs. The next decision in this setting is a approximation to the optimal CMDP policy. 
+
+Figure~\ref{fig:bo_example} illustrates the advantage of accounting for the cost of future evaluations with CMDP. 
+The objective and cost, which have been carefully chosen, are plotted in black and red respectively, and the bottom row indicates feasible trajectories of length two as the optimization continues. 
+The optimization domains are similarly shaded when evaluations become infeasible. 
+A greedy approach\footnote{We show EI over EIpu for space's sake; the former performs better than the latter. The low cost on the left part of the domain causes EIpu to evaluate exclusively there.}, seen in the first row, does not account for the remaining budget, and is therefore unable to evaluate the global minimum before its becomes infeasible due to an insufficient budget. 
+A nonmyopic policy, seen in the second row, better accounts for the cost of future evaluations; it sees that by the fourth iteration, the right side of the domain becomes infeasible, and decides to evaluate there earlier. As a result, it gets much closer to the global minimum. 
+
+In the next section, we formalize our CMDP framework.
+We note that our framework is vaguely related to BO with resources (BOR)~\citep{dolatnia2016bayesian}, who consider a partially observable MDP (POMDP) framework for BO when resource consumption of the objective varies, and when there might be multiple agents that can evaluate the acquisition function in parallel. 
+
+\subsection{BO as a Constrained Markov Decision Process}
+Given a deterministic cost function $c(\bx): \Omega \rightarrow \R^+$, a cost budget $\tau$, and a GP prior over the observation set $\D_t$ with mean $\mu_t$ and kernel $k_t$, we model $h$ steps of cost-constrained BO as the following CMDP: $<T, \bbS, \A, P, R, C, \tau>$. 
+
+Here, $T$ is the set of decision epochs $\{0, 1, \ldots, h-1\}$ representing $h$ steps of BO. 
+While we might want to use an infinite horizon, e.g., $h = \infty$ to iterate until our cost budget is exhausted, we assume a finite horizon for tractability. 
+Our state space is the set of observations reachable from starting state $\D_t$ with $h$ BO steps, and the action space is $\Omega$; actions correspond to sampling a point in $\Omega$. 
+
+The transition probabilities from state $\D_t$ to state $\D_{t+1}$, where $\D_{t+1} = \D_t \cup \{(\bx_{t+1}, y_{t+1})\}$, given an action $\bx_{t+1}$, are defined as:
+\begin{align*}
+    & P( \D_{t+1} \mid \D_t, \bx_{t+1}) \\
+    & \sim \N(\mu^{(t)}(\bx_{t+1} ; \D_t), K^{(t)}(\bx_{t+1}, \bx_{t+1}; \D_t)). 
+\end{align*}
+In other words, the probability of transitioning from $\D_t$ to $\D_{t+1}$ is the probability of sampling $y_{t+1}$ from the posterior of $\GP(\mu_t, \sigma_t^2)$ at $\bx_{t+1}$.
+
+Given an action and transition to a new state $\D_{t+1}$, our reward function is derived from the the EI criterion~\citep{jones1998ego}. 
+Let $y_t^*$ be the minimum observed value in the observed set $\D_t$, i.e., $y_t^* = \min \{ y_0, \dots, y_t\}$. Then our reward is expressed as:
+\begin{align*}
+    & R(\D_t, \bx_{t+1}, \D_{t+1}) = ( y_t^* - y_{t+1})^+ \\
+    & \equiv  \max (y_t^* - y_{t+1},0).
+\end{align*}
+
+Our CMDP cost is given by $c(\bx)$. 
+We assume that this cost is deterministic and state-independent; it only depends on the action. 
+In practice, the cost function may be learned as well. 
+We emphasize that we assume a \textit{deterministic} cost function; the algorithms and theory we establish do not extend trivially to stochastic cost functions.
+Finally, we assume a positive scalar constraint $\tau$. 
+However, we can extend this to a vector-valued constraint. 
+For example, in materials design, there might be a finite amount of each constituent component, each with its own budget~\citep{abdolshah2019costaware}.  
+
+The expected total reward and cost of a policy $\pi$ are
+\begin{align*}
+    V_h^\pi(\D_k) &= \E \bigg[ \sum_{t=k}^{k + h-1} R(\D_t, \pi_t(\D_t), \D_{t+1}) \bigg] \\
+    &= \E \bigg[ \sum_{t=k}^{k + h-1} (y^*_t - y_{t+1} )^+ \bigg] \nonumber, \\
+    C_h^\pi(\D_k) &= \E \bigg[ \sum_{t=k}^{k + h-1} c(\pi_t(\D_t)) \bigg].
+\end{align*}
+More intuitively, $V_h^\pi(\D_k)$ is the expected reduction in the objective function using policy $\pi$, and $C_h^\pi(\D_k)$ is the accompanying expected cost. 
+We can represent a trajectory though this CMDP as the sequence:
+\[
+    (\bx_k, y_k), (\bx_{k+1}, y_{k+1}), \dots, (\bx_{k+1}, y_{k+h}).
+\]
+As our cost is strictly positive, a trajectory $(\bx_k, y_k), (\bx_{k+1}, y_{k+1}), \dots, (\bx_{k+1}, y_{k+\ell})$ is feasible if $\sum_{i=k}^{k+\ell} c(\bx_i) \leq \tau$ for some $\ell \leq h$.
+
+
+

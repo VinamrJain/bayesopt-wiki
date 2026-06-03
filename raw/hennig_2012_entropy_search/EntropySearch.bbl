@@ -1,0 +1,297 @@
+\begin{thebibliography}{48}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Adler(1981)]{adler1981geometry}
+R.J. Adler.
+\newblock \emph{The geometry of random fields}.
+\newblock Wiley, 1981.
+
+\bibitem[Adler(1990)]{AdlerSuprema}
+R.J. Adler.
+\newblock An introduction to continuity, extrema, and related topics for
+  general {G}aussian processes.
+\newblock \emph{Lecture Notes-Monograph Series}, 12:\penalty0
+  i--iii+v--vii+ix+1--55, 1990.
+
+\bibitem[Benoit(1924)]{Cholesky}
+Benoit.
+\newblock {N}ote s{\^u}re une m{\'e}thode de r{\'e}solution des {\'e}quations
+  normales provenant de l'application de la m{\'e}thode des moindres carr{\'e}s
+  a un syst{\`e}me d'{\'e}quations lin{\'e}aires en nombre inf{\'e}rieure a
+  celui des inconnues. {A}pplication de la m{\'e}thode a la r{\'e}solution d'un
+  syst{\`e}me d{\'e}fini d'{\'e}quations lin{\'e}aires. (proc{\'e}d{\'e} du
+  {C}ommandant {C}holesky).
+\newblock \emph{Bulletin geodesique}, 7\penalty0 (1):\penalty0 67--77, 1924.
+
+\bibitem[Boyd and Vandenberghe(2004)]{boyd2004convex}
+S.P. Boyd and L.~Vandenberghe.
+\newblock \emph{Convex Optimization}.
+\newblock Cambridge Univ Press, 2004.
+
+\bibitem[Broyden et~al.(1965)]{broyden1965class}
+C.G. Broyden et~al.
+\newblock A class of methods for solving nonlinear simultaneous equations.
+\newblock \emph{Math. Comp}, 19\penalty0 (92):\penalty0 577--593, 1965.
+
+\bibitem[Byrd et~al.(1999)Byrd, Hribar, and Nocedal]{byrd1999interior}
+R.H. Byrd, M.E. Hribar, and J.~Nocedal.
+\newblock An interior point algorithm for large-scale nonlinear programming.
+\newblock \emph{SIAM Journal on Optimization}, 9\penalty0 (4):\penalty0
+  877--900, 1999.
+
+\bibitem[Byrd et~al.(2000)Byrd, Gilbert, and Nocedal]{byrd2000trust}
+R.H. Byrd, J.C. Gilbert, and J.~Nocedal.
+\newblock A trust region method based on interior point techniques for
+  nonlinear programming.
+\newblock \emph{Mathematical Programming}, 89\penalty0 (1):\penalty0 149--185,
+  2000.
+
+\bibitem[Coleman and Li(1994)]{coleman1994convergence}
+T.F. Coleman and Y.~Li.
+\newblock On the convergence of interior-reflective newton methods for
+  nonlinear minimization subject to bounds.
+\newblock \emph{Mathematical programming}, 67\penalty0 (1):\penalty0 189--224,
+  1994.
+
+\bibitem[Coleman and Li(1996)]{coleman1996interior}
+T.F. Coleman and Y.~Li.
+\newblock An interior trust region approach for nonlinear minimization subject
+  to bounds.
+\newblock \emph{SIAM Journal on Optimization}, 6\penalty0 (2):\penalty0
+  418--445, 1996.
+
+\bibitem[Cox(1946)]{cox1946probability}
+R.T. Cox.
+\newblock {Probability, frequency and reasonable expectation}.
+\newblock \emph{American Journal of Physics}, 14\penalty0 (1):\penalty0 1--13,
+  1946.
+
+\bibitem[Cunningham et~al.(2011)Cunningham, Hennig, and Lacoste-Julien]{EPMGP}
+J.~Cunningham, P.~Hennig, and S.~Lacoste-Julien.
+\newblock Gaussian probabilities and expectation propagation.
+\newblock \emph{under review. Preprint at arXiv:1111.6832 [stat.ML]}, November
+  2011.
+
+\bibitem[Fletcher(1970)]{fletcher1970new}
+R.~Fletcher.
+\newblock A new approach to variable metric algorithms.
+\newblock \emph{The Computer Journal}, 13\penalty0 (3):\penalty0 317, 1970.
+
+\bibitem[Goldfarb(1970)]{goldfarb1970family}
+D.~Goldfarb.
+\newblock A family of variable metric updates derived by variational means.
+\newblock \emph{Mathematics of Computing}, 24\penalty0 (109):\penalty0 23--26,
+  1970.
+
+\bibitem[Gr{\"u}new{\"a}lder et~al.(2010)Gr{\"u}new{\"a}lder, Audibert, Opper,
+  and Shawe-Taylor]{grunewalder2010regret}
+S.~Gr{\"u}new{\"a}lder, J.Y. Audibert, M.~Opper, and J.~Shawe-Taylor.
+\newblock Regret bounds for {G}aussian process bandit problems.
+\newblock In \emph{Proceedings of the 14th International Conference on
+  Artificial Intelligence and Statistics (AISTATS)}, 2010.
+
+\bibitem[Hansen and Ostermeier(2001)]{hansen2001completely}
+N.~Hansen and A.~Ostermeier.
+\newblock Completely derandomized self-adaptation in evolution strategies.
+\newblock \emph{Evolutionary computation}, 9\penalty0 (2):\penalty0 159--195,
+  2001.
+
+\bibitem[Hennig(2011)]{GaussianRL}
+P.~Hennig.
+\newblock Optimal reinforcement learning for {G}aussian systems.
+\newblock In \emph{Advances in Neural Information Processing Systems}, 2011.
+
+\bibitem[Hestenes and Stiefel(1952)]{hestenes1952methods}
+M.R. Hestenes and E.~Stiefel.
+\newblock {Methods of conjugate gradients for solving linear systems}.
+\newblock \emph{Journal of Research of the National Bureau of Standards},
+  49\penalty0 (6):\penalty0 409--436, 1952.
+
+\bibitem[It{\=o}(1951)]{ito1951stochastic}
+K.~It{\=o}.
+\newblock On stochastic differential equations.
+\newblock \emph{Memoirs of the American Mathematical Society}, 4, 1951.
+
+\bibitem[Jaynes and Bretthorst(2003)]{jaynes2003probability}
+E.T. Jaynes and G.L. Bretthorst.
+\newblock \emph{{Probability Theory: the Logic of Science}}.
+\newblock Cambridge University Press, 2003.
+
+\bibitem[Jones et~al.(1998)Jones, Schonlau, and Welch]{jones1998efficient}
+D.R. Jones, M.~Schonlau, and W.J. Welch.
+\newblock Efficient global optimization of expensive black-box functions.
+\newblock \emph{Journal of Global optimization}, 13\penalty0 (4):\penalty0
+  455--492, 1998.
+
+\bibitem[Kleinberg(2005)]{kleinberg2005nearly}
+R.~Kleinberg.
+\newblock Nearly tight bounds for the continuum-armed bandit problem.
+\newblock \emph{Advances in Neural Information Processing Systems}, 18, 2005.
+
+\bibitem[Kolmogorov(1933)]{kolmogorov_axioms}
+A.N. Kolmogorov.
+\newblock Grundbegriffe der {W}ahrscheinlichkeitsrechnung.
+\newblock \emph{Ergebnisse der Mathematik und ihrer Grenzgebiete}, 2, 1933.
+
+\bibitem[Krige(1951)]{krigestatistical}
+D.G. Krige.
+\newblock A statistical approach to some basic mine valuation and allied
+  problems at the {W}itwatersrand.
+\newblock Master's thesis, University of Witwatersrand, 1951.
+
+\bibitem[Kullback and Leibler(1951)]{kullback1951information}
+S.~Kullback and R.A. Leibler.
+\newblock {On information and sufficiency}.
+\newblock \emph{Annals of Mathematical Statistics}, 22\penalty0 (1):\penalty0
+  79--86, 1951.
+
+\bibitem[Lazard-Holly and Holly(2003)]{Holly_NInt}
+H.~Lazard-Holly and A.~Holly.
+\newblock Computation of the probability that a $d$-dimensional normal variable
+  belongs to a polyhedral cone with arbitrary vertex.
+\newblock Technical report, Mimeo, 2003.
+
+\bibitem[Lizotte(2008)]{lizotte2008practical}
+D.J. Lizotte.
+\newblock \emph{Practical {B}ayesian Optimization}.
+\newblock PhD thesis, University of Alberta, 2008.
+
+\bibitem[MacKay(1998{\natexlab{a}})]{mackay1998choice}
+D.J.C. MacKay.
+\newblock {Choice of basis for Laplace approximation}.
+\newblock \emph{Machine Learning}, 33\penalty0 (1):\penalty0 77--86,
+  1998{\natexlab{a}}.
+
+\bibitem[MacKay(1998{\natexlab{b}})]{mackay1998introduction}
+D.J.C. MacKay.
+\newblock Introduction to {G}aussian processes.
+\newblock \emph{NATO ASI Series F Computer and Systems Sciences}, 168:\penalty0
+  133--166, 1998{\natexlab{b}}.
+
+\bibitem[Mat{\'e}rn(1960)]{matérn1960spatial}
+B.~Mat{\'e}rn.
+\newblock Spatial variation.
+\newblock \emph{Meddelanden fran statens Skogsforskningsinstitut}, 49\penalty0
+  (5), 1960.
+
+\bibitem[Minka(2000)]{minka2000deriving}
+T.P. Minka.
+\newblock Deriving quadrature rules from {G}aussian processes.
+\newblock Technical report, Statistics Department, Carnegie Mellon University,
+  2000.
+
+\bibitem[Minka(2001)]{EP_Minka}
+T.P. Minka.
+\newblock Expectation {P}ropagation for approximate {B}ayesian inference.
+\newblock In \emph{Proceedings of the 17th Conference in Uncertainty in
+  Artificial Intelligence}, pages 362--369, San Francisco, CA, USA, 2001.
+  Morgan Kaufmann.
+\newblock ISBN 1-55860-800-1.
+
+\bibitem[Murray and Adams(2010)]{murray2010slice}
+I.~Murray and R.P. Adams.
+\newblock {Slice sampling covariance hyperparameters of latent Gaussian
+  models}.
+\newblock \emph{arXiv:1006.0868}, 2010.
+
+\bibitem[Nocedal and Wright(1999)]{nocedal1999numerical}
+J.~Nocedal and S.J. Wright.
+\newblock \emph{Numerical optimization}.
+\newblock Springer Verlag, 1999.
+
+\bibitem[Osborne et~al.(2009)Osborne, Garnett, and
+  Roberts]{osborne2009gaussian}
+M.A. Osborne, R.~Garnett, and S.J. Roberts.
+\newblock {G}aussian processes for global optimization.
+\newblock In \emph{3rd International Conference on Learning and Intelligent
+  Optimization (LION3)}, 2009.
+
+\bibitem[Plackett(1954)]{plackett1954reduction}
+R.L. Plackett.
+\newblock {A reduction formula for normal multivariate integrals}.
+\newblock \emph{Biometrika}, 41\penalty0 (3-4):\penalty0 351, 1954.
+
+\bibitem[Powell(1978{\natexlab{a}})]{powell1978convergence}
+M.J.D. Powell.
+\newblock The convergence of variable metric methods for nonlinearly
+  constrained optimization calculations.
+\newblock \emph{Nonlinear programming}, 3\penalty0 (0):\penalty0 27--63,
+  1978{\natexlab{a}}.
+
+\bibitem[Powell(1978{\natexlab{b}})]{powell1978fast}
+M.J.D. Powell.
+\newblock A fast algorithm for nonlinearly constrained optimization
+  calculations.
+\newblock \emph{Numerical analysis}, pages 144--157, 1978{\natexlab{b}}.
+
+\bibitem[Rasmussen and Williams(2006)]{RasmussenWilliams}
+C.E. Rasmussen and C.K.I. Williams.
+\newblock \emph{Gaussian Processes for Machine Learning}.
+\newblock MIT Press, 2006.
+
+\bibitem[Schmitt(2004)]{schmitt2004theory}
+L.M. Schmitt.
+\newblock Theory of genetic algorithms ii: models for genetic operators over
+  the string-tensor representation of populations and convergence to global
+  optima for arbitrary fitness function under scaling.
+\newblock \emph{Theoretical Computer Science}, 310\penalty0 (1-3):\penalty0
+  181--231, 2004.
+
+\bibitem[Seeger(2008)]{SeegerEP}
+M.~Seeger.
+\newblock Expectation propagation for exponential families.
+\newblock Technical report, U.C. Berkeley, 2008.
+
+\bibitem[Shanno(1970)]{shanno1970conditioning}
+D.F. Shanno.
+\newblock Conditioning of quasi-{N}ewton methods for function minimization.
+\newblock \emph{Mathematics of computation}, 24\penalty0 (111):\penalty0
+  647--656, 1970.
+
+\bibitem[Shannon(1948)]{shannon1948mathematical}
+C.E. Shannon.
+\newblock A mathematical theory of communication.
+\newblock \emph{Bell System Technical Journal}, 27, 1948.
+
+\bibitem[Srinivas et~al.(2010)Srinivas, Krause, Kakade, and
+  Seeger]{srinivasgaussian}
+N.~Srinivas, A.~Krause, S.~Kakade, and M.~Seeger.
+\newblock {G}aussian process optimization in the bandit setting: No regret and
+  experimental design.
+\newblock In \emph{International Conference on Machine Learning}, 2010.
+
+\bibitem[Thompson and Neal(2010)]{thompson2010slice}
+M.B. Thompson and R.M. Neal.
+\newblock Slice sampling with adaptive multivariate steps: The shrinking-rank
+  method.
+\newblock \emph{Arxiv preprint arXiv:1011.4722}, 2010.
+
+\bibitem[Uhlenbeck and Ornstein(1930)]{uhlenbeck1930theory}
+G.E. Uhlenbeck and L.S. Ornstein.
+\newblock On the theory of the {B}rownian motion.
+\newblock \emph{Physical Review}, 36\penalty0 (5):\penalty0 823, 1930.
+
+\bibitem[van~der Vaart and van Zanten(2011)]{van2011information}
+A.W. van~der Vaart and J.H. van Zanten.
+\newblock Information rates of nonparametric {G}aussian process methods.
+\newblock \emph{Journal of Machine Learning Research}, 12:\penalty0 2095--2119,
+  2011.
+
+\bibitem[Waltz et~al.(2006)Waltz, Morales, Nocedal, and
+  Orban]{waltz2006interior}
+R.A. Waltz, J.L. Morales, J.~Nocedal, and D.~Orban.
+\newblock An interior algorithm for nonlinear optimization that combines line
+  search and trust region steps.
+\newblock \emph{Mathematical Programming}, 107\penalty0 (3):\penalty0 391--408,
+  2006.
+
+\bibitem[Wiener and Masani(1957)]{wiener1957prediction}
+N.~Wiener and P.~Masani.
+\newblock The prediction theory of multivariate stochastic processes.
+\newblock \emph{Acta Mathematica}, 98\penalty0 (1):\penalty0 111--150, 1957.
+
+\end{thebibliography}

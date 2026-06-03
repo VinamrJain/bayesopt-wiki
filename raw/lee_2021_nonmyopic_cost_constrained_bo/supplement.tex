@@ -1,0 +1,76 @@
+\appendix
+
+\section{Gaussian process regression}
+\label{sec:gps}
+We place a GP prior on $f(\bx)$, denoted by $f \sim \GP(\mu, K)$, where $\mu:\Omega\to\R$ and $k:\Omega\times\Omega\to\R$ are the mean function and covariance kernel, respectively.
+The kernel $k(\bx, \bx')$ correlates neighboring points, and may contain \textit{hyperparameters}, such as lengthscales that are learned to improve the quality of approximation~\citep{Rasmussen2006}. 
+For a given $\D_t = \{ (\bx_i, y_i) \}_{i=1}^t$, we define:
+\[
+    \by = \begin{pmatrix}y_1 \\\vdots\\ y_t\end{pmatrix},
+    \,\,
+    \bk(\bx) = \begin{pmatrix} k(\bx, \bx_1) \\\vdots\\ k(\bx, \bx_t)\end{pmatrix},
+    \,\,
+    \mK = \begin{pmatrix}\bk(\bx_1)^\top \\\vdots\\ \bk(\bx_k)^\top\end{pmatrix}.
+\]
+We assume $y_i$ is observed with Gaussian white noise: $y_i = f(\bx_i) + \epsilon_i$, where $\epsilon_i \sim \N(0, \sigma^2)$.
+Given a GP prior and data $\D_t$, the resulting posterior distribution for function values at a location $\bx$ is the Normal distribution $\N(\mu_t(\bx ; \D_t), \sigma^2_t(\bx; \D_t))$:
+\begin{align*}
+    \mu_t(\bx ; \D_t) &= \mu(\bx) + \bk(\bx)^\top(\mK + \sigma^2\mI_t)^{-1}(\by - \mu(\bx)), \\
+    \sigma^2_t(\bx; \D_t) &= k(\bx, \bx) - \bk(\bx)^\top(\mK + \sigma^2\mI_t)^{-1}\bk(\bx),
+\end{align*}
+where $\mI_t \text{ is the $t \times t$ identity matrix}$. We use the Mat{\'e}rn 5/2 kernel in this paper:
+\[
+    k_{\text{5/2}}(\bx, \bx') = \alpha^2\left( 1 + \frac{\sqrt{5}}{\ell} + \frac{5}{3\ell^2}\right) \exp\left(-\frac{\sqrt{5}\|\bx-\bx'\|}{\ell} \right).
+\]
+
+
+
+
+\section{Theoretical Results}
+If a base policy $\tilde \pi$ is \textit{sequentially consistent}, rollout in the MDP setting will perform better in expectation than the base policy itself
+The same holds true in the CMDP setting if $c(\bx)$ is also deterministic. 
+
+We first define a heuristic $\HH$ as a method to generate decision rules in epochs $\{0, \dots, h-1\}$, such that the resulting heuristic policy $\pi$ generated from $\HH$ on state $s$ is defined as
+\[
+\pi_{\HH(s)} = \{\pi_0 ^ {\pi_{\HH(s)}} \dots \pi_{h-1}^{\pi_{\HH(s)}}\}
+\]
+
+Having defined $\pi_{\HH(s)}$, we define sequential consistency for stochastic MDPs below.  
+
+\begin{definition}
+    \citep{goodson2017rollout}: A heuristic $\HH$ is sequentially consistent if, for every trajectory from any $s$ and all subsequent $s'$:
+    \[
+    \pi_{\HH(s)} = \pi_{\HH(s')},
+    \]
+    or in other words, that the decision rules generated from the heuristic are the same:
+    \[
+    \{\pi_0 ^ {\pi_{\HH(s)}} \dots \pi_{h-1}^{\pi_{\HH(s)}}\} = \ \{\pi_0 ^ {\pi_{\HH(s')}} \dots \pi_{h-1}^{\pi_{\HH(s')}}\}.
+    \]
+\end{definition}
+
+This frames sequential consistency in terms of decision rules instead of as sample trajectories \cite{bertsekas1995dynamic}, which we did in the main text for notational clarity. However, the intuition of the theorem above is the same as its deterministic counterpart; a heuristic $\HH$ is sequentially consistent if it produces the same subsequent state $s'$ when started at any intermediate state of a path that it generates $s$.
+
+\begin{theorem}
+    \citep{bertsekas2005rollout}:
+    In the CMDP setting, a rollout policy $\pi_{roll} = \pi^{\pi_{\HH(s)}}$ using sequentially consistent heuristic $\HH$ does no worse than its base policy $\tilde \pi$ in expectation.
+    \[
+        V^{\pi_{roll}}_h(s_0) \geq V^{\tilde \pi}_h(s_0).
+    \]
+    Thus, the value function of a rollout policy is always greater than the value function of the base policy. 
+\end{theorem}
+To guarantee sequential consistency of our acquisition function, we need only consistently break ties if the acquisition function has multiple maxima. 
+
+\section{Additional Experiment}
+ \begin{table}[h]
+     \centering
+     \begin{tabular}{| c||c|c|c|c |} 
+          \hline & EI & EIpu & R2 & R4 \\ \hline
+          mean & 0.140 & 0.139 & 0.137 & \textbf{0.131}\\
+          std & 0.005 & 0.005 & 0.004 & \textbf{0.001}  \\ \hline
+     \end{tabular}
+     \caption{Rollout performance for horizons 2 and 4 outperformed both EI and EIpu. The best method is bolded.}
+     \label{tab:supp_table}
+ \end{table}
+
+ Most of our HPO experiments were run on the OpenML w2a dataset. To sanity check our performance's robustness, we run the same HPO problem for k-nearest-neighbors with the OpenML a1a dataset. Rollout performance remained superior, and we record the mean and standard error in Table \ref{tab:supp_table}.  
+ 

@@ -1,0 +1,36 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+
+# PDFs (keep parsed markdown + LaTeX sources; ignore binary PDFs)
+*.pdf
+
+# Stale PDF stash (CLAUDE.md: ignore papers/)
+papers/
+
+# PoC / scratch (parser comparisons, temp extracts)
+_poc_parse/
+_parse_eval/
+
+# Archive — superseded drafts, not authoritative
+_archive/
+
+# Large or generated artifacts
+*.tar.gz
+*.zip
+
+# Wiki build artifacts (when added)
+wiki/.obsidian/

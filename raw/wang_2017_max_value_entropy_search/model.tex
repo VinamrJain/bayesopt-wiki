@@ -1,0 +1,18 @@
+\subsection{Model Adaptation}
+\label{sec:model}
+
+In practice we do not know the hyper-parameters of the GP, so we must adapt our GP model as we observe more data. 
+%
+A standard way to learn the GP hyper-parameters is to optimize the marginal data likelihood with respect to the hyper-parameters. As a full Bayesian treatment, we can also draw samples of the hyper-parameters using slice sampling~\cite{vanhatalo2013gpstuff}, and then marginalize out the hyper-parameters in our acquisition function in Eq.~\eqref{eq:mesapprox}. Namely, if we use %
+$E$ to denote the set of sampled settings for the GP hyper-parameters, our acquisition function becomes
+\begin{align*}
+\alpha_t(x) = \sum_{\eta\in E}\sum_{y_*\in Y_*}\left[ \frac{\gamma^{\eta}_{y_*}( \vx)\psi(\gamma^{\eta}_{y_*}( \vx))}{2\Psi(\gamma^{\eta}_{y_*}(\vx))} - \log(\Psi(\gamma^{\eta}_{y_*}( \vx)))\right],
+\end{align*} %
+where $\gamma^{\eta}_{y_*}(\vx) = \frac{y_* - \mu^{\eta}_t(\vx)}{\sigma^{\eta}_t(\vx)}$ and the posterior inference on the mean function $\mu_t^{\eta}$ and $\sigma_t^{\eta}$  depends on the GP hyper-parameter setting $\eta$. Similar approaches have been used in~\cite{hernandez2014predictive, snoek2012practical}.
+
+\hide{
+For learning additive structure, we follow~\cite{newicml} and construct a Bayesian model for the additive structure where each input dimension is assigned to a unique group. The generative processes of the group assignment is as follows, 1) draw group mixing proportion $\theta\sim \textsc{Dir}(\alpha)$; 2) for each dimension $j$, choose a group assignment $w_j \sim \textsc{Multi}(\theta)$. Our function is $f(x) =\sum_{m=1}^M f^{(i)}(x^{A_m})$, where $A_{m} = \{{m: w_j=m)}\}$ is the set of active dimensions for function $f^{(i)}$. We integrate out $\theta$ and use Gibbs sampling to learn the assignments $w_j$. For each input dimension, we sample the group assignment from the conditional distribution 
+$p(w_j = m\mid w_{\neg j}, D_t;\alpha) \propto e^{\phi_m}$
+where $\phi_m = -\frac12 \vy\T (K_m+\sigma^2 \mI)^{-1}\vy -\frac12\log |K_m+\sigma^2 \mI| + 
+\log (|A_m| + \alpha_m),$ and $K_m$ is the gram matrix associated with $D_t$ by setting $w_j = m$. We iterate between learning hyper-parameters and additive model to obtain a good setting of the additive structure and hyper-parameters.
+}

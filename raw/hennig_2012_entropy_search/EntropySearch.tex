@@ -1,0 +1,1602 @@
+\documentclass[twoside,11pt]{article}
+
+\usepackage{jmlr2e}
+
+% volume, year, pages, submitted, published, author-full-names
+\jmlrheading{12}{2012}{??-??}{12/11}{??/??}{Philipp Hennig and
+  Christian J. Schuler}
+
+\ShortHeadings{Entropy Search}{Hennig and Schuler}
+\title{Entropy Search\\ for Information-Efficient Global Optimization}
+\author{\name Philipp Hennig \email phennig@tuebingen.mpg.de\\
+%\AND
+\name Christian J. Schuler \email cschuler@tuebingen.mpg.de\\
+\addr Department of Empirical Inference\\ 
+Max Planck Institute for Intelligent Systems\\
+Spemannstra\ss e 38, T\"ubingen, Germany}
+
+\editor{}
+
+\usepackage[cmex10]{amsmath}
+\usepackage{amssymb}
+
+\renewcommand{\Re}{\mathbb{R}}
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\U}{\mathcal{U}}
+\newcommand{\Trans}{^{\intercal}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\g}{\,|\,}
+\newcommand{\const}{\text{const.}}
+\renewcommand{\d}{\:\mathrm{d}}
+\newcommand{\de}{\partial}
+
+\newcommand{\vp}{\vec{\phi}}
+\newcommand{\vw}{\vec{w}}
+\newcommand{\vm}{\vec{m}}
+\newcommand{\vx}{\vec{x}}
+\newcommand{\vy}{\vec{y}}
+\newcommand{\vz}{\vec{z}}
+\newcommand{\vY}{\vec{Y}}
+\newcommand{\vX}{\vec{X}}
+\newcommand{\vk}{\vec{k}}
+\newcommand{\xmin}{x_{\min}}
+\newcommand{\pmin}{p_{\min}}
+\newcommand{\fmin}{f_{\min}}
+\newcommand{\hpmin}{\hat{p}_{\min}}
+\newcommand{\hqmin}{\hat{q}_{\min}}
+\newcommand{\pfmin}{p_{f_{\min}}}
+
+\newcommand{\hl}[1]{\textcolor{blue}{#1}}
+
+\renewcommand{\vec}{\boldsymbol}
+\newcommand{\fun}[1]{\mathsf{#1}}
+\renewcommand{\O}{\mathcal{O}}
+\newcommand{\GP}{\mathcal{GP}}
+\newcommand{\Id}{\vec{I}}
+\newcommand{\II}{\mathbb{I}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\argmin}{\operatorname*{arg\: min}}
+\newcommand{\chol}{\operatorname{\mathsf{C}}}
+
+\newcommand{\Exp}{\mathsf{E}}
+\newcommand{\KL}{\text{KL}}
+
+\usepackage{tikz}
+%\usepackage[pdftex,colorlinks,hidelinks]{hyperref}
+\usetikzlibrary{arrows,shapes,plotmarks}
+
+\tikzset{>=stealth'} 
+\tikzstyle{graphnode} = 
+   [circle,draw=black,minimum size=22pt,text centered,text
+     width=22pt,inner sep=0pt] 
+\tikzstyle{obs} = [graphnode,fill=black,text=white]
+\tikzstyle{var} = [graphnode,fill=white,text=black]
+\tikzstyle{fac} = [rectangle,draw=black,fill=black!25,minimum size=5pt]
+\tikzstyle{edge}= [draw=white,double=black,thick,-]
+
+\usepackage{pgfplots}
+\usetikzlibrary{arrows,shapes,plotmarks}
+
+% to avoid warnings, copy only some symbols from stmaryrd
+\DeclareSymbolFont{stmry}{U}{stmry}{m}{n}
+\DeclareMathSymbol\leftrightarrowtriangle\mathrel{stmry}{"5D}
+\DeclareMathSymbol\leftarrowtriangle\mathrel{stmry}{"5E}
+\DeclareMathSymbol\rightarrowtriangle\mathrel{stmry}{"5F}
+\DeclareMathSymbol\mapstochar\mathrel{stmry}{"5A}
+
+\renewcommand{\gets}{\leftarrowtriangle}
+\renewcommand{\to}{\rightarrowtriangle}
+
+\usepackage{algorithm}%,algorithmic}
+\usepackage{algpseudocode}
+\algrenewcommand{\algorithmiccomment}[1]{{\footnotesize \hfill$\rhd$ #1}}
+
+%%%%%% The smart trick to out-compile tikz pictures.
+\newif\iffinal % introduce a switch for draft vs. final document
+%\finaltrue % use this to compile the final document
+
+\pgfrealjobname{EntropySearch}  % <-- NOTE: this needs to be the real document's basename
+                       %     (else you'll only get an empty output file)
+\iffinal
+ \newcommand{\inputTikZ}[1]{%
+   \input{#1.tikz}%
+ }
+\else
+ \newcommand{\inputTikZ}[1]{%
+   \beginpgfgraphicnamed{#1-external}%
+   \input{#1.tikz}%
+   \endpgfgraphicnamed%
+ }
+\fi
+%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  Contemporary global optimization algorithms are based on local
+  measures of utility, rather than a probability measure over location
+  and value of the optimum. They thus attempt to collect low function
+  values, not to learn about the optimum. The reason for the absence
+  of probabilistic global optimizers is that the corresponding
+  inference problem is intractable in several ways. This paper
+  develops desiderata for probabilistic optimization algorithms, then
+  presents a concrete algorithm which addresses each of the
+  computational intractabilities with a sequence of approximations and
+  explicitly adresses the decision problem of maximizing information
+  gain from each evaluation.
+\end{abstract}
+
+\begin{keywords}
+  Optimization, Probability, Information, Gaussian
+  Processes, Expectation Propagation
+\end{keywords}
+
+\section{Introduction}
+\label{sec:introduction}
+
+Optimization problems are ubiquitous in science, engineering, and
+economics. Over time the requirements of many separate fields have led
+to a heterogenous set of settings and algorithms. Speaking very
+broadly, however, there are two distinct regimes for optimization. In
+the first one, relatively cheap function evaluations take place on a
+numerical machine and the goal is to find a ``good'' region of low or
+high function values. Noise tends to be small or negligible, and
+derivative observations are often available at low additional cost;
+but the parameter space may be very high-dimensional. This is the
+regime of \emph{numerical, local} or \emph{convex} optimization, often
+encountered as a sub-problem of machine learning algorithms. Popular
+algorithms for such settings include quasi-Newton methods
+\citep{broyden1965class,fletcher1970new,goldfarb1970family,shanno1970conditioning},
+the conjugate gradient method \citep{hestenes1952methods}, and
+stochastic optimization and evolutionary search methods (e.g.\
+\citet{hansen2001completely}), to name only a few. Since these
+algorithms perform local search, constraints on the solution space are
+often a crucial part of the problem. Thorough introductions can be
+found in the textbooks by \citet{nocedal1999numerical} and
+\citet{boyd2004convex}. This paper will utilize algorithms from this
+domain, but it is not its primary subject.
+
+In the second milieu, which this paper addresses, the function itself
+is not known and needs to be learned during the search for its
+\emph{global} minimum within some measurable (usually: bounded)
+domain. Here, the parameter space is often relatively low-dimensional,
+but evaluating the function involves a monetarily or morally expensive
+physical process -- building a prototype, drilling a borehole, killing
+a rodent, treating a patient. Noise is often a nontrivial issue, and
+derivative observations, while potentially available, cannot be
+expected in general. While algorithms for such applications need to be
+tractable, their most important desideratum is efficient use of data,
+rather than raw computational cost. This domain is often called
+\emph{global optimization}, but is also closely associated with the
+field of \emph{experimental design} and related to the concept of
+\emph{exploration} in reinforcement learning. The learned model of the
+function is also known as a \emph{response surface} in some
+communities. The two contributions of this paper are a probabilistic
+view on this field, and a concrete algorithm for such problems.
+
+\subsection{Problem Definition}
+\label{sec:problem-definition}
+%% DONE.
+We define the problem of \emph{probabilistic global optimization}: Let
+$I\subset\Re^D$ be some bounded domain of the real vector space. There
+is a function $f:I\to\Re$, and our knowledge about $f$ is described by
+a probability measure $p(f)$ over the space of functions
+$I\to\Re$. This induces a measure
+\begin{equation}
+  \label{eq:1}
+  \pmin(x) \equiv p[x=\argmin f(x)] = \int_{f:I\to\Re} p(f)
+  \prod_{\stackrel{\tilde{x}\in I}{\tilde{x} \neq
+      x}} \theta[f(\tilde{x})-f(x)] \d f
+\end{equation}
+were $\theta$ is Heaviside's step function. The exact meaning of the
+``infinite product'' over the entire domain $I$ in this equation
+should be intuitively clear, but is defined properly in the
+Appendix. Note that the integral is over the infinite-dimensional
+space of functions. We assume we can evaluate the function\footnote{We
+  may further consider observations of linear operations on $f$. This
+  includes derivative and integral observations of any order, if they
+  exist. Section \ref{sec:deriv-observ} addresses this point; it is
+  unproblematic under our chosen prior, but clutters the notation, and
+  is thus left out elsewhere in the paper.} at any point $x\in I$
+within some bounded domain $I$, obtaining function values $y(x)$
+corrupted by noise, as described by a likelihood $p(y\g
+f(x))$. Finally, let $L(x^*,\xmin)$ be a loss function describing the
+cost of naming $x^*$ as the result of optimization if the true minimum
+is at $\xmin$. This loss function induces a loss functional
+$\L(\pmin)$ assigning utility to the uncertain knowledge about
+$\xmin$, as
+\begin{equation}
+  \label{eq:3}
+  \L(\pmin) = \int_I [\min_{x^*} L(x^*,\xmin)] \pmin(\xmin) \d \xmin.
+\end{equation}
+The goal of global optimization is to decrease the expected loss after
+$H$ function evaluations at locations $\vx=\{x_1,\dots,x_H\}\subset
+I$. The expected loss is
+\begin{equation}
+  \label{eq:2}
+  \langle \L \rangle_H = \int p(\vy \g \vx) \L(\pmin(x \g \vy,\vx))
+  \d \vy =  \iint p(\vy \g \vec{f}(\vx)) p(\vec{f}(\vx)\g\vx) \L(\pmin(x \g \vy,\vx))
+  \d \vy \d \vec{f}
+\end{equation}
+where $\L(\pmin(x \g \vy,\vx))$ should be understood as the cost
+assigned to the measure $\pmin(x)$ induced by the posterior belief
+over $f$ after observations $\vy=\{y_1,\dots,y_H\}\subset\Re$ at the
+locations $\vx$.
+
+The remainder of this paper will replace the symbolic objects in this
+general definition with concrete measures and models to construct an
+algorithm we call \emph{Entropy Search}. But it is useful to pause at
+this point to contrast this definition with other concepts of
+optimization.
+
+\paragraph{Probabilistic Optimization}
+\label{sec:prob-optim}
+%% DONE.
+The distinctive aspect of our definition of ``optimization'' is
+Equation \eqref{eq:1}, an explicit role for the function's
+extremum. Previous work did not consider the extremum so directly. In
+fact, many frameworks do not even use a measure over the function
+itself. An example of optimizers that only implicitly encode
+assumptions about the function are genetic algorithms
+\citep{schmitt2004theory} and evolutionary search
+\citep{hansen2001completely}. If such formulations feature the global
+minimum $\xmin$ at all, then only in statements about the limit
+behavior of the algorithm after many evaluations. Not explicitly
+writing out the prior over the function space can have advantages:
+Probabilistic analyses tend to involve intractable integrals; a less
+explicit formulation thus allows to construct algorithms with
+interesting properties that would be entirely intractable from a
+probabilistic viewpoint. But non-probabilistic algorithms cannot make
+explicit statements about the location of the minimum. At best, they
+may be able to provide bounds.
+
+Fundamentally, reasoning about optimization of functions on continuous
+domains \emph{after finitely many evaluations}, like any other
+inference task on spaces without natural measures, is impossible
+without prior assumptions. For intuition, consider the following
+thought experiment: Let $(\vx_0,\vy_0)$ be a finite, possibly empty, set
+of previously collected data. For simplicity, and without loss of
+generality, assume there was no measurement noise, so the true
+function actually passes through each data point. Say we want to
+suggest that the minimum of $f$ may be at $x^* \in I$. To make this
+argument, we propose a number of functions that pass through
+$(\vx_0,\vy_0)$ and are minimized at $x^*$. We may even suggest an
+uncountably infinite set of such functions. Whatever our proposal, a
+critic can always suggest another uncountable set of functions that
+also pass through the data, and are \emph{not} minimized at $x^*$. To
+argue with this person, we need to reason about the relative size of
+our set versus their set. Assigning size to infinite sets amounts to
+the aforementioned normalized measure over admissible functions
+$p(f)$, and the consistent way to reason with such measures is
+probability theory \citep{kolmogorov_axioms,cox1946probability}. Of
+course, this amounts to imposing assumptions on $f$, but this is a
+fundamental epistemological limitation of inference, not a special
+aspect of optimization.
+
+\paragraph{Relationship to the Bandit Setting}
+\label{sec:diff-band-sett}
+
+There is a considerable amount of prior work on continuous bandit
+problems, also sometimes called ``global optimization''
+\citep[e.g.][]{kleinberg2005nearly,grunewalder2010regret,srinivasgaussian}. The
+bandit concept differs from the setting defined above, and bandit
+regret bounds do not apply here: Bandit algorithms seek to minimize
+\emph{regret}, the sum over function values at evaluation points,
+while probabilistic optimizers seek to infer the minimum, no matter
+what the function values at evaluation points. An optimizer gets to
+evaluate $H$ times, then has to make one single decision regarding
+$\L(\pmin)$. Bandit players have to make $H$ evaluations, such that
+the evaluations produce low values. This forces bandits to focus their
+evaluation policy on function value, rather than the loss at the
+horizon (see also Section \ref{sec:model-comparison}). In
+probabilistic optimization, the only quantity that counts is the
+quality of the belief on $\pmin$ under $\L$, after $H$ evaluations,
+not the sum of the function values returned during those $H$
+steps.
+
+\paragraph{Relationship to Heuristic Gaussian Process Optimization and
+Response Surface Optimization}
+\label{sec:relat-heur-gauss}
+
+There are also a number of works employing Gaussian process measures
+to construct heuristics for search, also known as ``Gaussian process
+global optimization''
+\citep{jones1998efficient,lizotte2008practical,osborne2009gaussian}.
+As in our definition, these methods explicitly infer the function from
+observations, constructing a Gaussian process posterior. But they then
+evaluate at the location maximizing a heuristic $u[p(f(x))]$ that
+turns the \emph{marginal} belief over $f(x)$ at $x$, which is a
+univariate Gaussian $p(f(x))=\N[f(x);\mu(x),\sigma^2(x)]$, into an ad
+hoc utility for evaluation, designed to have high value at locations
+close to the function's minimum. Two popular heuristics are the
+\emph{probability of improvement} \citep{lizotte2008practical}
+\begin{equation}
+  \label{eq:15}
+  u_{\text{PI}}(x) = p[f(x)<\eta] = \int_{-\infty} ^\eta
+  \N(f(x);\mu(x),\sigma(x)^2) \d f(x) = \Phi\left( \frac{\eta-\mu(x)}{\sigma(x)} \right)
+\end{equation}
+and \emph{expected improvement} \citep{jones1998efficient}
+\begin{equation}
+  \label{eq:16}
+  u_{\text{EI}}(x) = \Exp[\min\{0,(\eta-f(x))\}] = (\eta - \mu)
+  \Phi\left( \frac{\eta-\mu(x)}{\sigma(x)} \right) + \sigma \phi\left( \frac{\eta-\mu(x)}{\sigma(x)} \right)
+\end{equation}
+where $\Phi(z)=1/2[1+\operatorname{erf}(z/\sqrt{2})]$ is the standard
+Gaussian cumulative density function, $\phi(x)=\N(x;0,1)$ is the
+standard Gaussian probability density function, and $\eta$ is a
+current ``best guess'' for a low function value, e.g.\ the lowest
+evaluation so far. 
+
+These two heuristics have different units of measure: probability of
+improvement is a probability, expected improvement has the units of
+$f$. Both utilities differ markedly from Eq.\ \eqref{eq:1}, $\pmin$,
+which is a probability \emph{measure} and as such a \emph{global}
+quantity. See Figure \ref{fig:samples} for a comparison of the three
+concepts on an example. The advantage of the heuristic approach is
+that it is computationally lightweight, because the utilities have
+analytic form. But local measures cannot capture general decision
+problems of the type described above. For example, these algorithms do
+not capture the effect of evaluations on knowledge: A small region of
+high density $\pmin(x)$ may be less interesting to explore than a
+broad region of lower density, because the expected \emph{change} in
+knowledge from an evaluation in the broader region may be much larger,
+and may thus have much stronger effect on the loss. If the goal is to
+infer the location of the minimum (more generally: minimize loss at
+the horizon), the optimal strategy is to evaluate where we expect to
+\emph{learn} most about the minimum (reduce loss toward the horizon),
+rather then where we think the minimum \emph{is} (recall Section
+\ref{sec:diff-band-sett}). The former is a nonlocal problem, because
+evaluations affect the belief, in general, everywhere. The latter is a
+local problem.
+
+\section{Entropy Search}
+\label{sec:concrete-algorithm}
+
+The probable reason for the absence of global optimization algorithms
+from the literature is a number of intractabilities in any concrete
+realisation of the setting of Section
+\ref{sec:problem-definition}. This section makes some choices and
+constructs a series of approximations, to arrive at a tangible
+algorithm, which we call \emph{Entropy Search}. The derivations evolve
+along the following path.
+\begin{description}
+\item[choosing $p(f)$] We commit to a Gaussian process prior on $f$
+  (Section \ref{sec:gauss-proc-meas}). Limitations and implications of
+  this choice are outlined, and possible extensions suggested, in
+  Sections \ref{sec:deriv-observ} and \ref{sec:limit-extens-gauss}.
+\item[discretizing $\pmin$] We discretize the problem of calculating
+  $\pmin$, to a finite set of representer points chosen from a
+  non-uniform measure, which deals gracefully with the curse of
+  dimensionality. Artefacts created by this discretization are studied
+  in the tractable one-dimensional setting (Section
+  \ref{sec:discr-repr-cont}).
+\item[approximating $\pmin$] We construct an efficient approximation
+  to $\pmin$, which is required because Eq.\ \eqref{eq:1}, even for
+  finite-dimensional Gaussian measures, is not analytically tractable,
+  (Section \ref{sec:appr-pmin-with}). We compare the approximation to
+  the (asymptotically exact, but more expensive) Monte Carlo solution.
+\item[predicting change to $\pmin$] The Gaussian process measure affords
+  a straightforward but rarely used analytic probabilistic formulation
+  for the \emph{change} of $p(f)$ as a function of the next evaluation
+  point (Section \ref{sec:pred-innov-from}).
+\item[choosing loss function] We commit to relative \emph{entropy}
+  from a uniform distribution as the loss function, as this can be
+  interpreted as a utility on gained \emph{information} about the
+  location of the minimum (Section \ref{sec:information-gain-log}).
+\item[predicting expected information gain] From the predicted change,
+  we construct a first-order expansion on $\langle \L \rangle$ from
+  future evaluations and, again, compare to the asymptotically exact
+  Monte Carlo answer (Section \ref{sec:first-order-appr}).
+\item[choosing greedily] Faced with the exponential cost of the exact
+  dynamic problem to the horizon $H$, we accept a greedy approach for
+  the reduction of $\langle \L\rangle$ at every step. We illustrate
+  the effect of this shortcut in an example setting (Section
+  \ref{sec:defect-greedy-plann}).
+\end{description}
+
+\subsection{Gaussian Process Measure on $f$}
+\label{sec:gauss-proc-meas}
+
+%% DONE.
+\begin{figure}
+  \centering
+  \inputTikZ{figures/GPonly}
+  \caption{A Gaussian process measure (rational quadratic kernel),
+    conditioned on three previous observations (black crosses). Mean
+    function in solid red, marginal standard deviation at each
+    location (two standard deviations) as light red tube. Five sampled
+    functions from the current belief as dashed red lines. Arbitrary
+    ordinate scale, zero in gray.}
+  \label{fig:GP_init}
+\end{figure}
+
+The remainder of the paper commits to Gaussian process measures for
+$p(f)$. These are convenient for the task at hand due to their
+descriptive generality and their convenient analytic properties. Since
+this paper is aimed at readers from several communities, this section
+contains a very brief introduction to some relevant aspects of
+Gaussian processes; readers familiar with the subject can safely skip
+ahead. A thorough introduction can be found in a textbook of
+\citet{RasmussenWilliams}. Some readers from other fields may find it
+helpful to know that more or less special cases of Gaussian process
+inference are elsewhere known under names like \emph{Kriging}
+\citep{krigestatistical} and \emph{Kolmogorov-Wiener prediction}
+\citep{wiener1957prediction}, but while these frameworks are
+essentially the same idea, the generality of their definitions varies,
+so restrictions of those frameworks should not be assumed to carry
+over to Gaussian process inference as understood in machine learning.
+
+A Gaussian process is an infinite-dimensional probability density,
+such that each linear finite-dimensional restriction is multivariate
+Gaussian. The infinite-dimensional space can be thought of as a space
+of functions, and the finite-dimensional restrictions as \emph{values}
+of those functions at locations $\{x^* _i \}_{i=1,\dots,N}$. Gaussian
+process beliefs are parametrized by a \emph{mean function} $m:I\to\Re$
+and a \emph{covariance function} $k:I \times I \to \Re$. For our
+particular analysis, we restrict the domain $I$ to finite, compact
+subsets of the real vector spaces $\Re^D$. The covariance function,
+also known as the \emph{kernel}, has to be positive definite, in the
+sense that any finite-dimensional matrix with elements $K_{ij} =
+k(x_i,x_j)$ has to be positive definite $\forall x_i,x_j\in I$. A
+number of such kernel functions are known in the literature, and
+different kernel functions induce different kinds of Gaussian process
+measures over the space of functions. Among the most widely used
+kernels for regression are the \emph{squared exponential} kernel
+\begin{equation}
+  \label{eq:5}
+  k_\text{SE}(x,x';\vec{S},s) = s^2 \exp\left[-\frac{1}{2} (x - x'
+    )\Trans \vec{S}^{-1}(x-x')  \right]
+\end{equation}
+which induces a measure that puts nonzero mass on only smooth
+functions of \emph{characteristic length-scale} $\vec{S}$ and
+\emph{signal variance} $s^2$ \citep{mackay1998introduction}, and the
+\emph{rational quadratic} kernel
+\citep{matérn1960spatial,RasmussenWilliams}
+\begin{equation}
+  \label{eq:6}
+  k_{\text{RQ}}(x,x';\vec{S},s,\alpha) = s^2 \left(1 + \frac{1}{2\alpha} (x - x'
+    )\Trans \vec{S}^{-1}(x-x')\right)^{-\alpha}
+\end{equation}
+which induces a belief over smooth functions whose characteristic
+length scales are a scale mixture over a distribution of width
+$1/\alpha$ and location $\vec{S}$. Other kernels can be used to induce
+beliefs over non-smooth functions \citep{matérn1960spatial}, and even
+over non-continuous functions \citep{uhlenbeck1930theory}. Experiments
+in this paper use the two kernels defined above, but the results apply
+to all kernels inducing beliefs over \emph{continuous}
+functions. While there is a straightforward relationship between
+kernel continuity and the mean square continuity of the induced
+\emph{process}, the relationship between the kernel function and the
+continuity of each \emph{sample} is considerably more involved
+\citep[][\textsection3]{adler1981geometry}. Regularity of the kernel
+also plays a nontrivial role in the question wether the distribution
+of infima of samples from the process is well-defined at all
+\citep{AdlerSuprema}. In this work, we side-step this issue by
+assuming that the chosen kernel is sufficiently regular to induce a
+well-defined belief $\pmin$ as defined by Equation \eqref{eq:14}.
+
+Kernels form a semiring: products and sums of kernels are kernels.
+These operations can be used to generalize the induced beliefs over
+the function space (Section \ref{sec:limit-extens-gauss}). Without loss
+of generality, the mean function is often set to $m\equiv 0$ in
+theoretical analyses, and this paper will keep with this tradition,
+except for Section \ref{sec:limit-extens-gauss}. Where $m$ is nonzero,
+its effect is a straightforward off-set $p(f(x)) \to p(f(x)-m(x))$.
+
+For the purpose of regression, the most important aspect of Gaussian
+process priors is that they are conjugate to the likelihood from
+finitely many observations $(\vX,\vY)=\{\vx_i,y_i\}_{i=1,\dots,N}$ of
+the form $y_i(\vx_i)=f(\vx_i)+\xi$ with Gaussian noise $\xi\sim
+\N(0,\sigma^2)$. The posterior is a Gaussian process with mean and
+covariance functions
+\begin{equation}
+  \label{eq:7}
+  \mu(\vx^*) = k_{\vx^*,\vX} [K_{\vX,\vX} + \sigma^{2}\Id]^{-1} \vy \quad;
+  \quad \Sigma(\vx^*,\vx_*) = k_{\vx^*,\vx_*} - k_{\vx^*,\vX} [K_{\vX,\vX} +
+  \sigma^{2}\Id]^{-1} k_{\vX,\vx_*}
+\end{equation}
+where $K_{\vX,\vX}$ is the kernel Gram matrix $K_{\vX,\vX}
+^{(i,j)}=k(x_i,x_j)$, and other objects of the form
+$k_{\vec{a},\vec{b}}$ are also matrices with elements
+$k_{\vec{a},\vec{b}} ^{(i,j)} = k(\vec{a}_i,\vec{b}_j)$. Finally, for
+what follows it is important to know that it is straightforward to
+sample ``functions'' (point-sets of arbitrary size from $I$) from a
+Gaussian process. To sample the value of a particular sample at the
+$M$ locations $\vX^*$, evaluate mean and variance function as a
+function of any previously collected datapoints, using Eq.\
+\eqref{eq:7}, draw a vector $\vec{\zeta}\sim\prod ^M \N(0,1)$ of $M$
+random numbers i.i.d.\ from a standard one-dimensional Gaussian
+distribution, then evaluate
+\begin{equation}
+  \label{eq:8}
+  \tilde{f}(\vX^*) = \mu(\vX^*) + \chol[\Sigma(\vX^*,\vX^*)]\Trans \vec{\zeta}
+\end{equation}
+where the operator $\chol$ denotes the Cholesky decomposition
+\citep{Cholesky}.
+
+
+\subsection{Discrete Representations for Continuous Distributions}
+\label{sec:discr-repr-cont}
+%% DONE.
+\begin{figure}
+  \centering
+  \inputTikZ{figures/pmin}
+  \caption{$\pmin$ induced by $p(f)$ from Figure \ref{fig:GP_init}.
+    $p(f)$ repeated for reference. Blue solid line: Asymptotically
+    exact representation gained from exact sampling of functions on a
+    regular grid. For comparison, the plot also shows the local
+    utilities \emph{probability of improvement} (dashed magenta) and
+    \emph{expected improvement} (solid magenta) often used for
+    Gaussian process global optimization. Blue circles: Approximate
+    representation on representer points, sampled from probability of
+    improvement measure. Stochastic error on sampled values, due to
+    only asymptotically correct assignment of mass to samples, and
+    varying density of points, focusing on relevant areas of
+    $\pmin$. This plot uses arbitrary scales for each object: The two
+    heuristics have different units of measure, differing from that of
+    $\pmin$. Notice the interesting features of $\pmin$ at the
+    boundaries of the domain: The prior belief encodes that $f$ is
+    smooth, and puts finite probability mass on the hypothesis that
+    $f$ has negative (positive) derivative at the right (left)
+    boundary of the domain. With nonzero probability, the minimum thus
+    lies exactly on the boundary of the domain, rather than within a
+    Taylor radius of it.}
+  \label{fig:samples}
+\end{figure}
+
+Having established a probability measure $p(f)$ on the function, we
+turn to constructing the belief $\pmin(x)$ over its
+minimum. Inspecting Equation \eqref{eq:1}, it becomes apparent that it
+is challenging in two ways: First, because it is an integral over an
+infinite-dimensional space, and second, because even on a
+finite-dimensional space it may be a hard integral for a particular
+$p(f)$. This section deals with the former issue, the following
+Section \ref{sec:appr-pmin-with} with the latter.
+
+It may seem daunting that $\pmin$ involves an infinite-dimensional
+integral. The crucial observation for a meaningful approximation in
+finite time is that regular functions can be represented meaningfully
+on finitely many points. If the stochastic process representing the
+belief over $f$ is sufficiently regular, then Equation \eqref{eq:1}
+can be approximated arbitrarily well with finitely many representer
+points. The discretization grid need not be regular -- it may be
+sampled from any distribution which puts non-zero measure on every
+open neighborhood of $I$. This latter point is central to a graceful
+handling of the curse of dimensionality: The na\"ive approach of
+approximately solving Equation \eqref{eq:1} on a regular grid, in a
+$D$-dimensional domain, would require $\O(\exp(D))$ points to achieve
+any given resolution. This is obviously not efficient: Just like in
+other numerical quadrature problems, any given resolution can be
+achieved with fewer representer points if they are chosen irregularly,
+with higher resolution in regions of greater influence on the result
+of integration. We thus choose to \emph{sample} representer points
+from a proposal measure $u$, using a Markov chain Monte Carlo sampler
+(our implementation uses shrinking rank slice sampling
+\citep{thompson2010slice}).
+
+What is the effect of this stochastic discretization? A non-uniform
+quadrature measure $u(\tilde{x})$ for $N$ representer locations
+$\{\tilde{x}_i\}_{i=1,\dots,N}$ leads to varying widths in the
+``steps'' of the representing staircase function. As $N\to\infty$, the
+width of each step is approximately proportional to $(u(\tilde{x}_i)
+N)^{-1}$. Section \ref{sec:appr-pmin-with} will construct a
+discretized $\hqmin(\tilde{x}_i)$ that is an approximation to the
+probability that $\fmin$ occurs within the step at $\tilde{x}_i$. So
+the approximate $\hpmin$ on this step is proportional to
+$\hqmin(\tilde{x}_i) u(\tilde{x}_i)$, and can be easily normalized
+numerically, to become an approximation to $\pmin$.
+
+How should the measure $u$ be chosen? Unfortunately, the result of the
+integration, being a density rather than a function, is itself a
+function of $u$, and the loss-function is also part of the
+problem. So it is nontrivial to construct an optimal quadrature
+measure. Intuitively, a good proposal measure for discretization
+points should put high resolution on regions of $I$ where the shape of
+$\pmin$ has strong influence on the loss, and on its change. For our
+choice of loss function (Section \ref{sec:information-gain-log}), it
+is a good idea to choose $u$ such that it puts high mass on regions of
+high value for $\pmin$. But for other functions, this need not always
+be the case.
+
+We have experimented with a number of ad-hoc choices for $u$, and
+found the aforementioned ``expected improvement'' and ``probability of
+improvement'' (Section \ref{sec:relat-heur-gauss}) to lead to
+reasonably good performance. We use these functions for a similar
+reason as their original authors: Because they \emph{tend} to have
+high value in regions where $\pmin$ is also large. To avoid confusion,
+however, note that we use these functions as unnormalized measures to
+\emph{sample discretization points} for our \emph{calculation} of
+$\pmin$, not as an approximation for $\pmin$ itself, as was done in
+previous work by other authors. Defects in these heuristics have
+weaker effect on our algorithm than in the cited works: In our case,
+if $u$ is not a good proposal measure, we simply need more samples to
+construct a good representation of $\pmin$. In the limit of
+$N\to\infty$, all choices of $u$ perform equally well, as long as they
+put nonzero mass on all open neighborhoods of the domain.
+
+\subsection{Approximating $\pmin$ with Expectation Propagation}
+\label{sec:appr-pmin-with}
+%% DONE.
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[node distance=2cm]
+    \node[var] at (0,0) (f) {$\vec{f}$};
+    \node[fac, left of=f] (pf) {} edge (f);
+    \node[fac, right of=f] (ff) {} edge (f);
+    \node[anchor=east] at (pf.west)
+    {$\N(\vec{f};\tilde{\vec\mu},\tilde{\vec\Sigma})$};
+    \node[anchor=west] at (ff.east) 
+    {$\theta[f(\tilde{x}_j) - f(\tilde{x}_i)]$};
+    \draw (1.0,-1) rectangle (5.5,1);
+    \node[anchor=south east] at (5.5,-1) {$i\neq j$};
+  \end{tikzpicture}
+  \caption{Graphical model providing motivation for EP approximation
+    on $\pmin$. See text for details.}
+  \label{fig:EP}
+\end{figure}
+
+The previous Section \ref{sec:discr-repr-cont} provided a way to
+construct a non-uniform grid of $N$ discrete locations $\tilde{x}_i$,
+$i=1,\dots,N$. The restriction of the Gaussian process belief to these
+locations is a multivariate Gaussian density with mean
+$\tilde{\vec{\mu}}\in\Re^N$ and covariance
+$\tilde{\vec{\Sigma}}\in\Re^{N\times N}$. So Equation
+\eqref{eq:1} reduces to a discrete probability \emph{distribution} (as
+opposed to a density)
+\begin{equation}
+  \label{eq:17}
+  \hpmin(x_i) = \int_{\vec{f}\in\Re^N} \N(\vec{f};\tilde{\vec{\mu}},\tilde{\vec{\Sigma}})
+  \prod_{i\neq j} ^N \theta(f(x_j)-f(x_i)) \d \vec{f}.
+\end{equation}
+This is a multivariate Gaussian integral over a half-open, convex,
+piecewise linearly constrained integration region -- a polyhedral
+cone. Unfortunately, such integrals are known to be intractable
+\citep{plackett1954reduction,Holly_NInt}. However, it is possible to
+construct an effective approximation $\hqmin$ based on Expectation
+Propagation (EP) \citep{EP_Minka}: Consider the belief
+$p(f(\tilde{x}))$ as a ``prior message'' on $f(\tilde{x})$, and each
+of the terms in the product as one factor providing another
+message. This gives the graphical model shown in Figure
+\ref{fig:EP}. Running EP on this graph provides an approximate
+Gaussian marginal, whose normalisation constant $\hqmin(x_i)$, which
+EP also provides, approximates $p(f\g \xmin=x_i)$. The EP algorithm
+itself is somewhat involved, and there are a number of algorithmic
+technicalities to take into account for this particular setting. We
+refer interested readers to recent work by \citet{EPMGP}, which gives
+a detailed description of these aspects. The cited work also
+establishes that, while EP's approximations to Gaussian integrals are
+not always reliable, in this particular case, where there are as many
+constraints as dimensions to the problem, the approximation is
+generally of high quality (see Figure \ref{fig:EP_toMC} for an
+example). An important advantage of the EP approximation over both
+numerical integration and Monte Carlo integration (see next Section)
+is that it allows analytic differentiation of $\hqmin$ with respect to
+the parameters $\tilde{\vec\mu}$ and $\tilde{\vec\Sigma}$
+\citep{EPMGP,SeegerEP}. This fact will become important in Section
+\ref{sec:first-order-appr}.
+
+The computational cost of this approximation is considerable: Each
+computation of $\hqmin(\tilde{x}_i)$, for a given $i$, involves $N$
+factor updates, which each have rank 1 and thus cost $\O(N^2)$. So,
+overall, the cost of calculating $\hqmin(\tilde\vx)$ is
+$\O(N^4)$. This means $N$ is effectively limited to well below
+$N=1000$. Our implementation uses a default of $N=50$, and can
+calculate next evaluation points in $\sim 10$ seconds. Once again, it
+is clear that this algorithm is not suitable for simple numerical
+optimization problems; but a few seconds are arguably an acceptable
+waiting time for physical optimization problems.
+
+\subsubsection{An alternative: Sampling}
+\label{sec:an-altern-sampl}
+%% DONE.
+An alternative to EP is Monte Carlo integration: sample $S$ functions
+exactly from the Gaussian belief on $p(f)$, at cost $O(N^2)$ per
+sample, then find the minimum for each sample in $\O(N)$ time. This
+technique was used to generate the asymptotically exact plots in
+Figures \ref{fig:samples} and following. It has overall cost
+$\O(SN^3)$, and can be implemented efficiently using Matrix-Matrix
+multiplications, so each evaluation of this algorithm is considerably
+faster than EP. It also has the advantage of asymptotic
+exactness. But, unfortunately, it provides no analytic derivatives,
+because of strong discontinuity in the step functions of Eq.\
+\eqref{eq:1}. So the choice is between a first-order expansion using
+EP (see Section \ref{sec:first-order-appr}) which is expensive, but
+provides a re-usable, differentiable function, and repeated calls to a
+cheaper, asymptotically exact sampler. In our experiments, the former
+option appeared to be considerably faster, and of acceptable
+approximative quality. But for relatively high-dimensional
+optimization problems, where one would expect to require relatively
+large $N$ for acceptable discretization, the sampling approach can be
+expected to scale better. The code we plan to publish upon acceptance
+offers a choice between these two approaches.
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/EP_pmin}
+  \caption{EP-approximation to $\pmin$ (green). Other plots as in
+    previous figures. EP achieves good agreement with the
+    asymptotically exact Monte Carlo approximation to $\pmin$,
+    including the point masses at the boundaries of the domain.}
+  \label{fig:EP_toMC}
+\end{figure}
+
+\subsection{Predicting Innovation from Future Observations}
+\label{sec:pred-innov-from}
+%% DONE.
+\begin{figure}
+  \centering
+  \inputTikZ{figures/Innovation}
+  \caption{ Innovation from two observations at $x=-3$ and
+    $x=3$. Current belief in red, as in Figure
+    \ref{fig:GP_init}. Samples from the belief over possible beliefs
+    after observations at $\vx$ in blue. For each sampled innovation,
+    the plot also shows the induced innovated $\pmin$ (lower sampling
+    resolution as previous plots). Innovations from several (here:
+    two) observations can be sampled jointly.}
+  \label{fig:innovation}
+\end{figure}
+
+As detailed in Equation \eqref{eq:2}, the optimal choice of the next
+$H$ evaluations is such that the \emph{expected} change in the loss
+$\langle \L \rangle_{\vx}$ is minimal, i.e.\ effects the biggest
+possible expected drop in loss. The loss is a function of $\pmin$,
+which in turn is a function of $p(f)$. So predicting change in loss
+requires predicting change in $p(f)$ as a function of the next
+evaluation points. It is another convenient aspect of Gaussian
+processes that they allow such predictions in analytic form
+\citep{GaussianRL}: Let previous observations at $\vX_0$ have yielded
+observations $\vY_0$. Evaluating at locations $\vX$ will give new
+observations $\vY$, and the mean will be given by
+\begin{equation}
+  \label{eq:18}
+  \begin{aligned}
+    \mu(x^*) &= [k_{x^*,\vX_0}, k_{x^*,\vX}]
+    \begin{pmatrix}
+      K_{\vX_0,\vX_0} & k_{\vX_0,\vX} \\ k_{\vX,\vX_0} & K_{\vX,\vX}
+    \end{pmatrix}^{-1}
+    \begin{pmatrix}
+      \vY_0 \\ \vY
+    \end{pmatrix} \\
+    &= k_{x^*,\vX_0}K^{-1} _{\vX_0,\vX_0} \vY_0 + (k_{x^*,\vX} -
+    k_{x^*,\vX_0} K^{-1} _{\vX_0,\vX_0} k_{\vX_0,\vX}) \times \\ &
+    \qquad (k_{\vX,\vX} - k_{\vX,\vX_0} K^{-1} _{\vX_0,\vX_0}
+    k_{\vX_0,\vX})^{-1}
+    (\vY - k_{\vX,\vX_0} K^{-1} _{\vX_0,\vX_0} \vY_0)\\
+    & = \mu_0(x^*) + \Sigma_0(x^*,\vX) \Sigma^{-1} _0 (\vX,\vX) (\vY -
+    \mu_0(\vX))
+ \end{aligned}
+\end{equation}
+where $K_{a,b} ^{(i,j)} = k(a_i,b_j) + \delta_{ij} \sigma^2$. The step
+from the first to the second line involves an application of the
+matrix inversion lemma, the last line uses the mean and covariance
+functions conditioned on the dataset $(\vX_0,\vY_0)$ so far. Since
+$\vY$ is presumed to come from this very Gaussian process belief, we
+can write
+\begin{equation}
+  \label{eq:20}
+\vY = \mu(\vX) +
+\chol[\Sigma(\vX,\vX)]\Trans \vec{\Omega}' + \sigma\vec{\omega} = \mu(\vX) +
+\chol[\Sigma(\vX,\vX) + \sigma^2 \Id_H]\Trans\vec\Omega \qquad
+\vec\Omega,\vec\Omega',\vec{\omega} \sim \N(0,\Id_H),
+\end{equation}
+and Equation \eqref{eq:18} simplifies. An even simpler construction
+can be made for the covariance function. We find that mean and
+covariance function of the posterior after observations $(\vX,\vY)$
+are mean and covariance function of the prior, incremented by the
+\emph{innovations}
+\begin{equation}
+  \label{eq:19}
+  \begin{aligned}
+    \Delta\mu_{\vX,\Omega}(x^*) &= \Sigma(x^*,\vX)
+    \Sigma^{-1}(\vX,\vX)
+    \chol[\Sigma(\vX,\vX)+\sigma^2\Id_H] \vec{\Omega} \\
+    \Delta\Sigma_{\vX}(x^*,x_*) &= \Sigma(x^*,\vX)
+    \Sigma^{-1}(\vX,\vX) \Sigma(\vX,x_*).
+  \end{aligned}
+\end{equation}
+The change to the mean function is stochastic, while the change to the
+covariance function is deterministic. Both innovations are functions
+both of $\vX$ and of the evaluation points $x^*$. One use of this
+result is to sample $\langle \L\rangle_{\vX}$ by sampling innovations,
+then evaluating the innovated $\pmin$ for each innovation in an inner
+loop, as described in Section \ref{sec:an-altern-sampl}. An
+alternative, described in the next section, is to construct an
+analytic first order approximation to $\langle \L\rangle_{\vX}$ from
+the EP prediction constructed in Section \ref{sec:appr-pmin-with}. As
+mentioned above, the advantage of this latter option is that it
+provides an analytic function, with derivatives, which allows
+efficient numerical local optimization.
+
+\subsection{Information Gain -- the Log Loss}
+\label{sec:information-gain-log}
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/LogLoss}
+  \caption{1-step predicted loss improvement for the log loss
+    (relative entropy). Upper part of plot as before, for
+    reference. Monte Carlo prediction on regular grid as solid black
+    line. Monte Carlo prediction from sampled irregular grid as
+    dot-dashed black line. EP prediction on regular grid as black
+    dashed line. EP prediction from samples as black dashed line. The
+    minima of these functions, where the algorithm will evaluate next,
+    are marked by vertical lines. While the predictions from the
+    various approximations are not identical, they lead to similar
+    next evaluation points. Note that these next evaluation points
+    differ qualitatively from the choice of the GP optimization
+    heuristics of Figure \ref{fig:samples}. Since each approximation
+    is only tractable up a multiplicative constant, the scales of
+    these plots are arbitrary, and only chosen to overlap for
+    convenience.}
+  \label{fig:logloss}
+\end{figure}
+
+To solve the decision problem of where to evaluate the function next
+in order to learn most about the location of the minimum, we need to
+say what it means to ``learn''. Thus, we require a loss functional
+that evaluates the information content of innovated beliefs $\pmin$.
+This is, of course, a core idea in information theory. The seminal
+paper by \citet{shannon1948mathematical} showed that the negative
+expectation of probability logarithms,
+\begin{equation}
+  \label{eq:24}
+  \mathsf{H}[\vec{p}] = -\langle \log p \rangle_{\vec p} = -\sum_i p_i \log p_i
+\end{equation}
+known as entropy, has a number of properties that allow its
+interpretation as a measure of uncertainty represented by a
+probability distribution $p$. It's value can be be interpreted as the
+number of natural information units an optimal compression algorithm
+requires to encode a sample from the distribution, given knowledge of
+the distribution. However, it has since been pointed out repeatedly
+that this concept does not trivially generalize to probability
+densities. A density $p(x)$ has a unit of measure $[x]^{-1}$, so its
+logarithm is not well-defined, and one cannot simply replace summation
+with integration in Equation \eqref{eq:24}. A functional that
+\emph{is} well-defined on probability densities and preserves many of
+the information-content interpretations of entropy
+\citep{jaynes2003probability} is \emph{relative entropy}, also known
+as Kullback-Leibler divergence \citep{kullback1951information}. We use
+its negative value as a loss function emphasizing information gain.
+\begin{equation}
+  \label{eq:25}
+  \L_{\KL}(p; b) = -\int p(x) \log\frac{p(x)}{b(x)} \d x
+\end{equation}
+As base measure $b$ we choose the uniform measure $\mathbb{U}_I
+(x)=|I|^{-1}$ over $I$, which is well-defined because $I$ is presumed
+to be bounded\footnote{Although uniform measures appeal as a
+  natural representation of ignorance, they do encode an assumption
+  about $I$ being represented in a ``natural'' way. Under a nonlinear
+  transformation of $I$, the distribution would not remain
+  uniform. For example, uniform measures on the [0,1] simplex appear
+  bell-shaped in the softmax basis \citep{mackay1998choice}. So, while
+  $b$ here does not represent prior knowledge on $\xmin$ per se, it
+  does provide a unit of measure to information and as such is
+  nontrivial.}. With this choice, the loss is maximized (at $\L=0$)
+for a uniform belief over the minimum, and diverges toward negative
+infinity if $p$ approaches a Dirac point distribution. The resulting
+algorithm, Entropy Search, will thus choose evaluation points such
+that it expects to move away from the uniform base measure toward a
+Dirac distribution as quickly as possible.
+
+The reader may wonder: What about the alternative idea of maximizing,
+at each evaluation, entropy relative to the \emph{current} $\pmin$?
+This would only encourage the algorithm to attempt to change the
+current belief, but not necessarily in the right direction. For
+example, if the current belief puts very low mass on a certain region,
+an evaluation that has even a small chance of increasing $\pmin$ in
+this region could appear more favorable than an alternative evaluation
+predicted to have a large effect on regions where the current $\pmin$
+has larger values. The point is not to just change $\pmin$, but to
+change it such that it moves away from the base measure.
+
+Recall that we approximate the \emph{density} $p(x)$ using a
+\emph{distribution} $\hat{p}(x_i)$ on a finite set $\{x_i\}$ of
+representer points, which define steps of width proportional, up to
+stochastic error, to an unnormalized measure $\tilde{u}(x_i)$. In
+other words, we can approximate $\pmin(x)$ as
+\begin{equation}
+  \label{eq:26}
+  \pmin(x) \approx \frac{\hat{p}(x_i) N \tilde{u}(x_i)}{Z_u} \qquad Z_u =
+  \int \tilde{u}(x) \d x \qquad x_i = \argmin_{\{x_j\}} \| x - x_j \|.
+\end{equation}
+We also note that after $N$ samples, the unit element of measure has
+size, up to stochastic error, of $\Delta x_i \approx
+\frac{Z_u}{\tilde{u}(x_i) N}$. So we can approximately represent the
+loss
+\begin{equation}
+  \label{eq:27}
+  \begin{aligned}
+    \L_{\KL}(\pmin;b) &\approx -\sum_i \pmin(x_i) \Delta x_i
+    \log\frac{p_{\min}(x_i)}{b(x_i)} \\
+    &= -\sum_i \hat{p}_{\min}(x_i) \log
+    \frac{\hat{p}_{\min}(x_i) N \tilde{u}(x_i)}{Z_u b(x_i)} \\
+    &= -\sum_i \hat{p}_{\min}(x_i) \log \frac{\hat{p}_{\min} (x_i)
+      \tilde{u}(x_i)}{b(x_i)} + \log\left(\frac{Z_u}{N}\right) \sum_i \hat{p}_{\min} (x_i)\\
+    &= \mathsf{H}[\hat{p}_{\min}] - \langle\log\tilde{u}\rangle_{\hat{p}_{\min}} +
+    \langle \log b\rangle_{\hat{p}_{\min}} + \log Z_u - \log N
+  \end{aligned}
+\end{equation}
+which means we do not require the normalization constant $Z_u$ for
+optimization of $\L_\KL$. For our uniform base measure, the third term
+in the last line is a constant, too; but other base measures would contribute
+nontrivially.
+
+
+\subsection{First-Order Approximation to $\langle \L\rangle $}
+\label{sec:first-order-appr}
+
+Since EP provides analytic derivatives of $\pmin$ with respect to mean
+and covariance of the Gaussian measure over $f$, we can construct a
+first order expansion of the expected change in loss from
+evaluations. To do so, we consider, in turn, the effect of evaluations
+at $\vX$ on the measure on $f$, the induced change in $\pmin$, and
+finally the change in $\L$. Since the change to the mean is Gaussian
+stochastic, It{\=o}'s Lemma \citep{ito1951stochastic} applies. The
+following Equation uses the summation convention: double indices in
+products are summed over.
+\begin{multline}
+  \label{eq:21}
+  \langle \Delta\L \rangle_{\vX} = \int \L\bigg[\pmin ^0 + \frac{\de
+    \pmin}{\de \Sigma(\tilde{x}_i,\tilde{x}_j)} \Delta\Sigma_{\vX}
+  (\tilde{x}_i,\tilde{x}_j) + \frac{\de^2 \pmin}{\de \mu_i \de \mu_j}
+  \Delta\mu_{\vX,\vec{1}}(\tilde{x}_i)\Delta\mu_{\vX,\vec{1}}(\tilde{x}_j)\\
+  + \frac{\de \pmin}{\de \mu(\tilde{\vx}_i)}
+  \Delta_{\vX,\Omega}\mu(\tilde{x}_i) +
+  \O((\Delta\mu)^2,(\Delta\Sigma)^2) \bigg] \N(\Omega;0,1) \d \Omega -
+  \L[\pmin^0].
+\end{multline}
+The first line contains deterministic effects, the first term in the
+second line covers the stochastic aspect. Monte Carlo integration over
+the stochastic effects can be performed approximately using a small
+number of samples $\vec\Omega$. These samples should be drawn only
+once, at first calculation, to get a differentiable function
+$\langle\Delta\L\rangle_{\vX}$ that can be re-used in subsequent
+optimization steps.
+
+The above formulation is agnostic with respect to the loss
+function. Hence, in principle, Entropy Search should be easy to
+generalize to different loss functions. But recall that the fidelity
+of the calculation of Equation \eqref{eq:21} depends on the
+intermediate approximate steps, in particular the choice of
+discretization measure $\tilde{u}$. We have experimented with other
+loss functions and found it difficult to find a good measure
+$\tilde{u}$ providing good performance for many such loss
+functions. So this paper is limited to the specific choice of the
+relative entropy loss function. Generalization to other losses is
+future work.
+
+\subsection{Greedy Planning, and its Defects}
+\label{sec:defect-greedy-plann}
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/dH2}
+  \caption{Expected drop in relative entropy (see Section
+    \ref{sec:information-gain-log}) from two additional evaluations to
+    the three old evaluations shown in previous plots. First new
+    evaluation on abscissa, second new evaluation on ordinate, but due
+    to the exchangeability of Gaussian process measures, the plot is
+    symmetric. Diagonal elements excluded for numerical reasons. Blue
+    regions are more beneficial than red ones. The relatively
+    complicated structure of this plot illustrates the complexity of
+    finding the optimal $H$-step evaluation locations.}
+  \label{fig:dh2}
+\end{figure}
+
+%% Done.
+The previous sections constructed a means to predict, approximately,
+the expected drop in loss from $H$ new evaluations at locations
+$\vX=\{\vx_i\}_{i=1,\dots,N}$. The remaining task is to optimize these
+locations. It may seem pointless to construct an optimization
+algorithm which itself contains an optimization problem, but note that
+this new optimization problem is quite different from the initial
+one. It is a numerical optimization problem, of the form described in
+Section \ref{sec:introduction}: We can evaluate the utility function
+numerically, without noise, with derivatives, and at hopefully
+relatively low cost compared to the physical process we are ultimately
+trying to optimize.
+
+Nevertheless, one issue remains: Optimizing evaluations over the
+entire horizon $H$ is a dynamical programming problem, which, in
+general, has cost exponential in $H$. However, this problem has a
+particular structure: Apart from the fact that evaluations drawn from
+Gaussian process measures are exchangeable, there is also other
+evidence that optimization problems are benign from the point of view
+of planning. For example, \citet{srinivasgaussian} show that the
+information gain over the function values is submodular, so that
+greedy learning of the function comes close to optimal learning of the
+function. While is is not immediately clear whether this statement
+extends to our issue of learning about the function's minimum, it is
+obvious that the greedy choice of whatever evaluation location most
+reduces expected loss in the immediate next step is guaranteed to
+never be catastrophically wrong. In contrast to general planning,
+there are no ``dead ends'' in inference problems. At worst, a greedy
+algorithm may choose an evaluation point revealed as redundant by a
+later step. But thanks to the consistency of Bayesian inference in
+general, and Gaussian process priors in particular
+\citep{van2011information}, no decision can lead to an evaluation that
+somehow makes it impossible to learn the true function afterward. In
+our approximate algorithm, we thus adopt this greedy approach. It
+remains an open question for future research whether approximate
+planning techniques can be applied efficiently to improve performance
+in this planning problem.
+
+\subsection{Further Issues}
+\label{sec:further-issues}
+%% DONE.
+This section digresses from the main line of thought to briefly touch
+upon some extensions and issues arising from the choices made in
+previous sections. For the most part, we point out well-known analytic
+properties and approximations that can be used to generalize the
+algorithm. Since they apply to Gaussian process regression rather than
+the optimizer itself, they will not play a role in the empirical
+evaluation of Section \ref{sec:loss-functions}.
+
+\subsubsection{Derivative Observations}
+\label{sec:deriv-observ}
+%% DONE.
+Gaussian process inference remains analytically tractable if instead
+of, or in addition to direct observations of $f$, we observe the
+result of any \emph{linear} operator acting on $f$. This includes
+observations of the function's derivatives \citep[][\textsection
+9.4]{RasmussenWilliams} and, with some caveats, to integral
+observations \citep{minka2000deriving}. The extension is pleasingly
+straightforward: The kernel defines covariances between function
+values. Covariances between the function and its derivatives are
+simply given by
+\begin{equation}
+  \label{eq:9}
+  \operatorname{cov}\left(\frac{\de^n f(\vx)}{\prod_i \de x_i} , \frac{\de^m
+      f(\vx')}{\prod_j \de x' _j}\right) = \frac{\de^{n+m}
+    k(\vx,\vx')}{\prod_i \de x_i \prod_j \de x' _j}
+\end{equation}
+so kernel evaluations simply have to be replaced with derivatives (or
+integrals) of the kernel where required. Obviously, this operation is
+only valid as long as the derivatives and integrals in question exist
+for the kernel in question. Hence, all results derived in previous
+sections for optimization from function evaluations can trivially be
+extended to optimization from function and derivative observations, or
+from only derivative observations. 
+
+\subsubsection{Learning Hyperparameters}
+\label{sec:learn-hyperp}
+
+Throughout this paper, we have assumed kernel and likelihood function
+to be given. In real applications, this will not usually be the
+case. In such situations, the hyperparameters defining these two
+functions, and if necessary a mean function, can be learned from the
+data, either by setting them to maximum likelihood values, or by
+full-scale Bayesian inference using Markov chain Monte Carlo
+methods. See \citet[][\textsection 5]{RasmussenWilliams} and
+\citet{murray2010slice} for details. In the latter case, the belief
+$p(f)$ over the function is a mixture of Gaussian processes. To still
+be able to use the algorithm derived so far, we approximate this
+belief with a single Gaussian process by calculating expected values
+of mean and covariance function.
+
+Ideally, one would want to take account of this hierarchical learning
+process in the decision problem addressed by the optimizer. This adds
+another layer of computation complexity to the problem, and is outside
+of the scope of this paper. Here, we contend ourselves with
+considering the uncertainty of the Gaussian process conditioned on a
+particular set of hyperparameters. 
+
+\subsubsection{Limitations and Extensions of Gaussian Processes for
+  Optimization}
+\label{sec:limit-extens-gauss}
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/priors} \hfill
+  \inputTikZ{figures/posteriors}
+  \caption{Generalizing GP regression. {\bfseries Left:} Samples from
+    different priors. {\bfseries Right:} Posteriors (mean, two
+    standard deviations) after observing three datapoints with
+    negligible noise (kernel parameters differ between the two
+    plots). {\sf base}: standard GP regression with Mat\'ern
+    kernel. {\sf kernel}: sum of two kernels (square exponential and
+    rational quadratic) of different length scales and strengths. {\sf
+      poly}: polynomial (here: quadratic) mean function. {\sf lik}:
+    Non-Gaussian likelihood (here: logarithmic link function). The
+    scales of both $x$ and $f(x)$ are functions of kernel parameters,
+    so the numerical values in this plot have relevance only relative
+    to each other. Note the strong differences in both mean and
+    covariance functions of the posteriors.}%
+ \label{fig:kernel-extensions}
+\end{figure}
+
+Like any probability measure over functions, Gaussian process measures
+are not arbitrarily general. In particular, the most widely used
+kernels, including the two mentioned above, are \emph{stationary},
+meaning they only depend on the difference between locations, not
+their absolute values. Loosely speaking, the prior ``looks the same
+everywhere''. One may argue that many real optimization problems do
+not have this structure. For example, it may be known that the
+function tends to have larger functions values toward the boundaries
+of $I$ or, more vaguely, that it is roughly
+``bowl-shaped''. Fortunately, a number of extensions readily suggest
+themselves to address such issues (Figure
+\ref{fig:kernel-extensions}).
+
+\begin{description}
+\item[Parametric Means] As pointed out in Section
+  \ref{sec:gauss-proc-meas}, we are free to add any parametric general
+  linear model as the mean function of the Gaussian process.
+  \begin{equation}
+    \label{eq:10}
+    m(x) = \sum_i \phi_i(x) w_i
+  \end{equation}
+  Using Gaussian beliefs on the weights $w_i$ of this model, this
+  model may be learned at the same time as the Gaussian process itself
+  \citep[][\textsection 2.7]{RasmussenWilliams}. Polynomials such as
+  the quadratic $\vec{\phi}(\vx) = [\vx;\vx\vx\Trans]$ are beguiling
+  in this regard, but they create an explicit ``origin'' at the center
+  of $I$, and induce strong long-range correlations between opposite
+  ends of $I$. This seems pathological: In most settings, observing
+  the function on one end of $I$ should not tell us much about the
+  value at the opposite end of $I$. But we may more generally choose
+  any feature set for the linear model. For example, a set of radial
+  basis functions $\phi_i(\vx) = \exp(\|\vx-\vec{c}_i\|^2 / \ell_i
+  ^2)$ around locations $\vec{c}_i$ at the rims of $I$ can explain
+  large function values in a region of width $\ell_i$ around such a
+  feature, without having to predict large values at the center of
+  $I$. This idea can be extended to a nonparametric version, described
+  in the next point.
+\item[Composite Kernels] Since kernels form a semiring, we may sum a
+  kernel of large length scale and large signal variance and a kernel
+  of short length scale and low signal variance. For example
+  \begin{equation}
+    \label{eq:11}
+    k(x,x') = k_{\text{SE}} (x,x';s_1,\vec{S}_1) +
+    k_\text{RQ}(x,x',s_2,\vec{S}_2,\alpha_2) \qquad s_1 \gg s_2;
+    \vec{S}_1 ^{ij} \gg \vec{S}_2 ^{ij} \;\forall i,j
+  \end{equation}
+  yields a kernel over functions that, within the bounded domain $I$,
+  look like ``rough troughs'': global curvature paired with local
+  stationary variations. A disadvantage of this prior is that it
+  thinks ``domes'' just as likely as ``bowls''. An advantage
+  is that it is a very flexible framework, and does not induce
+  unwanted global correlations.
+\item[Nonlinear Likelihoods] An altogether different effect can be
+  achieved by a non-Gaussian, non-linear likelihood function. For
+  example, if $f$ is known to be strictly positive, one may assume the
+  noise model
+  \begin{equation}
+    \label{eq:12}
+    p(y\g g) = \N(y; \exp(g), \sigma^2); \quad f = \exp(g)
+  \end{equation}
+  and learn $g$ instead of $f$. Since the logarithm is a convex
+  function, the minimum of the latent $g$ is also a minium of $f$. Of
+  course, this likelihood leads to a non-Gaussian posterior. To retain
+  a tractable algorithm, approximate inference methods can be used to
+  construct approximate Gaussian posteriors. In our example (labeled
+  $\mathsf{lik}$ in Figure \ref{fig:kernel-extensions}), we used a
+  Laplace approximation: It is straightforward to show that Equation
+  \eqref{eq:12} implies
+  \begin{equation}
+    \label{eq:13}
+    \left.\frac{\de \log p(y\g g)}{\de g}\right|_{g=\hat{g}}
+  \operatorname*{=}^{!} 0 \quad \Rightarrow \hat{g}=\log y \qquad
+\left.  \frac{\de^2 \log p(y\g g)}{\de^2 g}\right|_{g=\hat{g}} = \frac{y^2}{\sigma^2}
+  \end{equation}
+  so a Laplace approximation amounts to a heteroscedastic noise model,
+  in which an observation $(y,\sigma^2)$ is incorporated into the
+  Gaussian process as $(\log(y),(\sigma/y)^2)$. This approximation is
+  valid if $\sigma \ll y$ (see Figure 3). For functions on logarithmic
+  scales, however, finding minima smaller than the noise level, at
+  logarithmic resolution, is a considerably harder problem anyway.
+\end{description}
+
+\begin{figure}%
+\centering
+\inputTikZ{figures/logarithms}
+\caption{Laplace approximation for a logarithmic Gaussian
+  likelihood. True likelihood in red, Gaussian approximation in blue,
+  maximum likelihood solution marked in grey. Four log relative values
+  $a=\log(y/\sigma)$ of sample $y$ and noise $\sigma$ (scaled in
+  height for readability). $a=-1$ (solid); $a=0$ (dash-dotted); $a=1$
+  (dashed); $a=2$ (dotted). The approximation is good for $a\gg0$.}%
+\label{fig:log}%
+\end{figure}
+
+The right part of Figure \ref{fig:kernel-extensions} shows posteriors
+produced using the three approaches detailed above, and the base case
+of a single kernel with strong signal variance, when presented with
+the same three data points, with very low noise.  The strong
+difference between the posteriors may be disappointing, but it is a
+fundamental aspect of inference: Different prior assumptions lead to
+different posteriors, and function space inference is impossible
+without priors. Each of the four beliefs shown in the Figure may be
+preferable over the others in particular situations. The polynomial
+mean describes functions that are “almost parabolic”. The exponential
+likelihood approximation is appropriate for functions with an
+intrinsic logarithmic scale. The sum kernel approach is pertinent for
+the search for local minima of globally stationary functions. Classic
+methods based on polynomial approximations are a lot more restrictive
+than any of the models described above.
+
+Perhaps the most general option is to use additional prior information
+$\mathcal{I}$ giving $p(\xmin\g\mathcal{I})$, independent of $p(f)$,
+to encode outside information about the location of the
+minimum. Unfortunately, this is intractable in general. But it may be
+approached through approximations. This option is outside of the scope
+of this paper, but will be the subject of future work.
+
+\subsection{Summary -- the Entire Algorithm}
+\label{sec:summ-entire-algor}
+
+\begin{algorithm}
+  \caption{Entropy Search}
+  \label{alg}
+  \begin{algorithmic}[1]
+    \Procedure{EntropySearch}{$k,l=p(y\g f(x)),u,H,(\vx,\vy)$}
+    \State $\tilde{\vx} \sim u(\vx,\vy)$ 
+    \Comment{discretize using 
+    measure $u$ (Section~\ref{sec:discr-repr-cont})}
+    \State
+    $[\vec\mu,\vec\Sigma,\Delta\vec{\mu}_x,\Delta\vec{\Sigma}_x]\gets$
+    \Call{GP}{$k,l,\vx,\vy$} \Comment{infer function, innovation, from
+      GP prior (\ref{sec:gauss-proc-meas})}
+    \State $[\hat{q}_{\min}(\tilde{x}),\frac{\de
+      \hat{q}_{\min}}{\de
+      \mu},\frac{\de^2 \hat{q}_{\min}}{\de \mu\de \mu},
+    \frac{\de \hat{q}_{\min}x}{\de \Sigma}]\gets$ 
+    \Call{EP}{$\vec{\mu},\vec{\Sigma}$} 
+    \Comment{approximate $\hat{p}_{\min}$ (\ref{sec:appr-pmin-with})}
+    \If{H=0} \State\textbf{return} $q_{\min}$ 
+    \Comment{At horizon, return belief for final decision} 
+    \Else
+    \State $x' \gets \argmin \langle \L\rangle_x$ \Comment{predict
+      information gain; Eq. \eqref{eq:21}}
+    \State $y' \gets$ \Call{Evaluate}{$f(x')$} \Comment{take measurement}
+    \State \Call{EntropySearch}{$k,l,u,H-1,(\vx,\vy)\cup (x',y')$}
+    \Comment{move to next evaluation}
+    \EndIf
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+Algorithm \ref{alg} shows pseudocode for Entropy Search. It takes as
+input the prior, described by the kernel $k$, and the likelihood
+$l=p(y\g f(x))$, as well as the discretization measure $u$ (which may
+itself be a function of previous data, the Horizon $H$, and any
+previously collected observations $(\vx,\vy)$. To choose where to
+evaluate next, we first sample discretization points from $u$, then
+calculate the current Gaussian belief over $f$ on the discretized
+domain, along with its derivatives. We construct an approximation to
+the belief over the minimum using Expectation Propagation, again with
+derivatives. Finally, we construct a first order approximation on the
+expected information gain from an evaluation at $x'$ and optimize
+numerically. We evaluate $f$ at this location, then the cycle
+repeats. Upon publication of this work, {\sc matlab} source code for
+the algorithm and its sub-routines will be made available
+online.
+
+\section{Experiments}
+\label{sec:loss-functions}
+
+Figures in previous sections provided some intuition and anecdotal
+evidence for the efficacy of the various approximations used by
+Entropy Search. In this section, we compare the resulting algorithm to
+two Gaussian process global optimization heuristics: Expected
+Improvement, Probability of Improvement (Section
+\ref{sec:relat-heur-gauss}), as well as to a continuous armed bandit
+algorithm: GP-UCB \citep{srinivasgaussian}. For reference, we also
+compare to a number of numerical optimization algorithms:
+Trust-Region-Reflective
+\citep{coleman1996interior,coleman1994convergence}, Active-Set
+\citep{powell1978fast,powell1978convergence}, interior point
+\citep{byrd1999interior,byrd2000trust,waltz2006interior}, and a
+na\"ively projected version of the BFGS algorithm
+\citep{broyden1965class,fletcher1970new,goldfarb1970family,shanno1970conditioning}.
+We avoid implementation bias by using a uniform code framework for the
+three Gaussian process-based algorithms, i.e.\ the algorithms share
+code for the Gaussian process inference and only differ in the way
+they calculate their utility. For the local numerical algorithms, we
+used third party code: The projected BFGS method is based on code by
+Carl Rasmussen\footnote{{\tt
+    http://www.gaussianprocess.org/gpml/code/matlab/util/minimize.m},
+  version using BFGS: personal communication}, the other methods come
+from version 6.0 of the optimization toolbox of {\sc
+  matlab}\footnote{\tt
+  http://www.mathworks.de/help/toolbox/optim/rn/bsqj\_zi.html}.
+
+In some communities, optimization algorithms are tested on
+hand-crafted test functions. This runs the risk of introducing
+bias. Instead, we compare our algorithms on a number of functions
+sampled from a generative model. In the first experiment, the function
+is sampled from the model used by the GP algorithms themselves. This
+eliminates all model-mismatch issues and allows a direct comparison of
+other GP optimizers to the probabilistic optimizer. In a second
+experiment, the functions were sampled from a model strictly more
+general than the model used by the algorithms, to show the effect of
+model mismatch.
+
+\subsection{Within-Model Comparison}
+\label{sec:model-comparison}
+
+The first experiment was carried out over the 2-dimensional unit
+domain $I=[0,1]^2$. To generate test functions, 1000 function values
+were jointly sampled from a Gaussian process with a squared-exponential
+covariance function of length scale $\ell=0.1$ in each direction and
+unit signal variance. The resulting posterior mean was used as the
+test function. All algorithms had access to noisy evaluations of the
+test functions. For the benefit of the numerical optimizers, noise was
+kept relatively low: Gaussian with standard deviation
+$\sigma=10^{-3}$. All algorithms were tested on the same set of 40
+test functions, all Figures in this section are averages over those
+sets of functions. It is nontrivial to provide error bars on these
+average estimates, because the data sets have no parametric
+distribution. But the regular structure of the plots, given that
+individual experiments were drawn i.i.d., indicates that there is
+little remaining stochastic error.
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/fdist_wB_2D_SE}
+  \caption{Distance of function value at optimizers' best guess for
+    $\xmin$ from true global minimum. Log scale.}
+  \label{fig:fval_onmodel}
+\end{figure}
+
+After each function evaluation, the algorithms were asked to return a
+best guess for the minimum $\xmin$. For the local algorithms, this is
+simply the point of their next evaluation. The Gaussian process based
+methods returned the global minimum of the mean belief over the
+function (found by local optimization with random restarts). Figure
+\ref{fig:fval_onmodel} shows the difference between the global optimum
+of the function and the function value at the reported best
+guesses. Since the best guesses do not in general lie at a datapoint,
+their quality can actually decrease during optimization. The most obvious
+feature of this plot is that local optimization algorithms are not
+adept at finding global minima, which is not surprising, but gives an
+intuition for the difficulty of problems sampled from this generative
+model. The plot shows a clear advantage for Entropy Search over its
+competitors, even though the algorithm does not directly aim to
+optimize this particular loss function. The flattening out of the
+error of all three global optimizers toward the right is due to
+evaluation noise (recall that evaluations include Gaussian noise of
+standard deviation $10^{-3}$). Interestingly, Entropy Search flattens
+out at an error almost an order of magnitude lower than that of the
+nearest competitor, Expected Improvement. One possible explanation for
+this behavior is a pathology in the classic heuristics: Both Expected
+Improvement and Probability of Improvement require a ``current best
+guess'' $\eta$, which has to be a point estimate, because proper
+marginalization over an uncertain belief is not tractable. Due to
+noise, it can thus happen that this best guess is overly optimistic,
+and the algorithm then explores too aggressively in later stages.
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/xdist_wB_2D_SE}
+  \caption{Euclidean distance of optimizers' best guess for $\xmin$
+    from truth. Log scale.}
+  \label{fig:xval_onmodel}
+\end{figure}
+
+Figure \ref{fig:xval_onmodel} shows data from the same experiments as
+the previous figure, but plots Euclidean distance from the true
+global optimum in input space, rather than in function value
+space. The results from this view are qualitatively similar to those
+shown in Figure \ref{fig:fval_onmodel}.
+
+Since Entropy Search attempts to optimize information gain from
+evaluations, one would also like to compare to algorithms on the
+entropy loss function. However, this is challenging. First, the local
+optimization algorithms provide no probabilistic model of the function
+and can thus not provide this loss. But even for the optimization
+algorithms based on Gaussian process measures, it is challenging to
+evaluate this loss \emph{globally} with good resolution. The only
+option is to approximately calculate entropy, using the very algorithm
+introduced in this paper. Doing so amounts to a kind of circular
+experiment that Entropy Search wins by definition, so we omit it here.
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/regret_wB_2D_SE}
+  \caption{Regret as a function of number of evaluations.}
+  \label{fig:regret}
+\end{figure}
+
+We pointed out in Section \ref{sec:diff-band-sett} that the bandit
+setting differs considerably from the kind of optimization discussed
+in this paper, because bandit algorithms try to minimize regret,
+rather than improve an estimate of the function's optimum. To clarify
+this point further, Figure \ref{fig:regret} shows the regret
+\begin{equation}
+  \label{eq:29}
+  r(T) = \sum_{t=1} ^T [y_t - \fmin]
+\end{equation}
+for each of the algorithms. Notice that probability of improvement,
+which performs worst among the global algorithms as seen from the
+previous two measures of performance, achieves the lowest regret. The
+intuition here is that this heuristic focusses evaluations on regions
+known to give low function values. In contrast, the actual value of
+the function \emph{at the evaluation point} has no special role in
+Entropy Search. The utility of an evaluation point only depends on its
+expected effect on knowledge about the minimum of the function.
+
+Surprisingly, the one algorithm explicitly designed to achieve low
+regret, GP-UCB, performs worst in this comparison. This algorithm
+chooses evaluation points according to \citep{srinivasgaussian}
+\begin{equation}
+  \label{eq:30}
+  x_{\text{next}} = \argmin_x [ \mu(x) - \beta^{1/2} \sigma(x) ]\qquad
+\text{where} \qquad \beta = 4(D+1)\log T + C(k,\delta)
+\end{equation}
+with $T$, the number of previous evaluations, $D$, the dimensionality
+of the input domain, and $C(k,\delta)$ is a constant that depends on
+some analytic properties of the kernel $k$ and a free parameter,
+$0<\delta<1$. We found it hard to find a good setting for this
+$\delta$, which clearly has influence on the algorithm's
+performance. The results shown here represent the best performance
+over a set of 4 experiments with different choices for $\delta$. They
+appear to be slightly worse than, but comparable to the empirical
+performance reported by the original paper on this algorithm
+\citep[][Figure 5a]{srinivasgaussian}.
+
+
+\subsection{Out-of-Model Comparison}
+\label{sec:out-model-comparison}
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/SE_example}\inputTikZ{figures/RQ_example}
+  \caption{{\bf Left:} A sample from the GP prior with squared
+    exponential kernel used in the on-model experiments of Section
+    \ref{sec:model-comparison}. {\bf Right:} Sample from prior with
+    the rational quadratic kernel used for the out of model comparison
+    of Section \ref{sec:out-model-comparison}.}
+  \label{fig:SE_RQ}
+\end{figure}
+
+In the previous section, the algorithms attempted to find minima of
+functions sampled from the prior used by the algorithms themselves. In
+real applications, one can rarely hope to be so lucky, but
+hierarchical inference can be used to generalize the prior and
+construct a relatively general algorithm. But what if even the
+hierarchically extended prior class does not contain the true
+function? Qualitatively, it is clear that, beyond a certain point of
+model-mismatch, all algorithms can be made to perform arbitrarily
+badly. The poor performance of local optimizers (which may be
+interpreted as building a quadratic model) in the previous section is
+an example of this effect. In this section, we present results of the
+same kind of experiments as in the previous section, but on a set of
+30 two-dimensional functions sampled from a Gaussian process prior
+with \emph{rational quadratic} kernel, with the same length scale and
+signal variance as above, and scale mixture parameter $\alpha=1$ (see
+Equation \eqref{eq:6}). This means samples evolve over an infinite
+number of different length scales, including both longer and shorter
+scales than those covered by the priors of the algorithms (Figure
+\ref{fig:SE_RQ}). Figure \ref{fig:fval_offmodel} shows error on
+function values, Figure \ref{fig:xval_offmodel} Euclidean error in
+input space, Figure \ref{fig:regret-off} regret. Note the different
+scales for the ordinate axes relative to the corresponding previous
+plots: While Entropy Search still (barely) outperforms the
+competitors, all three algorithms perform worse than before; and their
+errors become more similar to each other. However, they still manage
+to discover good regions in the domain, demonstrating a certain
+robustness to model-mismatch.
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/fdist_wB_2D_RQ}
+  \caption{Function value error, off-model tasks.}
+  \label{fig:fval_offmodel}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/xdist_wB_2D_RQ}
+  \caption{Error on $\xmin$, off-model tasks.}
+  \label{fig:xval_offmodel}
+\end{figure}
+
+
+\begin{figure}
+  \centering
+  \inputTikZ{figures/regret_2D_wB_RQ}
+  \caption{Regret, off-model tasks.}
+  \label{fig:regret-off}
+\end{figure}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented a new probabilistic paradigm for global
+optimization, as an inference problem on the minimum of the function,
+rather than the problem of collecting iteratively lower and lower
+function values. We argue that this description is closer to
+practitioners' requirements than classic response surface
+optimization, bandit algorithms, or other, heuristic, global
+optimization algorithms. In the main part of the paper, we constructed
+Entropy Search, a practical probabilistic global optimization
+algorithm, using a series of analytic assumptions and numerical
+approximations: A particular family of priors over functions (Gaussian
+processes); constructing the belief $\pmin$ over the location of the
+minimum on an irregular grid to deal with the curse of dimensionality;
+and using Expectation Propagation toward an efficient analytic
+approximation. The Gaussian belief allows analytic probabilistic
+predictions of the effect of future datapoints, from which we
+constructed a first-order approximation of the expected change in
+relative entropy of $\pmin$ to a base measure. For completeness, we
+also pointed out some already known analytic properties of Gaussian
+process measures that can be used to generalize this algorithm. We
+showed that the resulting algorithm outperforms both directly and
+distantly related competitors through its more elaborate,
+probabilistic description of the problem. This increase in performance
+is exchanged for somewhat increased computational cost (Entropy Search
+costs are a constant multiple of that of classic Gaussian process
+global optimizers). So this algorithm is more suited for problems were
+evaluating the function itself carries considerable
+cost. Nevertheless, it provides a natural description of the
+optimization problem, by focusing on the performance under a loss
+function at the horizon, rather than function values returned during
+the optimization process. It allows the practitioner to explicitly
+encode prior knowledge in a flexible way, and adapts its behavior to
+the user's loss function.
+
+\section*{Acknowledgments}
+\label{sec:acknowledgments}
+
+We would like to thank Martin Kiefel for valuable feedback, as well as
+Tom Minka for an interesting discussion.
+
+\appendix
+
+\section{Mathematical Appendix}
+\label{sec:math-append}
+
+The notation in Equation \eqref{eq:1} can be read, sloppily, to mean
+``$\pmin(x)$ is the probability that the value of $f$ at $x$ is lower
+than at any other $\tilde{x}\in I$''. For a continuous domain, though,
+there are uncountably many other $\tilde{x}$. To give more precise
+meaning to this notation, consider the following argument. Let there
+be a sequence of locations $\{x_i\}_{i=1,\dots,N}$, such that for
+$N\to\infty$ the density of points at each location converges to a
+measure $m(x)$ nonzero on every open neighborhood in $I$. If the
+stochastic process $p(f)$ is sufficiently regular to ensure samples
+are almost surely continuous (see footnote in Section
+\ref{sec:gauss-proc-meas}), then almost every sample can be
+approximated arbitrarily well by a staircase function with steps of
+width $m(x_i)/N$ at the locations $x_i$, in the sense that $\forall
+\epsilon > 0\; \exists N_0>0$ such that, $\forall N>N_0 :
+|f(x)-f(\argmin_{x_j, j=1,\dots,N} |x-x_j|)| < \epsilon$, where
+$|\cdot|$ is a norm (all norms on finite-dimensional vector spaces are
+equivalent). This is the original reason why samples from sufficiently
+regular Gaussian processes can be plotted using finitely many points,
+in the way used in this paper. We now \emph{define} the notation used
+in Equation \eqref{eq:1} to mean the following limit, where it exists.
+\begin{multline}
+  \label{eq:14}\raisetag{2cm}
+  \pmin(x) = \int p(f) \prod_{\tilde{x} \neq x} \theta(f(\tilde{x})-f(x)) \d f \\
+  \equiv \lim_{\stackrel{N \to \infty}{|x_i-x_{i-1}| \cdot N\to m(x)}}
+  \int p[f(\{x_i\}_{i=1,\dots,N})] \prod_{i=1; i\neq j} ^N \theta [
+  f(x_i) - f(x_j) ] \d f(\{x_i\}_{i=1,\dots,N}) \cdot |x_i-x_{i-1}|
+  \cdot N
+\end{multline}
+In words: The ``infinite product'' is meant to be the limit of
+finite-dimensional integrals with an increasing number of factors and
+dimensions, where this limit exists. In doing so, we have side-stepped
+the issue of whether this limit exists for any particular Gaussian
+process (i.e.\ kernel function). We do so because the theory of
+suprema of stochastic processes is highly nontrivial. We refer the
+reader to a friendly but demanding introduction to the topic by
+\citet{AdlerSuprema}. From our applied standpoint, the issue of
+whether \eqref{eq:14} is well defined for a particular Gaussian prior
+is secondary: If it is known that the true function is continuous and
+bounded, than it has a well-defined supremum, and the prior should
+reflect this knowledge by assigning sufficiently regular beliefs. If
+the actual prior is such that we expect the function to be
+discontinuous, it should be clear that optimization is extremely
+challenging anyway. We conjecture that the finer details of the region
+between these two domains have little relevance for communities
+interested in optimization.
+
+\bibliography{../bibfile}
+
+
+\end{document}

@@ -1,0 +1,75 @@
+\section{High Dimensional MES with Add-GP}
+
+%
+The high-dimensional input setting has been a challenge for many BO methods. 
+We extend MES to this setting via additive Gaussian processes (Add-GP). In the past, Add-GP has been used and analyzed for GP-UCB~\cite{kandasamy2015high}, which assumed the high dimensional black-box function is a summation of several disjoint lower dimensional functions. Utilizing this special additive structure, we overcome the statistical problem of having insufficient data to recover a complex function, and the difficulty of optimizing acquisition functions in high dimensions.
+
+\iffalse
+We use one acquisition function $\alpha^{(m)}_t(\vx)$ for each component $A_m$, and aim to optimize the information gathered jointly from all of those \sj{how are you combining them?} An additional complication is that we do not actually observe the function vaule of single components, only their sum. \sj{say why it does not matter or remove this sentence}
+%
+\fi
+
+Since the function components $f^{(m)}$ are independent, %
+we can maximize the mutual information between the input in the active dimensions $A_m$ and maximum of $f^{(m)}$ for each component separately. Hence, we have a separate acquisition function for each component, where $y^{(m)}$ is the evaluation of $f^{(m)}$:
+%
+\begin{align}
+&\alpha^{(m)}_t(\vx) = 
+I(\{\vx^{A_m},y^{(m)}\}; y^{(m)}_*\mid D_t) \\
+&= H(p(y^{(m)}\mid D_t, \vx^{A_m})) \nonumber \\
+&\;\;\;\;- \Ex[H(p(y^{(m)}\mid D_t, \vx^{A_m}, y^{(m)}_*)) ] \label{eq:addmes} \\
+& \approx \sum_{y_*^{(m)}} \gamma^{(m)}_{y_*}( \vx)\frac{\psi(\gamma^{(m)}_{y_*}( \vx))}{2\Psi(\gamma^{(m)}_{y_*}(\vx))}  - \log(\Psi(\gamma^{(m)}_{y_*}( \vx))) \label{eq:addmesapprox}
+\end{align}
+where $\gamma^{(m)}_{y_*}(\vx) = \frac{y^{(m)}_* - \mu^{(m)}_t(\vx)}{\sigma^{(m)}_t(\vx)}$. Analogously to the non-additive case, we sample $y^{(m)}_*$, separately for each function component. %
+We select the final $x_t$ by choosing a sub-vector $x_t^{(m)} \in \arg\max_{\vx^{(m)} \in A_m} \alpha^{(m)}_t(\vx^{(m)})$ and concatenating the components.
+
+\paragraph{Sampling $y^{(m)}_*$ with a Gumbel distribution.}
+The Gumbel sampling from Section~\ref{spec:gumbel} directly extends to sampling $y^{(m)}_*$, approximately. We simply need to sample from the component-wise CDF $\widehat{\Pr}[{y}^{(m)}_* < z] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma^{(m)}_y(\vx)))$, and use the same Gumbel approximation.
+%
+
+\paragraph{Sampling $y^{(m)}_*$ via posterior functions.} The additive structure removes some connections on the input-to-hidden layer of our 1-hidden-layer neural network approximation $\tilde f(\vx)=\va_t\T\vphi(\vx)$.  Namely, for each feature function $\phi$ there exists a unique group $m$ such that $\phi$ is only active on $\vx^{A_m}$, %
+ and $\phi(\vx) =  \sqrt{\frac2D} \cos(\ww\T \vx^{A_m} + c)$ where $\R^{|A_m|}\ni\ww\sim \hat \kk^{(m)}(\ww)$ and $c \sim U[0,2\pi]$. Similar to the non-additive case, we may draw a posterior sample $\va_t\sim\mathcal N(\vnu_t,\mSigma_t)$ where $\vnu_t = \sigma^{-2}\mSigma_t Z_t\vy_t $ and $\mSigma_t = (Z Z\T \sigma^{-2} +\mI)^{-1}$. Let $B_m = \{i: \vphi_i(\vx) \text{ is active on $\vx^{A_m}$}\}$. The posterior sample for the function component $f^{(m)}$ is $\tilde f^{(m)}(\vx)=(\va^{B_m}_t)\T\phi^{B_m}(\vx^{A_m})$. Then we can maximize $\tilde f^{(m)}$ to obtain a sample for $y^{(m)}_*$.
+%
+
+The algorithm for the additive max-value entropy search method (add-MES) is shown in Algorithm~\ref{alg:addgpmes}. The function $\textsc{Approx-MI}$ does the pre-computation for approximating the mutual information in a similar way as in Algorithm~\ref{alg:mes}, except that it only acts on the active dimensions in the $m$-th group. %
+
+\begin{algorithm} %
+  \caption{Additive Max-value Entropy Search}\label{alg:addgpmes}
+  \begin{algorithmic}[1]
+  %
+  %
+  %
+    %
+    %
+    \FUNCTION{Add-MES\,($f, D_0$)}
+      \FOR{$t = 1,\cdots, T $}
+      %
+      \FOR{$m=1,\cdots,M$}
+      \STATE $\alpha^{(m)}_{t-1}(\cdot)\gets$\textsc{Approx-MI\,}($D_{t-1}$)
+      \STATE $\vx^{A_m}_t\gets \argmax_{\vx^{A_m}\in\mathfrak X^{A_m}}{\alpha_{t-1}^{(m)}(\vx)}$ 
+      %
+      \ENDFOR
+      \STATE $y_t\gets f(\vx_t) + \epsilon_t, \epsilon_t\sim\mathcal N(0,\sigma^2)$
+      \STATE $\mathfrak D_t \gets D_{t-1}\cup \{\vx_t,y_t\}$
+      \ENDFOR
+      \ENDFUNCTION
+  \end{algorithmic}
+\end{algorithm}
+
+\hide{
+\subsection{Regret analysis}
+
+\begin{thm}
+%
+Assume the function $f$ is structured according to Section~\ref{ssec:addgp}. For each function component $f^{(m)}$, let $\hat{\mathfrak X}^{A_m}$ be an $\epsilon$-covering of $\mathfrak X^{A_m}$. Assume there exists $a,b>0$ such that $\Pr[|f^{(m)}(\vx^{A_m}) - f^{(m)}(\vx'^{A_m})|\leq L\epsilon , \forall ||\vx^{A_m}-\vx'^{A_m}||\leq \epsilon]\geq 1-ae^{-L^2/b^2}.$
+Let $\sigma^2$ be the variance of the Gaussian noise in the observation,
+ $C = 2/\log (1+\sigma^{-2})$,  $\gamma_T$ the maximum information gain of the selected points, and $t^*=\argmax_t \bt_t$ where $\bt_t \triangleq \min_{\vx\in\mathfrak X} \frac{y^{(m)}_*+\epsilon L-\mu^{(m)}_{t-1}(\vx)}{\sigma^{(m)}_{t-1}(\vx)}$, and $y^{(m)}$ is sampled from $\Pr[y^{(m)}_* < y] = \prod_{\vx\in\hat{\mathfrak X}^{A_m}} \Psi(\gamma^{(m)}_y(\vx)))$. 
+With probability at least $1-\delta$, the learning regret up to time step $T$ is bounded as
+\begin{equation*}
+   %
+   r_t\leq \sqrt{\frac{CM \gamma_T}{T}} (\bt_{t^*} + \zeta_T), 
+%
+\end{equation*}
+where $\zeta_T=(2\log(\frac{\pi_t}{\delta}))^{\frac12}$, $\sum_{t=1}^T \pi_t^{-1} \leq 1$, $\pi_t > 0$, and $L=b\sqrt{\log\frac{2a}{\delta}}$.
+\end{thm}
+}
+

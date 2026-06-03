@@ -1,0 +1,356 @@
+\documentclass[12pt]{article}
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
+\usepackage[final]{neurips_2018}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb,bm,bbm}
+\usepackage{xifthen,xargs}
+\usepackage{pifont}
+\usepackage{nicefrac}
+\usepackage{mathtools}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{wrapfig}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{algorithm,algpseudocode}
+\usepackage{bbding}
+% \usepackage{amsthm}
+\usepackage{array}
+\usepackage{relsize}
+
+\usepackage[pdftex,dvipsnames]{xcolor}
+\usepackage[colorinlistoftodos,prependcaption,textsize=tiny]{todonotes}
+
+% \captionsetup{font=footnotesize}
+\setlength{\textfloatsep}{8pt}
+
+% ================================
+%                  Markup Commands
+% ================================
+\newcommandx{\flag}[2][1=]
+  {\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+\newcommandx{\ask}[2][1=]
+  {\todo[linecolor=OliveGreen,backgroundcolor=OliveGreen!25,bordercolor=OliveGreen,#1]{#2}}
+\newcommandx{\note}[2][1=]
+  {\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,#1]{#2}}
+ \newcommandx{\reply}[2][1=]
+  {\todo[linecolor=Gray,backgroundcolor=Gray!25,bordercolor=Gray,#1]{#2}}
+
+% \definecolor{mgray}{gray}{0.5}
+% \definecolor{dblue}{rgb}{0.0,0.0,0.5}
+% \definecolor{dred}{rgb}{0.5, 0.0, 0.0}
+
+% \newcommand{\temp}[1]{\textcolor{blue}{#1}}
+% \newcommand{\warn}[1]{{\textcolor{red}{#1}}}
+
+\newcommand{\temp}[1]{\textcolor{black}{#1}}
+\newcommand{\warn}[1]{{\textcolor{black}{#1}}}
+
+\newcommand{\marc}[1]{\textcolor{black}{#1}}
+\newcommand{\frank}[1]{\textcolor{black}{#1}}
+ 
+% ================================
+%                    Text Commands
+% ================================
+\newcommand{\eg}{\text{e.g.\@}}
+\newcommand{\ie}{\text{i.e.\@}}
+\newcommand{\st}{\text{s.t.\@}}
+\newcommand{\wrt}{\text{w.r.t.\@}}
+\newcommand{\rv}{\text{rv}}
+\newcommand{\rvs}{\text{rvs}}
+\newcommand{\iid}{\text{i.i.d.\@}}
+\newcommand{\apriori}{\emph{a priori}}
+\newcommand{\perse}{per se}
+\newcommand{\naive}{na\"ive}
+\newcommand{\Naive}{Na\"ive}
+\newcommand{\naively}{na\"ively}
+
+% \newcommand{\subheading}[1]{\textbf{#1.}\ \nolinebreak}
+% \newcommand{\subheading}[1]{\textbf{#1.}~\,\nolinebreak}
+\newcommand{\subheading}[1]{\paragraph{#1}}
+
+
+\newcommand{\inlineItem}[1]{#1)}
+
+\newcommand{\blackbox}{black-box}
+% \newcommand{\mmform}{additive}
+\newcommand{\mmform}{incremental}
+
+
+% ================================
+%                   Figure Legends
+% ================================
+\newcommand{\legendDot}{\raisebox{1.25pt}{$\scriptscriptstyle{\bullet}$}}
+\newcommand{\legendStar}{\raisebox{-1.75pt}{\FiveStarOpen}}
+\newcommand{\legendX}{\ensuremath{\bm{\times}}}
+
+
+% ================================
+%                    Math Commands
+% ================================
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\T}[1]{\ensuremath{#1^\top}}
+\newcommand{\1}{\ensuremath{\operatorname{\mathbbm{1}}}}
+\newcommand{\opt}[1]{\ensuremath{#1^{*}}}
+\newcommand{\alt}[1]{\ensuremath{#1^\prime}}
+\newcommand{\new}[1]{\ensuremath{#1^\prime}}
+\newcommand{\mathhyphen}{{\hbox{-}}}
+\newcommand{\qeq}{\ensuremath{\stackrel{?}{=}}}
+
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\data}{\ensuremath{\mathcal{D}}}
+\newcommand{\model}{\ensuremath{\mathcal{M}}}
+\newcommand{\belief}{\ensuremath{p}}
+\newcommand{\kernel}{\ensuremath{k}}
+
+\newcommand{\nSamples}{\ensuremath{m}}
+\newcommand{\nEvals}{\ensuremath{N}}
+\newcommand{\batchsize}{\ensuremath{m_{b}}}
+\newcommand{\gridsize}{\ensuremath{s}}
+\newcommand{\subsample}{\ensuremath{\eta}}
+
+\newcommand{\sampleIdx}{\ensuremath{k}}
+\newcommand{\sample}[1]{\ensuremath{#1^{\sampleIdx}}}
+
+\newcommand{\roundIdx}{\ensuremath{j}}
+\newcommand{\iAcq}{\ensuremath{\bar{\Acq}}}
+
+\newcommand{\oldSubscript}{\ensuremath{\mathsmaller{<} \roundIdx}}
+
+\newcommand{\NEW}[2]{\ensuremath{{\ifthenelse{\equal{#1}{1}}{#2_{\roundIdx}}{#2_{\roundIdx}}}}}
+\newcommand{\OLD}[2]{\ensuremath{{\ifthenelse{\equal{#1}{1}}{#2_{\oldSubscript}}{#2_{\oldSubscript}}}}}
+
+\newcommand{\BOTH}[2]{\ensuremath{{\ifthenelse{\equal{#1}{1}}{#2_{1:\roundIdx}}{#2_{1:\roundIdx}}}}}
+
+% \newcommand{\BOTH}[2]{\ensuremath{{\ifthenelse{\equal{#1}{1}}{#2_{\mathsmaller{\le} \roundIdx}}{#2_{\mathsmaller{\le} \roundIdx}}}}}
+
+
+
+\newcommand{\solver}{maximizer}
+\newcommand{\Solver}{Maximizer}
+\newcommand{\solvers}{\solver s}
+\newcommand{\Solvers}{\Solver s}
+
+\newcommand{\step}{\ensuremath{n}}
+\newcommand{\steps}{\ensuremath{q}}
+\newcommand{\parallelism}{\ensuremath{q}}
+
+
+\newcommand{\x}{\ensuremath{\mathbf{x}}}
+\newcommand{\X}{\ensuremath{\mathbf{X}}}
+\newcommand{\xspace}{\ensuremath{\mathcal{X}}}
+\newcommand{\xdim}{\ensuremath{d}}
+
+\newcommand{\y}{\ensuremath{y}}
+\newcommand{\Y}{\ensuremath{\mathbf{y}}}
+\newcommand{\yspace}{\ensuremath{\mathcal{Y}}}
+
+\newcommand{\z}{\ensuremath{z}}
+\newcommand{\Z}{\ensuremath{\mathbf{z}}}
+\newcommand{\zspace}{\ensuremath{\mathcal{Z}}}
+
+\newcommand{\V}{\ensuremath{\mathbf{v}}}
+
+\newcommand{\event}{\ensuremath{\boldsymbol{e}}}
+% \newcommand{\events}{\ensuremath{\mathbf{e}}}
+\newcommand{\events}{\ensuremath{\boldsymbol{e}}}
+\newcommand{\espace}{\ensuremath{\mathcal{E}}}
+
+\newcommand{\f}{\ensuremath{f}}
+\newcommand{\fspace}{\ensuremath{\mathcal{F}}}
+
+\newcommand{\gaussian}{\ensuremath{\mathcal{N}}}
+\newcommand{\means}{\ensuremath{\boldsymbol{\mu}}}
+\newcommand{\mean}{\ensuremath{\mu}}
+\newcommand{\cov}{\ensuremath{\Sigma}}
+\newcommand{\Cov}{\ensuremath{\boldsymbol{\Sigma}}}
+\newcommand{\precis}{\ensuremath{\Lambda}}
+\newcommand{\Precis}{\ensuremath{\boldsymbol{\Lambda}}}
+
+\newcommand{\chol}{\ensuremath{L}}
+\newcommand{\Chol}{\ensuremath{\mathbf{L}}}
+\newcommand{\stddev}{\ensuremath{\sigma}}
+\newcommand{\stddevs}{\ensuremath{\boldsymbol{\sigma}}}
+\newcommand{\var}{\ensuremath{\stddev^{2}}}
+\newcommand{\vars}{\ensuremath{\stddevs^{2}}}
+
+\newcommand{\resid}{\ensuremath{\gamma}}
+\newcommand{\resids}{\ensuremath{\boldsymbol{\gamma}}}
+
+\newcommand{\ampl}{\ensuremath{\sigma}}
+
+\newcommand{\region}{\ensuremath{\mathcal{A}}}
+\newcommand{\level}{\ensuremath{\alpha}}
+
+% \newcommand{\reparam}{\ensuremath{\rho}}
+% \newcommand{\rparam}{\ensuremath{\psi}}
+% \newcommand{\rParam}{\ensuremath{\Psi}}
+% \newcommand{\rparams}{\ensuremath{\boldsymbol{\psi}}}
+% \newcommand{\rParams}{\ensuremath{\boldsymbol{\Psi}}}
+\newcommand{\reparam}{\ensuremath{\phi}}
+\newcommand{\rparam}{\ensuremath{\theta}}
+\newcommand{\rParam}{\ensuremath{\Theta}}
+\newcommand{\rparams}{\ensuremath{\boldsymbol{\theta}}}
+\newcommand{\rParams}{\ensuremath{\boldsymbol{\Theta}}}
+
+% \newcommand{\hyper}{\ensuremath{\phi}}
+% \newcommand{\hypers}{\ensuremath{\boldsymbol{\ensuremath{\phi}}}}
+% \newcommand{\Hypers}{\ensuremath{\boldsymbol{\ensuremath{\Phi}}}}
+
+\newcommand{\hyper}{\ensuremath{\zeta}}
+\newcommand{\hypers}{\ensuremath{\boldsymbol{\ensuremath{\zeta}}}}
+\newcommand{\Hypers}{\ensuremath{\boldsymbol{\ensuremath{\Zeta}}}}
+
+
+\newcommand{\diag}{\ensuremath{\operatorname{diag}}}
+\newcommand{\zeros}{\ensuremath{\mathbf{0}}}
+\newcommand{\identity}{\ensuremath{\mathbf{I}}}
+\newcommand{\infs}{\ensuremath{\boldsymbol{\infty}}}
+\newcommand{\half}{\ensuremath{\nicefrac{1}{2}}}
+
+\newcommand{\lbound}{\ensuremath{a}}
+\newcommand{\lbounds}{\ensuremath{\boldsymbol{a}}}
+\newcommand{\ubound}{\ensuremath{b}}
+\newcommand{\ubounds}{\ensuremath{\boldsymbol{b}}}
+
+\newcommand{\relu}{\ensuremath{\operatorname{ReLU}}}
+\newcommand{\sigmoid}{\ensuremath{\operatorname{\sigma}}}
+\newcommand{\softmax}{\ensuremath{\operatorname{softmax}}}
+\newcommand{\heaviside}{\ensuremath{\operatorname{\mathbbm{1}}}}
+\newcommand{\inner}[2]{\ensuremath{\langle#1,#2\rangle}}
+\newcommand{\hadamard}{\ensuremath{\circ}}
+\newcommand{\entropy}{\ensuremath{\operatorname{H}}}
+
+% -- Acquisition functions
+\newcommand{\acq}{\ensuremath{\ell}}
+\newcommand{\Acq}{\ensuremath{\mathcal{L}}}
+\newcommand{\AcqMC}[1]{\ensuremath{\Acq_{\ifthenelse{\isempty{#1}}{\nSamples}{#1}}}}
+
+% \newcommand{\acqParams}{\ensuremath{\boldsymbol{\psi}_{\data}}}
+\newcommand{\acqParams}{\ensuremath{\boldsymbol{\psi}}}
+
+\newcommand{\temperature}{\ensuremath{\tau}}
+\newcommand{\parallelize}[1]{\ensuremath{\operatorname{\mathnormal{q}\mathhyphen{}#1}}}
+\newcommand{\acqSubscript}[1]{\ensuremath{\scriptscriptstyle{#1}}}
+
+\newcommand{\EI}{\ensuremath{\operatorname{EI}}}
+\newcommand{\UCB}{\ensuremath{\operatorname{UCB}}}
+\newcommand{\PI}{\ensuremath{\operatorname{PI}}}
+\newcommand{\SR}{\ensuremath{\operatorname{SR}}}
+\newcommand{\ES}{\ensuremath{\operatorname{ES}}}
+\newcommand{\KG}{\ensuremath{\operatorname{KG}}}
+
+\newcommand{\qEI}{\parallelize{EI}}
+\newcommand{\qUCB}{\parallelize{UCB}}
+\newcommand{\qPI}{\parallelize{PI}}
+\newcommand{\qSR}{\parallelize{SR}}
+\newcommand{\qES}{\parallelize{ES}}
+
+% \newcommand{\qEI}{\ensuremath{\operatorname{\mathnormal{q}\mathhyphen{}EI}}}
+\newcommand{\mUCB}{\ensuremath{\operatorname{\mathnormal{1}\mathhyphen{}UCB}}}
+
+\newcommand{\MC}{MC{} }
+
+\newcommand{\setA}{\ensuremath{\mathcal{A}}}
+\newcommand{\setB}{\ensuremath{\mathcal{B}}}
+\newcommand{\setC}{\ensuremath{\mathcal{C}}}
+% \newcommand{\lboundAcq}{\ensuremath{\y_{\min}}}
+\newcommand{\lboundAcq}{\ensuremath{v_{\min}}}
+
+
+% -- Proper Nouns
+\newcommand{\matern}[2]{Mat\'{e}rn-{\nicefrac{#1}{#2}}}
+\newcommand{\ExpImp}{Expected Improvement}
+\newcommand{\hyperband}{\textsc{Hyperband}}
+\newcommand{\randsearch}{\textsc{RandSearch}}
+\newcommand{\rmsprop}{\text{RMSProp}}
+\newcommand{\adam}{\textsc{Adam}}
+% \newcommand{\adam}{\text{Adam}}
+\newcommand{\direct}{\text{DIRECT}}
+
+
+% -- Operators
+\newcommand{\abs}[1]{\ensuremath{\lvert#1\rvert}}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\floor}
+
+\newcommand{\minimum}{\ensuremath{\operatornamewithlimits{min}}}
+\newcommand{\maximum}{\ensuremath{\operatornamewithlimits{max}}}
+\newcommand{\infimum}{\ensuremath{\operatornamewithlimits{inf}}}
+\newcommand{\supremum}{\ensuremath{\operatornamewithlimits{sup}}}
+\newcommand{\argmin}{\ensuremath{\operatornamewithlimits{arg\,min}}}
+\newcommand{\argmax}{\ensuremath{\operatornamewithlimits{arg\,max}}}
+\newcommand{\cardinality}[1]{\ensuremath{\left|#1\right|}}
+
+\newcommand{\pnorm}[2]{\ensuremath{\left\Vert#2\right\Vert_{#1}}}
+\newcommand{\compl}[1]{\ensuremath{\overline{#1}}}
+\newcommand{\inverse}{\ensuremath{\operatorname{inv}}}
+\newcommand{\bigO}{\ensuremath{\mathcal{O}}}
+
+\newcommand{\clock}{\ensuremath{t}}
+\newcommand{\tic}{\ensuremath{\tau}}
+\newcommand{\tics}{\ensuremath{\boldsymbol{\tic}}}
+\newcommand{\interest}{\ensuremath{r}}
+\newcommand{\discount}{\ensuremath{\delta}}
+
+
+\newcommand{\gain}{\ensuremath{\delta}}
+\newcommand{\Gain}{\ensuremath{\Delta}}
+\newcommand{\argdot}{\makebox[1ex]{\textbf{$\cdot$}}}
+\newcommand{\MM}{MM}
+\newcommand{\SM}{SM}
+\newcommand{\uacq}{\ensuremath{\hat{\acq}}}
+
+\newcommand{\vid}{k}
+\newcommand{\version}[1]{\ensuremath{#1^{\vid}}}
+
+
+\begin{document}
+
+\input{headers.tex}
+\maketitle
+
+\begin{abstract}
+Bayesian optimization is a sample-efficient approach to global optimization that relies on theoretically motivated value heuristics (acquisition functions) to guide its search process. Fully maximizing acquisition functions produces the Bayes' decision rule, but this ideal is difficult to achieve since these functions are frequently non-trivial to optimize. This statement is especially true when evaluating queries in parallel, where acquisition functions are routinely non-convex, high-dimensional, and intractable.
+% 
+We first show that acquisition functions estimated via Monte Carlo integration are consistently amenable to gradient-based optimization. Subsequently, we identify a common family of acquisition functions, including \EI{} and \UCB{}, whose properties not only facilitate but justify use of greedy approaches for their maximization.
+% These contributions provide easy-to-use, general-purpose strategies for practical BO.
+
+% and show that its characteristics not only justify but facilitate greedy maximization of its \temp{constituents}.
+% 
+% We present two modern approaches for maximizing acquisition functions that exploit key properties thereof, namely the differentiability of Monte Carlo integration and the submodularity of parallel querying.
+\end{abstract}
+
+\input{introduction.tex}
+% \pagebreak
+
+\input{background.tex}
+\input{methods.tex}
+\input{experiments.tex}
+\input{conclusion.tex}
+
+\newpage
+\section*{Acknowledgments}
+The authors thank David Ginsbourger, Dario Azzimonti and Henry Wynn for initial discussions regarding the submodularity of various integrals.
+% 
+The support of the EPSRC Centre for Doctoral Training in High Performance Embedded and Distributed Systems (reference EP/L016796/1) is gratefully acknowledged.
+% 
+This work has partly been supported by the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme under grant no. 716721.
+
+
+\footnotesize
+\linespread{1.0}\selectfont
+\setlength{\bibsep}{5pt}
+\bibliography{references}
+
+\newpage
+\normalsize
+\appendix
+\input{appendices.tex}
+
+\end{document}
+

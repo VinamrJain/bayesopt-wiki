@@ -1,0 +1,156 @@
+
+\section{Introduction}
+\label{sec:intro}
+
+Many tasks in scientific and engineering applications can be framed as \emph{bandit
+optimisation} problems, where we need to sequentially evaluate a noisy
+black-box function $\func:\Xcal\rightarrow\RR$ with the goal of finding its optimum.
+Some applications include hyper-parameter tuning in machine learning~\citep{%
+snoek12practicalBO,hutter11smac}, optimal policy search~\citep{lizotte07automaticGait,
+martinez07robotplanning} and scientific experiments~\citep{parkinson06wmap3,gonzalez14gene}.
+Typically, in such applications, each function evaluation is expensive and historically
+the bandit literature has focused on developing methods for finding the optimum
+while keeping the number of evaluations to $\func$ at a minimum.
+
+However, with increasingly expensive experiments, conventional methods have become
+infeasible as a significant cost needs to be expended before we can learn anything
+about $\func$.
+As a result, \emph{multi-fidelity} optimisation methods have recently gained attention.
+As the name suggests, these methods assume that we have access to lower fidelity
+approximate functions to $\func$ which can be evaluated instead of $\func$.
+The lower the fidelity, the cheaper the evaluation, but it provides less accurate
+information about $\func$.
+For example, when optimising the configuration of an expensive real world robot,
+its performance can be approximated using cheap computer simulations.
+The goal is to use the cheap approximations to guide search for the optimum of $\func$,
+and reduce the overall cost of optimisation.
+However, most multi-fidelity work assume only a finite number of approximations to
+$\func$.
+In this paper, we study multi-fidelity optimisation when there is access to a continuous
+spectrum of approximations.
+
+
+
+To motivate this,
+consider tuning a classification algorithm over a space of hyper-parameters $\Xcal$
+by maximising a validation set accuracy. 
+The algorithm is to be trained using $\Nmax$
+data points via an iterative algorithm for $\Tmax$ iterations.
+However, we wish to use fewer training points $N<\Nmax$ and/or fewer iterations
+$T<\Tmax$ to approximate the validation accuracy.
+We can view validation accuracy as a function
+$g:[1,\Nmax]\times[1,\Tmax]\times\Xcal\rightarrow\RR$ where evaluating $g(N,T,x)$
+requires training the algorithm with $N$ points for $T$ iterations with the
+hyper-parameters $x$.
+If the training complexity of the algorithm is quadratic in data size and linear in the
+number of iterations, then the cost of this evaluation is $\lambda(N,T) = \bigO(N^2T)$.
+Our goal is to find the optimum when $N=\Nmax$, and $T=\Tmax$,
+% i.e.  $\xopt = \argmax_{x\in\Xcal} g(\Nmax,\Tmax, x)$.
+i.e.  we wish to maximise $\func(x) = g(\Nmax,\Tmax, x)$.
+
+In this setting, the approximations are best viewed as coming from a continuous $2$
+dimensional \emph{fidelity space}, namely $[1, \Nmax]\times[1,\Tmax]$.
+% Since querying $g$ at $N,T$ values less than $\Nmax,\Tmax$ costs less, we are
+% tempted to use such queries in the hope that we may
+Since querying $g(N,T,\cdot)$ at $N,T$ less than $\Nmax,\Tmax$ costs less, we are
+tempted to use such queries in the hope that we may
+learn about $g(\Nmax, \Tmax,\cdot)$ cheaply and consequently
+optimise it using less overall cost.
+This is, in fact, the case with many machine learning algorithms where cross
+validation curves tend to vary smoothly with data set size and number of iterations.
+Then we may use cheap low fidelity experiments with small $(N, T)$ to discard bad regions
+of the hyper-parameter space and deploy expensive high fidelity experiments with large
+$(N,T)$ only in a small but promising region of $\Xcal$.
+Our proposed algorithm exhibits precisely this behaviour. 
+
+Continuous approximations also arise in
+simulation studies -- where simulations can be carried out at varying levels of granularity,
+on-line advertising -- where the display of an ad can be controlled by various continuous
+parameters such as display time or target audience, and various other
+experiment design tasks.
+In fact, in many papers on multi-fidelity optimisation, the finite approximations were
+obtained by discretising
+a continuous space~\citep{kandasamy16mfbo,huang06mfKriging}.
+Here, we study a \bayo{} technique that is directly designed for continuous fidelity
+spaces and could potentially be applied to more general spaces.
+\textbf{Our contributions are as follows.}
+\vspace{-0.09in}
+\begin{enumerate}
+\item A novel setting and model for multi-fidelity optimisation with continuous
+approximations using Gaussian process (GP) assumptions.
+We develop a novel algorithm, \boca, for this setting.
+\vspace{-0.09in}
+\item A theoretical analysis characterising the behaviour and regret bound for \boca.
+\vspace{-0.09in}
+\item Empirically we demonstrate that \bocas outperforms other single and multi-fidelity
+  methods on a series of synthetic problems, and real problems in hyper-parameter tuning
+  and computational astrophysics.
+%   Our python implementation will be made publicly 
+\end{enumerate}
+
+
+\vspace{-0.07in}
+\subsection*{Related Work}
+\vspace{-0.07in}
+
+Bayesian optimisation (\bayo), refers to a suite of techniques for bandit optimisation
+which use a prior belief distribution for $\func$.
+While there are several techniques for
+BO~\citep{mockus94bo,jones98expensive,thompson33sampling,lobato14pes},
+our work will build on the 
+Gaussian process upper confidence bound (\gpucb) algorithm
+of~\citet{srinivas10gpbandits}.
+\gpucbs models $\func$ as a GP and uses upper confidence bound (UCB)~\citep{auer03ucb}
+techniques to determine the next point for evaluation.
+
+\bayo{} techniques have been used in developing multi-fidelity optimisation methods
+in various applications such as hyper-parameter tuning and industrial
+design~\citep{huang06mfKriging,swersky2013multi,klein2015towards,forrester07cokriging,%
+poloczek2016multi}.
+However, these methods are either problem specific and/or only use a finite
+number of fidelities.
+Further, none of them come with theoretical underpinnings.
+Recent work has studied multi-fidelity methods for specific problems 
+such as hyper-parameter tuning, active learning and
+reinforcement learning%
+~\citep{agarwal2011oracle,sabharwal2015selecting,cutler14mfsim,zhang15weakAndStrong,%
+li2016hyperband}.
+While some of the above tasks can be framed as optimisation problems, the methods
+themselves are specific to the problem considered.
+Our method is more general as it applies to any bandit optimisation task.
+
+
+Perhaps the closest work to us is that of~\citet{kandasamy16mfbo,kandasamy16mfbandit}
+who developed \mfgpucbones assuming a finite number of approximations to $\func$.
+% This line of work was important as it provided the first theoretical guarantees for
+% multi-fidelity optimisation.
+While this line of work was the first to provide theoretical guarantees for
+multi-fidelity optimisation, it has two important shortcomings.
+First, they make strong assumptions, particularly a uniform bound on the
+difference between the expensive function and an approximation.
+This does not allow for instances where an approximation might be good at certain regions
+but not at the other.
+In contrast our treatment between the fidelities is probabilistic which is robust
+to such cases.
+Second, their model does not allow sharing information between approximations; each
+approximation is treated independently.
+In addition to not uti
+Not only is this wasteful because lower fidelities can provide useful information about
+higher fidelities, it also means that the algorithm might perform poorly if the fidelities
+are not designed properly.
+We demonstrate this with an experiment in Section~\ref{sec:experiments}.
+On the other hand, our model allows sharing information across the fidelity space in a
+natural way.
+In addition, we can also handle continuous approximations whereas their method is strictly
+for a finite number of approximations.
+That said, \mfgpucbtwos inherits a key intuition from \mfgpucbone,
+% \todo{we don't need ``-I'' anymore right? Not reading the intro part too closely yet}
+% first select the next point for evaluation using an upper confidence bound strategy;
+which is to choose a fidelity only if we have controlled the uncertainty at all lower
+fidelities.
+% However, in addition to dealing with continuous approximations, we also differ from%
+% ~\citet{kandasamy16mfbo} fundamentally in our model assumptions.
+Besides this, the mechanics
+of our algorithm and the analysis techniques are considerably different.
+As we proceed, we will draw further comparisons to~\citet{kandasamy16mfbo}.
+

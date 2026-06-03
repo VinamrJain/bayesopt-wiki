@@ -1,0 +1,117 @@
+\section{Experimental Setup}
+\label{apdx:experiment_setup}
+All experiments are implemented based on BoTorch \citep{balandat2020botorch}. Each
+Bayesian optimization procedure is initialized with $2(d + 1)$ random samples, where $d$ is
+the dimension of the search domain. For Bayesian regret experiments, we follow the standard practice to generate the initial random samples using a quasirandom Sobol sequence. For empirical experiments, we randomly sample configuration IDs from a fixed pool of candidates—2,000 for LCBench and 32,768 for NATS-Bench. All computations are performed on CPU.
+
+Each experiment is repeated with 50 random seeds, and we report the mean with error bars, given by two times the standard error, for each stopping rule. We also impose a cap on the number of iterations: 100 for 1D Bayesian regret, 500 for 8D Bayesian regret, and 200 for empirical experiments. If a stopping rule is not triggered before reaching this cap, we treat the stopping time as equal to the cap.
+
+\paragraph*{Gaussian process models.}
+For all experiments, we follow the standard practice to apply Matérn kernels with smoothness $5/2$ and length scales learned from data via maximum marginal likelihood optimization, and standardize input variables to be in $[0,1]^d$. For empirical experiments, we standardize output variables to be zero-mean and unit-variance, but not for Bayesian regret experiments.
+In this work, we consider the noiseless setting and set the fixed noise level to be $10^{-6}$.
+In the unknown-cost experiments, we follow \citet{astudillo2021multi} to model the objective and the logarithm of the cost function using independent Gaussian processes.
+
+\paragraph*{Acquisition function optimization.} For the 1D Bayesian regret experiments, we optimize over 10,001 grid points. For the 8D Bayesian regret experiment, we use BoTorch’s `gen\_candidates\_torch', a gradient-based optimizer for continuous acquisition function maximization, as it avoids reproducibility issues caused by internal randomness in the default scipy optimizer. For the empirical experiments, since LCBench and NATS-Bench provide only 2,000 and 32,768 configurations respectively, we optimize the acquisition function by simply applying an argmin/argmax over the acquisition values of the unevaluated configurations, without using any gradient-based methods.
+
+\paragraph*{Acquisition function and stopping rule parameters.}
+For PBGI, we follow \citet{xie2024cost} to compute the Gittins indices using $100$ iterations of bisection search without any early stopping or other performance and reliability optimizations.
+
+For UCB/LCB-based acquisition functions and stopping rules, we follow the original GP-UCB paper \citet{srinivas2009gaussian} and the choice in UCB/LCB based stopping rules \citep{makarova2022automatic,ishibashi2023stopping} to use the schedule $\beta_t=2\log(d t^2\pi^2/6\delta)$, where $d$ is the dimension.
+We also adopt their choice of $\delta=10^{-1}$ and a scale-down factor of $5$.
+
+For PRB, we follow \citet{wilson2024stopping} to use the schedule $N_t=\max(\lceil 64*1.5^{t-1}\rceil, 1000)$ for number of posterior samples, risk tolerance $\delta=0.05$. The error bound $\epsilon$ is set to be 0.1 for Bayesian regret experiments and 0.5\% of the best test error (here, the misclassification rate) among all configurations for the empirical experiments.
+
+For the 8D Bayesian regret experiments, for all acquisition-value-based stopping rules, we apply moving average over 20 iterations to mitigate the fluctuations due to the imperfect acquisition function optimization. \Cref{fig:moving_average} illustrates the challenges these oscillations pose when computing stopping rule statistics and shows the improvement with moving average. For consistency, we also apply the 20-iteration averaging to the non-acquisition-value-based GSS and Convergence baselines.
+
+\begin{figure}[t!]
+    \centering   \includegraphics[width=\textwidth]{plots/PBGI_stopping_wiggly_polyak.pdf}
+    \caption{Comparison of the raw and moving-averaged PBGI/LogEIPC stopping rule signals (i.e., the LogEIPC acquisition values) in Bayesian regret 8D experiments for multiple acquisition functions, with linear cost and stopping thresholds at $\log(0.1)$, $\log(0.01)$ and $\log(0.001)$. \textit{Left:} The unaveraged signals exhibits large, high-frequency fluctuations due to the difficulty of acquisition optimization in high dimensions. \textit{Right:} Applying moving average (window=20) smooths these wiggles, yielding more stable stopping signals.}
+    \label{fig:moving_average}
+\end{figure}
+
+
+
+\paragraph{Omitted baselines.} We omit the KG acquisition function and stopping rule due to its high computational cost, as they are shown to be computationally intensive in the runtime experiments of \citet{xie2024cost}.
+
+\paragraph{Objective functions: Bayesian regret.}
+In all Bayesian regret experiments, each objective function $f$ is sampled from a Gaussian process prior with a Matérn 5/2 kernel and a length scale of $0.1$, using a different seed in each of the 50 trials.
+
+\paragraph*{Objective functions: empirical.} 
+In the empirical experiments, the validation error (scaled out of 100) is used as the objective function during the Bayesian optimization procedure, while the cost-adjusted simple regret is reported based on the corresponding test error.
+
+\paragraph*{Cost functions: Bayesian regret.}  
+In Bayesian regret experiments, we consider three types of evaluation costs: uniform, linear, and periodic. These costs are normalized such that $\E_{x \in [0,1]^d}[c(x)]$ is approximately $1$ and their expressions (prior to cost scaling) are given below.
+
+In the \textit{uniform} cost setting, each evaluation incurs a constant cost of $1$.
+
+In the \textit{linear} cost setting, the cost increases proportionally with the average coordinate value of the input:
+\[
+\text{linear\_cost}(x) = \frac{1 + 20 \cdot \left( \frac{1}{d} \sum_{i=1}^{d} x_i \right)}{11}.
+\]
+In the \textit{periodic} cost setting, the evaluation cost fluctuates across the domain. Following \cite{astudillo2021multi}, we define the periodic cost as
+\[
+\text{periodic\_cost}(x) = \frac{ \exp\left( \frac{\alpha}{d} \sum_{i=1}^{d} \cos\left( 2\pi \beta (x_i - x^*_i) \right) \right) }{ \left[ I_0\left( \frac{\alpha}{d} \right) \right]^d },
+\]
+where $x^*_i$ denotes the coordinate of the global optimum of $f$, and $I_0$ is the modified Bessel function of the first kind, which acts as a normalization constant. We set $\alpha = 2$ and $\beta = 2$ to induce noticeable variation in cost across the domain, while ensuring that costly evaluations can still be worthwhile. 
+
+A visualization of the three cost functions is provided in \Cref{fig:cost-surfaces}.
+
+\begin{figure}[t!]
+    \centering   \includegraphics[width=0.9\textwidth]{plots/visualize_cost.pdf}
+    \caption{Surface plots of cost functions over $[0, 1]^2$: (Left) Uniform cost of $1$ across domain. (Middle) Normalized linear cost increasing with the mean of $x_1$ and $x_2$. (Right) Periodic cost with $\alpha=2$, $\beta=2$, normalized by Bessel-based factor. }
+    \label{fig:cost-surfaces}
+\end{figure}
+
+\paragraph{Cost functions: empirical.}
+In the \emph{unknown-cost} experiments, we treat runtime---meaning, the provided full model training time (200 epochs for LCBench and 90 epochs for NATS)---as evaluation costs (prior to cost scaling).
+
+In the \emph{known-cost} experiments, for LCBench, we estimate the runtime cost from the number of model parameters $p$. Specifically, for the first three datasets in the six-dataset lite version, we use 0.001 times the number of model parameters as a proxy for runtime. This proxy is motivated by our observation of an approximately linear relationship between the number of model parameters and the actual runtime, with slope close to 0.001 (see Figure~\ref{fig:runtime_proxy}). For the full 35-dataset version, where the slope varies across datasets, we instead use a regression-derived coefficient $\alpha$ and the proxy cost is $\alpha p$. Importantly, the number of model parameters can be computed in advance, before the Bayesian optimization procedure, based on the network structure and classification task, as we explain in detail below.
+
+\begin{figure}[t!]
+    \centering   \includegraphics[width=\textwidth]{plots/runtime_proxy.pdf}
+    \caption{Empirical relationship between the number of model parameters and runtime for three LCBench datasets. Each subplot shows a scatter plot of actual runtime ($y$-axis) against number of model parameters ($x$-axis), along with a fitted linear regression line. The observed linear trend supports using 0.001 times the number of model parameters as a proxy for runtime. For \emph{Fashion-MNIST} and \emph{adult}, the fitted slopes are close to 0.001. The slope for higgs is slightly higher, possibly due to a few outliers.
+    }
+    \label{fig:runtime_proxy}
+\end{figure}
+
+In a feedforward neural network like shapedmlpnet with shape `funnel', the model parameters are determined by input size (number of features), output size (e.g., number of classes), number of layers, size of each layer.
+The input size and output size are given by:
+\begin{itemize}
+    \item Fashion-MNIST:
+    \begin{itemize}
+        \item Input dimension: 784 (each image has 28×28 pixels, flattened into a vector of length 784)
+        \item Number of Output Features (output\_feat): 10 (corresponding to 10 clothing categories)
+    \end{itemize}
+    \item Adult:
+    \begin{itemize}
+        \item Input Dimension: 14 (the dataset comprises 14 features, including both numerical and categorical attributes)
+        \item Number of Output Features: 1 (binary classification: income $>50K$ or $\leq50K$)
+    \end{itemize}
+    \item Higgs: 
+    \begin{itemize}
+        \item Input Dimension: 28 (each instance has 28 numerical features)
+        \item Number of Output Features: 1 (binary classification: signal or background process)
+    \end{itemize}
+    % \item Volkert:
+    % \begin{itemize}
+    %     \item Input Dimension: 147 (the dataset consists of 147 features)
+    %     \item Number of Output Features: 10 (corresponding to 10 classes)
+    % \end{itemize}
+\end{itemize}
+The number of layers (num\_layers) and size of each layer (max\_unit) can be obtained from the configuration. With these information, we can compute the total number of model parameters (weights and biases) based on the layer-wise structure as follows:
+\begin{align}
+\text{layer\_params}_{i \to i+1} &= \text{layer}_i \cdot \text{layer}_{i+1} + \text{layer}_{i+1} \quad \text{(weights + biases)} \\
+\text{model\_params} &= \sum_{i=0}^{L - 1} \text{layer\_params}_{i \to i+1} \\
+\text{where} \quad &\text{layer}_0 = \text{input\_dim}, \quad \text{layer}_L = \text{output\_feat}
+\end{align}
+
+Similarly for NATS-Bench, we use $\alpha \times F + \beta$ as a proxy for runtime (see Figure~\ref{fig:NATS_runtime_proxy} for a visualization of the linear relationship), where $F$ is the number of floating point operations (FLOPs).
+Specifically, for \emph{cifar10-valid}, we set $\alpha=1$, $\beta=400$; for \emph{cifar100}, we set $\alpha=2$, $\beta=550$; and for \emph{ImageNet16-120}, we set $\alpha=1$, $\beta=1000$.
+\begin{figure}[t!]
+    \centering   \includegraphics[width=\textwidth]{plots/NATS_runtime_proxy.pdf}
+    \caption{Empirical relationship between the number of FLOPs and runtime for the three NATS-Bench datasets. Each subplot shows a heatmap of actual runtime ($y$-axis) against number of FLOPs ($x$-axis), along with a fitted linear regression line. The observed linear trend supports using $\alpha \times \#\text{FLOPs} + \beta$ as a proxy for runtime.
+    }
+    \label{fig:NATS_runtime_proxy}
+\end{figure}
+
+FLOPs can also be computed in advance, as it is determined solely by the architecture's structure and the fixed input shape. Specifically, they are precomputed and stored for each architecture. Since each architecture corresponds to a deterministic computational graph and all inputs (e.g., CIFAR-10 images) have a fixed shape, the FLOPs required for a forward pass can be calculated analytically—without executing the model on data.

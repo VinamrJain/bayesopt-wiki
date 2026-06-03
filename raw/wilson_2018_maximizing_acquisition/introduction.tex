@@ -1,0 +1,26 @@
+%!TEX root=main.tex
+
+\section{Introduction}
+\label{sect:introduction}
+
+Bayesian optimization (BO) is a powerful framework for tackling complicated global optimization problems \cite{kushner1964new,movckus1975bayesian,jones-jgo98a}. Given a \blackbox{} function \(\f : \xspace \to \yspace\), BO seeks to identify a maximizer \(\opt{\x} \in \argmax_{\x \in \xspace} \f(\x)\) while simultaneously minimizing incurred costs. Recently, these strategies have demonstrated state-of-the-art results on many important, real-world problems ranging from material sciences \cite{frazier2016bayesian,ueno2016combo}, to robotics \cite{calandra2016bayesian,bansal2017goal}, to algorithm tuning and configuration \cite{hutter2011sequential,snoek-nips12a,swersky-nips13,falkner-icml-18}.
+
+
+From a high-level perspective, BO can be understood as the application of Bayesian decision theory to optimization problems~\cite{movckus1994application, degroot2005optimal,robert2007bayesian}. One first specifies a belief over possible explanations for \f{} using a probabilistic surrogate model and then combines this belief with an acquisition function \Acq{} to convey the expected utility for evaluating a set of queries \X{}. 
+% 
+In theory, \X{} is chosen according to Bayes' decision rule as \Acq{}'s maximizer by solving for an \emph{inner optimization problem} \cite{gelbart2014bayesian,martinez2014bayesopt,wang2016parallel}. 
+% 
+In practice, challenges associated with maximizing \Acq{} greatly impede our ability to live up to this standard.
+% 
+Nevertheless, this inner optimization problem is often treated as a \blackbox{} unto itself. 
+%
+Failing to address this challenge leads to a systematic departure from BO's premise and, consequently, consistent deterioration in \temp{achieved} performance.
+
+
+To help reconcile theory and practice, we present two modern perspectives for addressing BO's inner optimization problem that exploit key aspects of acquisition functions and their estimators.
+% 
+First, we clarify how sample path derivatives can be used to optimize a wide range of acquisition functions estimated via Monte Carlo (MC) integration.
+% 
+Second, we identify a common family of submodular acquisition functions and show that its constituents can generally be expressed in a \temp{more computer-friendly} form. These acquisition functions' properties enable greedy approaches to efficiently maximize them with guaranteed near-optimal results.
+% 
+Finally, we demonstrate through comprehensive experiments that these theoretical contributions directly translate to reliable and, often, substantial performance gains. 

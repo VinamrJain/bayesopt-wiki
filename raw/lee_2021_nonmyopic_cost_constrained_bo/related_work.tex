@@ -1,0 +1,15 @@
+Most prior approaches to cost-constrained BO occur in the \textit{grey-box} setting, in which additional information about the objective is available. 
+\textit{Multi-fidelity} BO is a widely studied setting in which fidelity parameters $s \in [0, 1]^m$, such as iteration count or grid size, are assumed to be a low-accuracy approximation of high-fidelity evaluations~\citep{forrester2007multi, kandasamy2017multi, poloczek2017multi, wu2019practical}. 
+Increasing $s$ increases the accuracy at the expense of run time. 
+In addition, Multi-fidelity methods are often application-specific. 
+For example, Hyperband~\citep{li2017hyperband, falkner2018bohb, klein2016fast, klein2017fastbo} cheaply train many neural network configurations for a few epochs, and then prunes unpromising configurations. 
+
+In \textit{multi-task} BO ~\citep{swersky2013multi}, hyperparameter optimization is first run on cheaper instances before considering more expensive ones. 
+\citet{swersky2013multi} introduce a cost-constrained, multi-task variant of entropy search to speed-up optimization of logistic regression and latent Dirichlet allocation. 
+Cost information is input as a set of cost preferences (e.g., a parameter $\bx_1$ is more expensive than a parameter $\bx_2$) by \citet{abdolshah2019costaware}, who develop a multi-objective, constrained BO method that evaluates cheap points before expensive ones, as determined by the cost preferences, to find feasible, low-cost solutions. 
+These methods outperform their black-box counterparts by evaluating cheap proxies or cheap points before selecting expensive evaluations, which is accomplished by leveraging additional cost information inside the optimization routine. 
+
+While all these methods demonstrate strong performance, they sacrifice generality and do not apply to black-box BO. 
+Moreover, by relying on parallel resources, these techniques target time efficiency rather than compute time, cost, or energy efficiency. We also note that cost-efficiency has been modestly studied in the setting of active search, in which a active search is run with the constraint that the total cost of all queries must be less than $\tau$ \cite{jiang2019cost}.
+
+Recent developments in nonmyopic BO account for the impact of future evaluations and are thus able to make better decisions~\citep{lam2016bayesian, lam2017lookahead, frazier2018, yue2019lookahead, lee2020efficient, jiang2020efficient}. These methods typically frame Bayesian optimization as a Markov decision process whose horizon is precisely the iteration budget. It is along these lines that we tackle the problem of nonmyopic, cost-constrained BO.   

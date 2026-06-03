@@ -1,0 +1,212 @@
+%
+\usepackage{mathtools}
+\usepackage{subcaption}
+%
+\usepackage{graphicx} %
+\usepackage{booktabs} 
+\usepackage{amssymb}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{url}
+
+\usepackage{natbib}
+\usepackage{bbm}
+\usepackage{multicol}
+%
+%
+\providecommand{\rv}{\mathsf}
+\providecommand{\dif}{\mathop{}\!\mathrm d}
+\providecommand{\Ex}{\mathbb E}
+\providecommand{\hide}[1]{}
+
+%
+%
+%
+%
+%
+
+%
+
+\newcommand{\I}{\mathbb{I}} %
+\usepackage{amsmath,amsfonts}
+\usepackage{amsopn,amssymb,amsthm}
+
+%
+
+\theoremstyle{plain}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}[section]
+\newtheorem{conj}{Conjecture}[section]
+\newtheorem{exmp}{Example}[section]
+%
+%
+%
+%
+
+
+
+
+%
+%
+%
+%
+%
+%
+
+
+%
+\newcommand{\rpm}{\raisebox{.2ex}{$\scriptstyle\pm$}}
+%
+\newcommand{\vct}[1]{\boldsymbol{#1}} %
+\newcommand{\mat}[1]{\boldsymbol{#1}} %
+\newcommand{\cst}[1]{\mathsf{#1}}  %
+
+%
+\newcommand{\field}[1]{\mathbb{#1}}
+\newcommand{\R}{\field{R}} %
+\newcommand{\C}{\field{C}} %
+\newcommand{\F}{\field{F}} %
+%
+\newcommand{\T}{^{\textrm T}} %
+
+%
+\newcommand{\inner}[2]{#1\cdot #2}
+\newcommand{\norm}[1]{\|#1\|}
+\newcommand{\twonorm}[1]{\left\|#1\right\|_2^2}
+\newcommand{\onenorm}[1]{\|#1\|_1}
+\newcommand{\Map}[1]{\mathcal{#1}}  %
+
+%
+\newcommand{\ProbOpr}[1]{\mathbb{#1}}
+%
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+\newcommand{\ind}[2]{{#1} \independent{#2}}
+\newcommand{\cind}[3]{{#1} \independent{#2}\,|\,#3} %
+\newcommand{\expect}[2]{%
+\ifthenelse{\equal{#2}{}}{\ProbOpr{E}_{#1}}
+{\ifthenelse{\equal{#1}{}}{\ProbOpr{E}\left[#2\right]}{\ProbOpr{E}_{#1}\left[#2\right]}}} %
+\newcommand{\var}[2]{%
+\ifthenelse{\equal{#2}{}}{\ProbOpr{VAR}_{#1}}
+{\ifthenelse{\equal{#1}{}}{\ProbOpr{VAR}\left[#2\right]}{\ProbOpr{VAR}_{#1}\left[#2\right]}}} %
+\newcommand{\cndexp}[2]{\ProbOpr{E}\,[ #1\,|\,#2\,]}  %
+%
+\DeclareMathOperator{\Cov}{Cov}
+
+%
+\DeclareMathOperator{\argmax}{arg\,max}
+\DeclareMathOperator{\argmin}{arg\,min}
+\DeclareMathOperator{\argsort}{arg\,sort}
+
+
+%
+\newcommand{\trace}[1]{\operatornamewithlimits{tr}\left\{#1\right\}}
+\newcommand{\diag}{\operatornamewithlimits{diag}}
+\newcommand{\sign}{\operatornamewithlimits{sign}}
+\newcommand{\const}{\operatornamewithlimits{const}}
+
+%
+\newcommand{\parde}[2]{\frac{\partial #1}{\partial  #2}}
+
+
+
+%
+
+%
+\newcommand{\vtheta}{\vct{\theta}}
+\newcommand{\vmu}{\vct{\mu}}
+\newcommand{\vgamma}{\vct{\gamma}}
+\newcommand{\vc}{\vct{c}}
+\newcommand{\vp}{\vct{p}}
+\newcommand{\vphi}{\vct{\phi}}
+\newcommand{\vpp}{\vct{\phi}}
+\newcommand{\vx}{{\vct{x}}}
+\newcommand{\vnu}{{\vct{\nu}}}
+\newcommand{\vy}{\vct{y}}
+\newcommand{\vz}{{\vct{z}}}
+\newcommand{\vd}{{\vct{d}}}
+\newcommand{\vu}{\vct{u}}
+\newcommand{\vo}{{\vct{o}}}
+\newcommand{\va}{\vct{a}}
+\newcommand{\vb}{\vct{b}}
+\newcommand{\vr}{\vct{r}}
+\newcommand{\vt}{\vct{t}}
+\newcommand{\vf}{\vct{f}}
+\newcommand{\vg}{\vct{g}}
+\newcommand{\vh}{\vct{h}}
+\newcommand{\vk}{\vct{k}}
+
+\newcommand{\kk}{\kappa}
+\newcommand{\vkk}{\vct{\kappa}}
+\newcommand{\vs}{\vct{s}}
+\newcommand{\vv}{\vct{v}}
+\newcommand{\vw}{\vct{w}}
+\newcommand{\ww}{\omega}
+\newcommand{\ones}{\vct{1}}
+\newcommand{\zeros}{\vct{0}}
+\newcommand{\mU}{\mat{U}}
+\newcommand{\mA}{\mat{A}}
+\newcommand{\mB}{\mat{B}}
+\newcommand{\mW}{\mat{W}}
+\newcommand{\mI}{\mat{I}}
+\newcommand{\mK}{\mat{K}}
+\newcommand{\mS}{\mat{S}}
+\newcommand{\mT}{\mat{T}}
+\newcommand{\mZ}{\mat{Z}}
+\newcommand{\mO}{\mat{O}}
+\newcommand{\mY}{\mat{Y}}
+\newcommand{\cN}{\cst{N}}
+\newcommand{\cQ}{\cst{Q}}
+\newcommand{\cD}{\cst{D}}
+\newcommand{\cL}{\cst{L}}
+\newcommand{\cK}{\cst{K}}
+\newcommand{\cH}{\cst{H}}
+\newcommand{\sQ}{\mathcal{Q}}
+\newcommand{\sS}{\mathcal{S}}
+\newcommand{\mL}{\mat{L}}
+\newcommand{\mSigma}{\mat{\Sigma}}
+\newcommand{\sF}{\mathcal{F}}
+
+%
+\newcommand{\nx}{\tilde{x}}
+\newcommand{\vnx}{{\tilde{\vx}}}
+\newcommand{\vnz}{{\tilde{\vz}}}
+%
+\newcommand{\deltavx}{\delta_\vx}
+\newcommand{\vmx}{\bar{\vx}}
+\newcommand{\vmz}{\bar{\vz}}
+\newcommand{\sigmax}{\mSigma_{\vx}}
+\newcommand{\sigmaz}{\mSigma_{\vz}}
+\newcommand{\no}{\tilde{o}}
+\newcommand{\vno}{{\tilde{\vo}}}
+\newcommand{\nell}{\tilde{\ell}}
+\newcommand{\jacob}{\mat{J}}
+\newcommand{\hess}{\mat{H}}
+\newcommand{\mloss}{\hat{\ell}}
+\newcommand{\rt}{\tilde{r}} %
+\newcommand{\bt}{\nu}
+
+\newcommand{\EST}{{\sc{EST}}}
+\newcommand{\ESTa}{{\sc{EST}}a}
+\newcommand{\ESTn}{{\sc{EST}}n}
+\newcommand{\EI}{{\sc{EI}}}
+\newcommand{\PI}{{\sc{PI}}}
+\newcommand{\RND}{{\sc{Rand}}}
+\newcommand{\UCB}{{\sc{UCB}}}
+
+\newcommand{\calr}{\mathcal{R}} %
+\newcommand{\ca}{\mathcal{A}} \newcommand{\cb}{\mathcal{B}} \newcommand{\cc}{\mathcal{C}} \newcommand{\cd}{\mathcal{D}} \newcommand{\ce}{\mathcal{E}} \newcommand{\cf}{\mathcal{F}} \newcommand{\cg}{\mathcal{G}} \newcommand{\ch}{\mathcal{H}} \newcommand{\ci}{\mathcal{I}} \newcommand{\cj}{\mathcal{J}} \newcommand{\ck}{\mathcal{K}} \newcommand{\cl}{\mathcal{L}} \newcommand{\cm}{\mathcal{M}} \newcommand{\cn}{\mathcal{N}} \newcommand{\co}{\mathcal{O}} \newcommand{\cp}{\mathcal{P}} \newcommand{\cq}{\mathcal{Q}} \newcommand{\cs}{\mathcal{S}} \newcommand{\ct}{\mathcal{T}} \newcommand{\cu}{\mathcal{U}} \newcommand{\cv}{\mathcal{V}} \newcommand{\cw}{\mathcal{W}} \newcommand{\cx}{\mathcal{X}} \newcommand{\cy}{\mathcal{Y}} \newcommand{\cz}{\mathcal{Z}}
+
+%
+%
+
+
+%
+\newcommand{\sj}[1]{\textcolor{blue}{SJ: #1}}

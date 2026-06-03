@@ -1,0 +1,84 @@
+%!TEX root=main.tex
+
+\newcommand{\ibudget}{inner budget}
+\newcommand{\ibudgets}{inner budgets}
+
+
+\section{Experiments}
+\label{sect:experiments}
+We assessed the efficacy of gradient-based and submodular strategies for maximizing acquisition function 
+in two primary settings: ``synthetic'', where task \f{} was drawn from a known GP prior, and ``black-box'', where \f's nature is unknown to the optimizer. In both cases, we used a GP surrogate with a constant mean and an anisotropic \matern{5}{2} kernel. For black-box tasks, ambiguity regarding the correct function prior was handled via online MAP estimation of the GP's (hyper)parameters. Appendix~\ref{appendix:experiment_details} further details the setup used for synthetic tasks.
+
+We present results averaged over 32 independent trials. Each trial began with three randomly chosen inputs, and competing methods were run from identical starting conditions. While the general notation of the paper has assumed noise-free observations, all experiments were run with Gaussian measurement noise leading to observed values \(\hat{\y} \sim \gaussian(\f(\x), 1\mathrm{e-}3)\).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                          Acquisition functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Acquisition functions}
+We focused on parallel \MC acquisition functions \AcqMC{}, particularly \EI{} and \UCB{}.
+% 
+Results using \EI{} are shown here and those using \UCB{} are provided in extended results (Appendix~\ref{appendix:results_extended}). 
+To avoid confounding variables when assessing BO performance for different acquisition maximizers, results using the \mmform{} form of \qEI{} discussed in Section~\ref{sect:myopic_maximal} are also reserved for extended results. 
+
+In additional experiments, we observed that optimization of \PI{} and \SR{} behaved like that of \EI{} and \UCB{}, respectively. However, overall performance using these acquisition functions was slightly worse, so further results are not reported here. Across experiments, the \qUCB{} acquisition function introduced in Section~\ref{sect:differentiability} outperformed \qEI{} on all tasks but the Levy function.
+
+Generally speaking, \MC estimators \AcqMC{} come in both deterministic and stochastic varieties. Here, determinism refers to whether or not each of \nSamples{} samples \(\sample{\Y}\) were generated using the same random variates \(\sample{\Z}\) within a given outer-loop iteration (see Section~\ref{sect:differentiability}). 
+% 	
+Together with a decision regarding ``batch-size'' \nSamples{}, this choice reflects a well-known tradeoff of approximation-, estimation-, and optimization-based sources of error when maximizing the true function \Acq{} \cite{bousquet2008tradeoffs}. We explored this tradeoff for each \solver{} and summarize our findings below.
+
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/synthetic_ei.pdf}
+\caption{Average performance of different acquisition \solvers{} on synthetic tasks from a known prior, given varied runtimes when maximizing Monte Carlo \qEI. Reported values indicate the log of the immediate regret \(\log_{10}\left|f_{\max} - f(\opt{\x})\right|\), where \(\opt{\x}\) denotes the observed maximizer \(\opt{\x} \in \argmax_{\x \in \data} \hat{\y}\).}
+\label{fig:results_synthetic_ei}
+\end{center}
+\end{figure}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                     Maximizers
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{\Solvers}
+We considered a range of (acquisition) \solvers, ultimately settling on stochastic gradient ascent (\adam, \cite{kingma2014adam}), Covariance Matrix Adaptation Evolution Strategy (CMA-ES, \cite{hansen2016cma}) and Random Search (RS, \cite{bergstra12}). Additional information regarding these choices is provided in Appendix~\ref{appendix:experiment_details}.
+% 
+% \footnote{We compared several gradient-based approaches (incl. L-BFGS-B and Polyak averaging~\cite{wang2016parallel}) and found that \adam{} consistently delivered superior performance. CMA-ES was included after repeatedly outperforming the rival black-box method \direct{} \cite{jones1993lipschitzian}. RS was chosen as a na\"ive acquisition \solver{} after Successive Halving (SH, \cite{karnin2013almost,jamieson2016non}) failed to yield significant improvement.
+% For consistency when identifying the best proposed query set(s), both RS and SH used deterministic estimators \AcqMC{}. Whereas RS was run with a constant batch-size \(\nSamples=1024\), SH started small and iteratively increased \nSamples{} to refine estimated acquisition values for promising candidates using a cumulative moving average and cached posteriors.
+% }  
+% 
+For fair comparison, \solvers{} were constrained by CPU runtime. At each outer-loop iteration, an ``\ibudget{}'' was defined as the average time taken to simultaneously evaluate \nEvals{} acquisition values given equivalent conditions. When using greedy parallelism, this budget was split evenly among each of \parallelism{} iterations. To characterize performance as a function of allocated runtime, experiments were run using \ibudgets{} \(\nEvals \in \{2^{12}, 2^{14}, 2^{16}\}\).
+
+For \adam, we used stochastic minibatches consisting of \(\nSamples=128\) samples and an initial learning rate \(\eta=\nicefrac{1}{40}\). To combat non-convexity, gradient ascent was run from a total of 32 (64) starting positions when greedily (jointly) maximizing \AcqMC. Appendix~\ref{appendix:initialization} details the multi-start initialization strategy.
+%
+As with the gradient-based approaches, CMA-ES performed better when run using stochastic minibatches \((\nSamples=128)\). Furthermore, reusing the aforementioned initialization strategy to generate CMA-ES's initial population of 64 samples led to additional performance gains.
+%
+\nolinebreak 
+%
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/blackbox_ei.pdf}
+% \vspace{-16pt}
+\caption{Average performance of different acquisition \solvers{} on black-box tasks from an unknown prior, given varied runtimes when maximizing Monte Carlo \qEI. Reported values indicate the log of the immediate regret \(\log_{10}\left|f_{\max} - f(\opt{\x})\right|\), where \(\opt{\x}\) denotes the observed maximizer \(\opt{\x} \in \argmax_{\x \in \data} \hat{\y}\).}
+\label{fig:results_blackbox_ei}
+\end{center}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                              Empirical results
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Empirical results}
+Figures \ref{fig:results_synthetic_ei} and \ref{fig:results_blackbox_ei} present key results regarding BO performance under varying conditions. Both sets of experiments explored an array of input dimensionalities \xdim{} and degrees of parallelism \parallelism{} (shown in the lower left corner of each panel). \Solvers{} are grouped by color, with darker colors denoting use of greedy parallelism; \ibudgets{} are shown in ascending order from left to right. 
+
+Results on synthetic tasks (Figure~\ref{fig:results_synthetic_ei}), provide a clearer picture of the \solvers' impacts on the full BO loop by eliminating the model mismatch. Across all dimensions \xdim{} (rows) and \ibudgets{} \nEvals{} (columns), gradient-based \solvers{} (orange) were consistently superior to both gradient-free (blue) and  na\"ive (green) alternatives. 
+%
+Similarly, submodular \solvers{} generally surpassed their joint counterparts. 
+% 
+However, in lower-dimensional cases where gradients alone suffice to optimize \AcqMC{}, the benefits for coupling gradient-based strategies with near-optima seeking submodular maximization naturally decline. 
+% 
+Lastly, the benefits of exploiting gradients and submodularity both scaled with increasing acquisition dimensionality \(\parallelism\times\xdim\).
+
+Trends are largely identical for black-box tasks (Figure~\ref{fig:results_blackbox_ei}), and this commonality is most evident for tasks sampled from an unknown GP prior (final row). These runs were identical to ones on synthetic tasks (specifically, the diagonal of Figure~\ref{fig:results_synthetic_ei}) but where knowledge of \f's prior was withheld. Outcomes here clarify the impact of model mismatch, showing how \solvers{} maintain their influence. 
+% 
+Finally, performance on Hartmann-6 (top row) serves as a clear indicator of the importance for thoroughly solving the inner optimization problem. In these experiments, performance improved despite mounting parallelism due to a corresponding increase in the \ibudget{}.
+
+Overall, these results clearly demonstrate that both gradient-based and submodular approaches to (parallel) query optimization lead to reliable and, often, substantial improvement in outer-loop performance. Furthermore, these gains become more pronounced as the acquisition dimensionality increases. Viewed in isolation, \solvers{} utilizing gradients consistently outperform gradient-free alternatives. Similarly, greedy strategies improve upon their joint counterparts in most cases.

@@ -1,0 +1,174 @@
+\pdfoutput=1
+\documentclass{article}
+
+% Recommended, but optional, packages for figures and better typesetting:
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs} % for professional tables
+\usepackage{diagbox}
+\usepackage{booktabs}
+\usepackage{multirow}
+% hyperref makes hyperlinks in the resulting PDF.
+\usepackage{hyperref}
+
+% Attempt to make hyperref and algorithmic work together better:
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+
+% Use the following line for the initial blind version submitted for review:
+% \usepackage{icml2026}
+
+% \usepackage[preprint]{icml2026}
+
+% If accepted, instead use the following line for the camera-ready submission:
+\usepackage[accepted]{icml2026}
+
+% Standard Math Packages
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algorithmic} % Added this as it is usually paired with algorithm in ICML [cite: 106]
+\usepackage{enumerate}
+\usepackage{comment}
+\usepackage{thmtools}
+\usepackage{thm-restate}
+
+% if you use cleveref..
+\usepackage[capitalize,noabbrev]{cleveref}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% THEOREMS
+% Note: ICML style defines theorem, lemma, corollary, remark, etc. 
+% We must not redefine them to avoid errors.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+
+% Custom User Commands
+\newcommand{\edit}[1]{{\color{blue} #1}}
+\newcommand{\linda}[1]{{\color{blue} #1}}
+\newcommand{\qian}[1]{{\color{orange} #1}}
+\newcommand{\pf}[1]{{\color{red} #1}}
+\newcommand{\ziv}[1]{{\color{violet} #1}}
+\newcommand{\zoutline}[1]{{\color{teal} \emph{[OUTLINE]}\quad\ignorespaces#1\unskip}}
+\newcommand{\Xcal}{\mathcal{X}}
+\newcommand{\GP}{\mathcal{GP}}
+\newcommand{\Ncal}{\mathcal{N}}
+\newcommand{\Fcal}{\mathcal{F}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\EI}{\operatorname{EI}}
+\newcommand{\Cost}{\mathrm{Cost}}
+\newcommand{\Reg}{\mathcal R^{(\lambda)}}
+\newcommand{\UI}{\mathsf{UI}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\let\UrlFont\scshape
+
+% Short title for the header 
+\icmltitlerunning{Cost-aware Stopping for Bayesian Optimization}
+
+\begin{document}
+
+\twocolumn[
+  \icmltitle{Cost-aware Stopping for Bayesian Optimization}
+
+  % It is OKAY to include author information, even for blind submissions: the
+  % style file will automatically remove it for you unless you've provided
+  % the [accepted] option to the icml2026 package. [cite: 66]
+
+  \icmlsetsymbol{equal}{*}
+
+  \begin{icmlauthorlist}
+    \icmlauthor{Qian Xie}{equal,cornell}
+    \icmlauthor{Linda Cai}{equal,ucb}
+    \icmlauthor{Alexander Terenin}{cornell}
+    \icmlauthor{Peter I. Frazier}{cornell}
+    \icmlauthor{Ziv Scully}{cornell}
+  \end{icmlauthorlist}
+
+  % Affiliations mapped to tags [cite: 6]
+  \icmlaffiliation{cornell}{Cornell University, Ithaca, New York, USA}
+  \icmlaffiliation{ucb}{University of California, Berkeley, Berkeley, California, USA}
+
+  \icmlcorrespondingauthor{Qian Xie}{qx66@cornell.edu.} % Update email if needed
+
+  % Keywords [cite: 9]
+  \icmlkeywords{Bayesian Optimization, Stopping Rules, Machine Learning}
+
+  \vskip 0.3in
+]
+
+% This command must go after the closing bracket ] following \twocolumn[ ...
+% Use \icmlEqualContribution for the asterisk note. 
+\printAffiliationsAndNotice{\icmlEqualContribution}
+
+\begin{abstract}
+  % Abstract must be a single paragraph, 4-6 sentences. [cite: 14]
+  In automated machine learning, scientific discovery, and other applications of Bayesian optimization, deciding when to stop evaluating expensive black-box functions in a cost-aware manner is an important but underexplored practical consideration.
+  A natural performance metric for this purpose is the \emph{cost-adjusted simple regret}, which explicitly captures the trade-off between solution quality and cumulative evaluation cost.
+  Existing stopping rules for Bayesian optimization are either heuristic, or are theoretically grounded but designed to optimize simple regret without accounting for evaluation costs; as a result, they provide no guarantees against unnecessary evaluations when costs are high. We propose a \emph{principled cost-aware stopping rule} for Bayesian optimization that adapts to varying evaluation costs without heuristic tuning. Our rule is grounded in a theoretical connection to state-of-the-art cost-aware acquisition functions, namely the Pandora's Box Gittins Index (PBGI) and log expected improvement per cost (LogEIPC). When paired with either acquisition function, we prove that the resulting policy satisfies a theoretical guarantee bounding the expected cost-adjusted simple regret. Across synthetic tasks and empirical benchmarks including hyperparameter optimization and neural architecture size search, pairing our stopping rule with PBGI or LogEIPC usually matches or outperforms other acquisition-function--stopping-rule pairs in terms of cost-adjusted simple regret. Code available at: \url{https://github.com/QianJaneXie/CostAwareStoppingBayesOpt}.
+\end{abstract}
+
+% Main Body
+\input{ICML/introduction}
+\input{ICML/background}
+\input{ICML/method}
+\input{ICML/experiments}
+
+\section{Conclusion}
+We develop the \emph{PBGI/LogEIPC stopping rule} for Bayesian optimization with varying evaluation costs.
+Paired with either the PBGI or LogEIPC acquisition function, it (a)~satisfies a theoretical guarantee bounding the expected cost-adjusted simple regret (\Cref{sec:method:theory}), and (b)~shows strong empirical performance in terms of cost-adjusted simple regret (\Cref{sec:experiment}).
+We believe our framework can be extended to settings involving noisy, multi-fidelity or batched evaluations, as well as alternative objective formulations ---for instance, applying a sigmoid transformation to test error rather than a linear one, to reflect real-world user preferences that shift sharply once error falls below a threshold.
+
+\section*{Impact Statement}
+This paper presents work whose goal is to advance the field of machine learning. There are many potential societal consequences of our work, none of which we feel must be specifically highlighted here.
+
+% Acknowledgements should only appear in the accepted version. [cite: 148]
+\section*{Acknowledgments}
+QX thanks Nairen Cao for helpful discussions on hindsight optimal, Theodore Brown for helpful discussions on LCBench runtime proxy, and Raul Astudillo for helpful discussions on unknown cost handling for LogEIPC. AT thanks James T. Wilson for helpful comments on stopping rules for Bayesian optimization.
+LC is funded by the European Union (ERC-2022-SYG-OCEAN-101071601).
+Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Research Council Executive Agency. Neither the European Union nor the granting authority can be held responsible for them.
+AT was supported by Cornell University, jointly via the Center for Data Science for Enterprise and Society, the College of Engineering, and the Ann S. Bowers College of Computing and Information Science.
+PF was supported by AFOSR FA9550-20-1-0351.
+ZS was supported by the NSF under grant no.\ CMMI-2307008.
+
+
+% Bibliography
+% Uses icml2026.bst included in the style-file package 
+\bibliography{CostAwareStopping}
+\bibliographystyle{icml2026}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+\onecolumn % Appendix is usually one column [cite: 159]
+
+% \input{appendices/illustrations}
+\input{appendices/analysis}
+\input{appendices/experiment_setup}
+\input{appendices/experiment_results}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

@@ -1,0 +1,173 @@
+\section{A Stopping Rule Based on the Pandora's Box Gittins Index}
+\label{sec:method}
+
+
+In this work, we propose a new stopping rule tailored for two state-of-the-art acquisition functions used in cost-aware Bayesian optimization: PBGI and LogEIPC, introduced in \Cref{sec:background}.
+As discussed by \citet{xie2024cost}, these acquisition functions are closely connected, arising from two different approximations of the intractable dynamic program which defines the Bayesian-optimal policy for cost-aware Bayesian optimization.
+We now show that this connection can be used to obtain a principled stopping criterion to be paired with both acquisition functions.
+
+\paragraph{A stopping rule for PBGI.}
+
+To derive a stopping rule for PBGI, consider first the Pandora’s Box problem, from which it is derived.
+Pandora’s Box can be seen as a special case of cost-per-sample Bayesian optimization, as introduced in \Cref{sec:background}, where $X = \{1,\dots,N\}$ is a discrete space and $f$ is assumed uncorrelated.
+In this setting, the observed values do not affect the posterior distribution---meaning, we have $f(x') \mid x_{1:t}, y_{1:t} = f(x')$ at all unobserved points $x'$---and thus the acquisition function value at point $x$ is time-invariant and can be written simply as $\alpha^{\mathrm{PBGI}}(x)$, where $\mathrm{EI}_{f}(x; \alpha^{\mathrm{PBGI}}(x)) = c(x)$.
+Following \citet{weitzman1979optimal}, one can show using a Gittins index argument that selecting $x_t$ to minimize $\alpha^{\mathrm{PBGI}}$ is Bayesian-optimal under minimization—the algorithm which does so achieves the smallest expected cost-adjusted regret, among all adaptive algorithms.
+
+One critical detail applied in the optimality argument of \citet{weitzman1979optimal} is that the policy defined by $\alpha^{\mathrm{PBGI}}$ is \emph{not} Bayesian-optimal for any fixed deterministic $T$.
+Instead, it is optimal only when the stopping time $T$ is chosen according to the condition
+\begin{equation}
+\label{eqn:Weitzman_stopping}
+\min_{x\in X\backslash\{x_1,\dots,x_t\}}\alpha^{\mathrm{PBGI}}(x) \geq y^*_{1:t},  
+\end{equation}
+where $\geq$ can be replaced by $>$\footnote{Following \citet[Appendix B]{xie2024cost}, optimality holds under any tie-breaking rule in the cost-per-sample setting, but only under a carefully-chosen stochastic tie-breaking rule in the expected budget-constrained setting. For simplicity, we use the stopping-as-early-as-possible tie-breaking rule in this paper.}, and as before, $y^*_{1:t}$ is the best value observed so far.
+
+In the correlated setting we study, \citet{xie2024cost} extend $\alpha^{\mathrm{PBGI}}$ to define an acquisition function by recomputing it at each iteration $t$ based on the posterior mean and variance, which defines $\alpha^{\mathrm{PBGI}}_t$ as in \Cref{eqn:PBGI}.
+In order to also extend the associated stopping rule, a subtle design choice arises: should we use $\alpha_{t-1}^{\mathrm{PBGI}}$ (before posterior update) or $\alpha_t^{\mathrm{PBGI}}$ (after posterior update) in \Cref{eqn:Weitzman_stopping}?
+While prior theoretical work \citep{gergatsouli2023weitzman} adopts the former choice, we instead use the latter (after posterior update), resulting in the stopping rule
+\begin{equation}
+\label{eqn:PBGI_stopping}
+\min_{x\in X\backslash\{x_1,\dots,x_t\}}\alpha_t^{\mathrm{PBGI}}(x) \geq y^*_{1:t}.  
+\end{equation}
+This choice is motivated by two reasons. First, we argue it more faithfully reflects the intuition behind Weitzman’s original stopping rule. 
+In the independent setting, $\alpha^{\mathrm{PBGI}}(x)$ represents a kind of \emph{fair value} for point $x$ \citep{kleinberg2016descending}.
+For an evaluated point $x \in \{x_1, \dots, x_t\}$, this is simply the observed function value.
+For an unevaluated point $x \not\in \{x_1, \dots, x_t\}$, the fair value reflects uncertainty in $f(x)$ and the cost $c(x)$.
+The stopping rule \Cref{eqn:PBGI_stopping} then says to \emph{stop when the best fair value is among the already-evaluated points}---namely, when no point provides positive expected gain relative to its cost if evaluated in the next round, conditioned on current observations. 
+In the correlated setting, the fair value naturally extends to $\alpha_t^{\mathrm{PBGI}}$, because this incorporates all known information at a given time.
+Second, we show in \Cref{apdx:sec:order_posterior_update} that using $\alpha_t^{\mathrm{PBGI}}$ yields tangible empirical gains in cost-adjusted regret.
+
+\paragraph{Connection with LogEIPC.}
+
+The above reasoning may at first seem to be fundamentally tied to the Pandora's Box problem and its Gittins-index-theoretic properties.
+We now show that it admits a second interpretation in terms of log expected improvement per cost, which arises from a completely different one-time-step approximation to the Bayesian-optimal dynamic program for cost-aware Bayesian optimization in the general correlated setting.
+
+To show this, we start with definitions above and apply a sequence of transformations.
+Recall that for any unevaluated point $x \notin \{x_1, \dots, x_t\}$, $\alpha_t^{\mathrm{PBGI}}(x)$ is defined in \Cref{eqn:PBGI} to be the solution to
+\begin{equation}
+\mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}(x; \alpha_t^{\mathrm{PBGI}}(x)) = c(x),    
+\end{equation}
+and since $\mathrm{EI}_{\psi}(x; y)$ is strictly increasing in $y$, any inequality involving $\alpha_t^{\mathrm{PBGI}}(x; c)$ can be lifted through the EI function without changing its direction, which means 
+$\alpha_t^{\mathrm{PBGI}}(x) \geq y^*_{1:t}$ holds if and only if
+$\mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}\left(x; y^*_{1:t}\right) \leq c(x)$. 
+This implies that the PBGI stopping rule from \Cref{eqn:PBGI_stopping} is equivalent to stopping when
+\begin{equation}
+    \label{eqn:EI_c_stopping}
+\mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}\left(x; y^*_{1:t}\right) \leq c(x),
+\quad
+\forall x \in X \backslash \{x_1, .., x_t\},
+\end{equation}
+meaning \emph{stop when no point's expected improvement is worth its evaluation cost}.
+Rearranging the inequality and taking logs, we can rewrite this condition using the LogEIPC acquisition function\footnote{Excluding evaluated points is not theoretically required but often beneficial in practice, as numerical stability adjustments can cause their expected improvement to remain positive.}
+:
+\begin{align}
+    \label{eqn:LogEIPC_stopping}
+    \max_{x\in X\backslash \{x_1, \dots, x_t\}} \alpha_t^{\mathrm{LogEIPC}}(x; y^*_{1:t}) \leq 0
+    .
+\end{align}
+When \(c(x)\equiv c_0\), Equation (8) reduces to the EI thresholding stopping rule \cite{nguyen2017regret,zhou2024corrected} 
+\begin{align}
+    \label{eqn:EI_stopping}
+    \max_{x\in X\backslash \{x_1, \dots, x_t\}} \alpha_t^{\mathrm{EI}}(x; y^*_{1:t}) \leq c_0
+    .
+\end{align}
+We call the stopping rule given by the equivalent conditions (\Cref{eqn:PBGI_stopping,eqn:EI_c_stopping,eqn:LogEIPC_stopping}) the \emph{PBGI/LogEIPC stopping rule}.
+\Cref{fig:stopping_illustration} gives an illustration of how the rule behaves in a simple setting, demonstrating that it is more conservative---preferring to stop earlier---when the cost is high.
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[t]{0.23\textwidth}
+    \includegraphics[width=\linewidth, trim=0 0 0 0, clip]{plots/single_column/LogEIPC_vs_PBGI_acq_large.pdf}
+    \caption{$c(x) \equiv 0.1$}
+  \end{subfigure}
+  % \hfill
+  \begin{subfigure}[t]{0.23\textwidth}
+    \includegraphics[width=\linewidth, trim=0 0 0 0, clip]{plots/single_column/LogEIPC_vs_PBGI_acq_small.pdf}
+    \caption{$c(x) \equiv 0.0001$}
+  \end{subfigure}
+  \caption{Illustration of the PBGI/LogEIPC stopping rule under a uniform-cost setting. When the cost-per-sample is large ($c(x) \equiv 0.1$), the minimum PBGI acquisition value exceeds the threshold (current best observed value) and the maximum LogEIPC acquisition value falls below the threshold $0.0$, indicating stopping; when the cost-per-sample is small ($c(x)\equiv 0.0001$), the minimum PBGI acquisition value is smaller than the threshold (current best observed value) and the maximum LogEIPC acquisition value remains above the threshold $0.0$, indicating no stopping.}
+  \label{fig:stopping_illustration}
+\end{figure}
+
+%\subsection{A Theoretical Guarantee on Cost up to Stopping} \label{sec:method:theory}
+\subsection{Theoretical Guarantees on Cost-Adjusted Regret} \label{sec:method:theory}
+% We now formalize the common guarantee behind PBGI and LogEIPC. Under the PBGI/LogEIPC stopping rule, every evaluation taken before stopping has nonnegative myopic surplus: the posterior expected improvement at the chosen point is at least its evaluation cost.that the expected improvement at the selected point is at least as large as its cost at each iteration before stopping.
+The connection between PBGI and LogEIPC in fact goes beyond a shared stopping rule. In \Cref{lem:EI_lower_bound}, we prove that when paired with this stopping rule, both acquisition functions guarantee that at each iteration before stopping, the expected improvement at the selected point is at least its evaluation cost. 
+% This property shows that both acquisition functions successfully avoid overspending.
+
+% In the discrete Pandora's Box setting, the PBGI acquisition, combined with the PBGI/LogEIPC stopping rule, is Bayesian-optimal in more than one way: doing so not only achieves the best possible expected cost-adjusted simple regret, it also achieves the best \emph{expected simple regret, among all algorithms satisfying an expected budget constraint}. 
+
+\begin{restatable}[Expected improvement exceeds cost before stopping]{lemma}{LemEIlb} \label{lem:EI_lower_bound}
+Let $X$ be compact, and let $f : X \to \mathbb{R}$ be a random function with prior mean $\mu(\cdot)$. %constant mean $\mu$. 
+Consider a Bayesian optimization algorithm that begins at some initial point $x_1\in X$ with cost $C = c(x_1)$, acquires subsequent points using either the PBGI or LogEIPC acquisition function, and terminates according to the PBGI/LogEIPC stopping rule.
+Let $\tau = \min_{t \geq 1} \{\sup_{x \in X} \alpha_{t}^{\mathrm{LogEIPC}}(x) \leq 0\}$ be the algorithm's stopping time, and denote the posterior expected improvement function by $\alpha_{t}^{\mathrm{EI}}(x) = \mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}\left(x; y^*_{1:t}\right)$. Then, for all $t < \tau$, $\alpha_{t}^{\mathrm{EI}}(x_{t+1})\ge c(x_{t+1})$.
+\end{restatable}
+ 
+As a consequence of this claim, we show in \Cref{thm:non_neg_util} that the PBGI/LogEIPC stopping rule, when paired with PBGI or LogEIPC, achieves cost-adjusted simple regret no worse than stopping immediately after the initial evaluation.
+Notably, many acquisition function–stopping rule pairs fail to satisfy this \emph{no-worse-than-immediate} property in practice (see \Cref{fig:synthetic,fig:empirical}), largely because most stopping rules are designed with simple regret alone in mind and do not explicitly account for evaluation costs.
+Moreover, this guarantee is tight in the worst case: when evaluation costs are sufficiently large relative to the maximum achievable improvement, immediate stopping is optimal (see \Cref{prop:immediate_optimal}).
+To our knowledge, this is the first formal guarantee on cost-adjusted simple regret for Bayesian optimization, generalizing beyond simpler settings such as Pandora’s~Box, which assumes independent and discrete evaluations.
+
+\begin{restatable}[No worse than immediate stopping]{theorem}{ThmPositiveUtil} 
+\label{thm:non_neg_util}
+Consider the setting and algorithm specified in \Cref{lem:EI_lower_bound}. Let $U:= \mu(x_1) - \mathbb{E}[\min_{x\in X}f(x)]<\infty$, 
+then the algorithm's expected cost-adjusted simple regret is bounded by
+\begin{align}&\mathbb{E}\left[y_{1:\tau}^* - \min_{x\in X}f(x) + \sum_{t=1}^{\tau} c(x_t)\right]
+    \nonumber\\
+    &\leq \mathbb{E}\big[
+        \underbrace{
+        y_{1} - \min_{x\in X}f(x) + c(x_1)}_{\textnormal{cost-adjusted regret of immediate stopping}}
+    \big]
+    = U+C.\label{eqn:cost_adjusted_regret_bound}
+\end{align}
+\end{restatable}
+\vspace{-6pt}
+This result yields a bound on expected cumulative cost and, under the natural assumption that practical evaluations have a positive minimum cost, a high-probability finite-time termination guarantee.
+\begin{restatable}[Finite-time termination under positive costs]{corollary}{ThmTermination}
+    Consider the setting and algorithm specified in \Cref{lem:EI_lower_bound}. Then the expected cumulative cost of the algorithm is bounded by   $\mathbb{E}\left[\sum_{t=1}^{\tau} c(x_t)\right] \leq U+ C$. Further, if evaluation costs are uniformly bounded below by a constant $c_0>0$, i.e., $c(x)\geq c_0, \forall x \in X$, then for any $\delta \in (0, 1)$, the algorithm terminates in at most $\frac{U +C}{\delta \cdot c_0}$ iterations with probability $1 - \delta$.     
+\end{restatable}
+
+\begin{remark}
+\Cref{lem:EI_lower_bound} and \Cref{thm:non_neg_util} are stated for simplicity under initialization from a single point $x_1$. The results extend directly to arbitrary initial datasets $(x_{1:t_0},y_{1:t_0})$ by conditioning on the observations and treating the resulting posterior as the effective prior. The same guarantees then hold for subsequent iterations $t\geq t_0$, with all quantities defined with respect to this updated posterior.
+\end{remark}
+
+\subsubsection{Implication in the Budgeted Setting}
+\label{subsubsec:budget-constrained}
+We first note that in the discrete Pandora's Box setting, under an expected budget constraint $B$, minimizing $\alpha_t^{\mathrm{PBGI}}(x)$ is Bayesian-optimal: it achieves the lowest \emph{expected simple regret, among all algorithms} satisfying the expected cumulative cost within the budget (i.e., 
+$\mathbb{E}\left[\sum_{t=1}^{\tau} c(x_t)\right] \leq B$), and the cost function used in defining $\alpha_t^{\mathrm{PBGI}}(x)$ is $\lambda c(x)$ for some \emph{cost-scaling factor} $\lambda$ which depends on $B$ \citep[Theorem 2]{xie2024cost}.
+
+This result, at first, appear to be completely Pandora's-Box-theoretic: it requires $X$ to be discrete and $f$ to be independent. 
+In the more general correlated setting of cost-aware Bayesian optimization, however, Bayesian optimality of PBGI may no longer hold, and the relationship between $B$ and the choice of $\lambda$ is not immediately clear. \Cref{thm:non_neg_util} helps bridge this gap: it provides an upper bound on the expected cumulative cost up to the stopping time, which in turn yields the following principled choice of $\lambda$ that ensures compliance with the budget constraint.
+
+\begin{restatable}[Choosing $\lambda$ for expected budget compliance]{corollary}{ThmCosts}
+\label{thm:lambda_for_budget}
+Consider the setting, algorithm, and notation specified in \Cref{lem:EI_lower_bound,thm:non_neg_util}, but with costs rescaled by a factor $\lambda > 0$: both the acquisition values and the stopping conditions are computed using $\lambda c(\cdot)$. 
+For some budget $B>C$, if the cost-scaling factor is set to $\lambda = \frac{U}{B - C}$, 
+then the algorithm’s expected cumulative unscaled cost satisfies $\E\left[\sum_{t=1}^{\tau} c(x_t)\right] \leq B$.
+\end{restatable}
+If this choice of $\lambda$ proves overly conservative—leading to underspending within the budget—it can be paired with the PBGI-D variant of \citet{xie2024cost}, which starts with $\lambda=\lambda_0$ and halves it each time stopping is triggered. Choosing $\lambda_0 = U/(B-C)$ aligns the initial fixed-$\lambda$ phase with the budget in expectation, while ensuring that the adaptive decay is activated as designed. In \Cref{fig:budgeted} in \Cref{apdx:experiment_results}, we show PBGI-D with this choice of $\lambda_0$ is competitive.
+
+All proofs in this section are deferred to \Cref{apdx:theory}.
+
+\subsection{Practical Implementation Considerations for the PBGI/LogEIPC Stopping Rule}
+
+\label{subsec:practical-consideration}
+\paragraph{Expressing objective and cost in common units.} Evaluation costs are often measured in different units than the objective, such as time versus accuracy.
+To compare them directly, we rescale costs by a constant $\lambda > 0$, the conversion rate between objective improvement and cost.
+For instance, if one is willing to spend $1000$ seconds to improve test accuracy by $0.01$, then $\lambda = 10^{-5}$.
+Importantly, in the cost-per-sample setting we mainly study, $\lambda$ is a fixed constant set by the problem provider, rather than a parameter tuned heuristically by the user. The budgeted setting without a natural unit conversion is discussed in \Cref{subsubsec:budget-constrained}.
+% If one knows the unit conversion explicitly---for instance, the hourly rate of a compute cluster and the business value of improved model performance---then the scaling factor $\lambda$ can be set directly.Otherwise, \cref{thm:lambda_for_budget} gives a principled heuristic for choosing~$\lambda$.
+
+%\paragraph{Budget Constraint Setting.} 
+
+
+\paragraph{Unknown costs.}
+In practice, evaluation costs are often not known in advance. They can be modeled either (i) deterministically, using domain knowledge (e.g., proportional to model size in hyperparameter tuning), or (ii) stochastically, via assumptions on the distribution of $c(x)$ (our theoretical guarantees still hold after replacing $c(x)$ with $\E[c(x)]$). In \Cref{sec:experiment}, we present empirical results under both modeling approaches. For the latter, we follow \citet[Proposition~2]{astudillo2021multi} to model $\ln c(x)$ as a GP with posterior mean $\mu_{\ln c}$ and variance $\sigma^2_{\ln c}$. To compute PBGI or LogEIPC, as well as their related stopping rules (including those in the prior work and ours), we replace $c(x)$ in \Cref{eqn:EIC,eqn:PBGI,eqn:EI_c_stopping} with $\mathbb{E}[c(x)]= \exp(\mu_{\ln c}(x)+(\sigma_{\ln c}(x))^2 / 2 )$. The empirical performance is preserved. See \Cref{apdx:sec:empirical_results} for further discussion. 
+
+
+\paragraph{Preventing spurious stops.}
+Although our stopping rule has theoretical guarantees, in practice, it---like other adaptive stopping rules---can still suffer from spurious stops caused by two main sources.
+First, early in the optimization process, the GP model parameters often fluctuate significantly as new data points are collected, causing unstable stopping signals.
+To mitigate this, we enforce a stabilization period consisting of the first few evaluations, during which we do not allow any stopping rule to trigger.
+Second, imperfect optimization of the acquisition function---which is especially common in continuous higher-dimensional search spaces---can lead to misleading stopping signals.
+To handle this, we smooth the stopping signal in this setting by applying a moving average over a window of $W$ iterations, and require the stopping condition to hold consistently under this smoothed signal before stopping.
+See \Cref{fig:moving_average} for an illustration.
+We use the same window size $W=20$ for both the stabilization period and smoothing to minimize the number of parameters in our main experiments. A ablation study on the effect of window size can be found in Appendix~\ref{sec:ma_ablation}. 

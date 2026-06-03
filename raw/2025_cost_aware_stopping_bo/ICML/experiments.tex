@@ -1,0 +1,107 @@
+\section{Experiments}
+\label{sec:experiment}
+To evaluate our proposed PBGI/LogEIPC stopping rule, we design three complementary sets of experiments that progressively evaluate its performance. 
+First, we consider an idealized, low-dimensional Bayesian regret setting in which the GP model exactly matches the true objective. This controlled setting allows us to isolate the effect of different stopping rules without interference from model misspecification and acquisition function optimization errors. 
+Then, we move to a higher-dimensional Bayesian regret setting where acquisition-function optimization is imperfect. 
+Finally, we evaluate in practical settings with objective model misspecification, using the LCBench hyperparameter tuning benchmark and the NATS neural architecture size search benchmark. 
+In each case, we compare pairs of acquisition functions and stopping rules, which we describe next.
+
+\paragraph{Acquisition functions.} We consider four common acquisition functions that were discussed in \Cref{sec:background}: PBGI, LogEIPC, LCB, and TS---chosen for their competitive performance, computational efficiency, and close connections to existing stopping rules. 
+
+\paragraph{Baselines.} We compare the proposed PBGI/LogEIPC stopping rule against several stopping rules from prior work: \emph{UCB–LCB}  \citep{makarova2022automatic}, \emph{LogEIPC-med} \citep{ishibashi2023stopping}, \emph{SRGap-med} \citep{ishibashi2023stopping}, and \emph{PRB} \citep{wilson2024stopping}. We also include two simple heuristics used in practice: \emph{Convergence} and \emph{GSS}. 
+\emph{UCB–LCB} stops once the gap between upper and lower confidence bounds falls below a configurable threshold $\theta$. \emph{LogEIPC-med} stops when the log expected improvement per cost drops beneath $\log(\eta)$ plus the median of its initial $I$ values. 
+\emph{SRGap-med} stops when the gap of the expected minimum simple regret falls below $\chi$ times the median of its initial $I$ values.
+\emph{PRB} triggers once a probabilistic regret bound satisfies the regret tolerance $\epsilon$ and confidence $\delta$ parameters. \emph{Convergence} stops as soon as the best observed value remains unchanged for $k$ iterations.
+\emph{GSS} stops if the recent improvement is less than $\phi \times \mathrm{IQR}$ over the past $k$ trials where $\mathrm{IQR}$ denotes the inter-quartile range of current observations. 
+Finally, we include two reference baselines: \emph{Immediate}, which stops right after the initial evaluation (see \Cref{sec:method:theory}), and \emph{Hindsight}, which, for each trial, selects the stopping time that yields the lowest cost-adjusted simple regret in hindsight, thus providing a lower bound on achievable performance. 
+
+In our experiments, unless specified otherwise, we follow parameter values recommended in the literature, and set $\theta = 0.01$, $\eta=0.01$, $\chi = 0.01$, $I = 20$, $\epsilon = 0.1$ for Bayesian regret experiments, $\epsilon = 0.5\%$ of the best test error for empirical experiments, $\delta=0.05$, $k=5$, and $\phi = 0.01$.
+For the stabilization and smoothing window, we use $W=20$, aligned with the initial window size $I=20$ used in EI-med \citep{ishibashi2023stopping}.
+
+Each experiment is repeated with 50 random seeds to assess variability, and we report the mean with error bars (2 times the standard error) for each stopping rule. 
+Each trial, in the sense of a run with a distinct random seed, is capped at a fixed number of iterations; if a stopping rule is not triggered within this limit, the stopping time is set to the cap. Details are provided in \Cref{apdx:experiment_setup}.
+\input{ICML/synthetic}
+
+\subsection{Automated Machine Learning Benchmarks}
+
+We then evaluate on two empirical automated machine learning benchmarks based on use cases from hyperparameter optimization and neural architecture search: LCBench \citep{ZimLin2021a} and NATS-Bench \citep{dong2021nats}.
+Unless otherwise specified, results in this section assume a known cost function; results under the unknown-cost setting are provided in \Cref{apdx:experiment_results}.
+
+LCBench~\cite{ZimLin2021a} provides training data of 2,000 configurations over a 7-dimensional hyperparameter space, evaluated on 35 OpenML \cite{vanschoren2014openml} datasets. 
+% Due to the space constraints, we report results on the first three datasets from the lite version, covering image, mixed-type tabular, and large-scale numerical tabular classification tasks.
+In the \emph{unknown-cost} experiments, the cost is the full 51-epoch training time. 
+For the known-cost setting, we observe that training time scales approximately linearly with the number of model parameters. 
+Based on a linear regression fit (see \Cref{apdx:experiment_setup}), we adopt $\alpha p$ as a proxy for training time, where $p$ is the number of model parameters and $\alpha$ is a dataset-specific estimated coefficient.
+
+NATS-Bench~\cite{dong2021nats} provides a search space of 32,768 neural architectures varying in channel sizes across layers, evaluated on three datasets. As in LCBench, we similarly approximate the full 90-epoch (training and validation) runtime using a linear function $\alpha F + \beta$ of the number of floating point operations $F$; see \Cref{apdx:experiment_setup} for details.
+
+We report the mean and error bars (2 times standard error) of the \emph{cost-adjusted simple regret}, where we consider the evaluation costs to be some representative cost-scaling factor $\lambda$ (see \cref{subsec:practical-consideration}) multiplied with cumulative runtime.
+Simple regret is computed as the difference between (a)~test error of the configuration with best validation error at the stopping time and (b)~the best test error over all configurations.
+We present the results using proxy runtime here, and defer to \cref{apdx:experiment_results} the additional results under (i) the \emph{cost model misspecification} scenario (proxy runtime used during Bayesian optimization but actual runtime used for final performance evaluation), and (ii) the \emph{unknown-cost} scenario (actual runtime used during Bayesian optimization).
+% We also report means and error bars of cumulative runtime–test error pairs at stopping in \Cref{apdx:experiment_results}.
+
+\Cref{fig:empirical} presents performance of acquisition function--stopping rule pairs on LCBench and NATS-Bench. For LCBench, we report min–max normalized cost-adjusted simple regret (see definition in \Cref{apdx:experiment_results}) aggregated across 35 datasets in \Cref{fig:empirical} evaluated under three representative\footnote{These $\lambda$ values are chosen to avoid degenerate cases—neither so large that the policy stops after only a few evaluations (e.g., $\lambda = 10^{-4}$ on NATS-Bench, see \Cref{fig:cost_misspecification_lcbench}) nor so small that evaluations are effectively free.} cost-scaling values. For NATS-Bench, we report cost-adjusted simple regret under $\lambda = 10^{-5}$, with additional results under two other representative cost-scaling factors shown in \Cref{fig:cifar10-valid,fig:cifar100,fig:ImageNet16-120} in \Cref{apdx:experiment_results}.
+
+Per-dataset LCBench results are provided in \Cref{fig:lcbench_all_1e-3,fig:lcbench_all_1e-4,fig:lcbench_all_1e-5} in the appendix. Across the 35 LCBench tasks, around 75\% show our PBGI/LogEIPC stopping rule performing competitively when paired with either PBGI or LogEIPC. The remaining outliers are mostly (aside from two exceptions) very small datasets with $<10000$ instances (i.e., data points) that might lead to severe model misspecification. We also report the rank frequency of our PBGI/LogEIPC stopping rule when paired separately with the PBGI and LogEIPC acquisition functions, evaluated on medium-to-large datasets (with $> 10{,}000$ instances) and all datasets; see \Cref{fig:ranking_full_dataset}. A diagnosis of the underperforming datasets can be found in \Cref{sec:val_test_diagnostic}, where we find that the apparent underperformance is likely driven by benchmark-intrinsic val/test mismatch rather than by the stopping rule itself.
+
+Additional results under the cost model misspecification setting and the unknown-cost setting are provided in \Cref{fig:cost_misspecification_lcbench,fig:unknown_cost} in \Cref{apdx:experiment_results}, along with comparisons between our adaptive stopping rule and fixed-iteration baselines.
+Overall, our PBGI/LogEIPC stopping rule consistently performs strongly in terms of cost-adjusted simple regret, when paired with either PBGI or LogEIPC.
+We also report, in \Cref{tab:nonstops} of \Cref{apdx:experiment_results}, how often each stopping rule fails to trigger within the 200-iteration cap: baselines such as SRGap-med and UCB–LCB often fail to stop early, particularly on NATS-Bench, whereas ours reliably stops before the cap.
+
+In empirical benchmarks such as LCBench and NATS-Bench, where objective misspecification relative to the GP prior is unavoidable, our stopping rule remains robust. When paired with PBGI, it delivers performance close to the hindsight optimal, except on two NATS tasks with potential severe misspecification. Pairing with LogEIPC is slightly less competitive, likely reflecting PBGI’s stronger robustness under misspecification. Indeed, \Cref{fig:budgeted} in \Cref{apdx:experiment_results} compares acquisition functions under fixed-budget evaluations (without stopping) and shows that PBGI consistently attains lower simple regret than LogEIPC. Thus, while our stopping rule applies to both acquisition functions, the matched PBGI combination is a particularly strong default under objective misspecification.
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.1}
+
+\begin{tabular}{c l cc cc cc}
+\toprule
+\multirow{2}{*}{$\lambda$} &
+\multirow{2}{*}{Acq} &
+\multicolumn{2}{c}{Top 1} & \multicolumn{2}{c}{Top 2} & \multicolumn{2}{c}{Top 3} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+& & Large & All & Large & All & Large & All \\
+\midrule
+
+\multirow{2}{*}{$10^{-3}$}
+& PBGI
+& $20.0\%$ & $20.0\%$ & $70.0\%$ & $48.6\%$ & $80.0\%$ & $60.0\%$ \\
+& LogEIPC
+& $40.0\%$ & $31.4\%$ & $65.0\%$ & $45.7\%$ & $70.0\%$ & $62.8\%$ \\
+\midrule
+
+\multirow{2}{*}{$10^{-4}$}
+& PBGI
+& $40.0\%$ & $28.6\%$ & $70.0\%$ & $51.5\%$ & $80.0\%$ & $62.9\%$ \\
+& LogEIPC
+& $30.0\%$ & $22.9\%$ & $50.0\%$ & $45.8\%$ & $85.0\%$ & $68.7\%$ \\
+\midrule
+
+\multirow{2}{*}{$10^{-5}$}
+& PBGI
+& $50.0\%$ & $28.6\%$ & $70.0\%$ & $51.5\%$ & $90.0\%$ & $74.4\%$ \\
+& LogEIPC
+& $20.0\%$ & $20.0\%$ & $50.0\%$ & $48.6\%$ & $85.0\%$ & $71.5\%$ \\
+\bottomrule
+\end{tabular}
+
+\caption{Percentage of LCBench tasks ranked in the Top-$k$ ($k=1,2,3$) by cost-adjusted simple regret for among acquisition–stopping rule pairs (excluding the hindsight stopping rule), for our PBGI/LogEIPC stopping rule paired with PBGI or LogEIPC, evaluated on large datasets (with $>10{,}000$ instances) and on all datasets, for cost-scaling factor $\lambda \in \{10^{-3},10^{-4},10^{-5}\}$.}
+\label{fig:ranking_full_dataset}
+\end{table}
+
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.48\textwidth]{plots/single_column/BarPlot_LCBench_NATS.pdf}
+    \caption{Cost-adjusted simple regret across acquisition function--stopping rule pairs on LCBench and NATS-Bench. The objective is to minimize validation error on classification tasks, with scaled proxy runtime as evaluation cost, scaled by representative values of $\lambda$ ($10^{-3}, 10^{-4}, 10^{-5}$ for LCBench and $10^{-5}$ for NATS-Bench).
+    For LCBench, results are aggregated across 35 datasets using min–max normalization. Our PBGI/LogEIPC stopping rule, when paired with either PBGI or LogEIPC, typically ranks among the top 3 pairs and closely approaches the hindsight optimal on LCBench and on cifar10-valid in NATS-Bench, but slightly worse on the other two NATS datasets, likely due to model misspecification.}
+    \label{fig:empirical}
+\end{figure}
+
+
+
+
+
+
+

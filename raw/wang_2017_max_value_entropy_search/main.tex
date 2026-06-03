@@ -1,0 +1,103 @@
+\documentclass{article}
+\usepackage{times}
+\input{math_definition.tex}
+%
+%
+\usepackage[accepted]{icml2017}
+
+%
+\setlength{\textfloatsep}{15pt}%
+\setlength{\floatsep}{15pt}%
+%
+\usepackage{thm-restate}
+%
+%
+\icmltitlerunning{Max-value Entropy Search for Efficient Bayesian Optimization}
+
+\allowdisplaybreaks
+
+\begin{document}
+\twocolumn[
+\icmltitle{Max-value Entropy Search for Efficient Bayesian Optimization}
+%
+
+%
+%
+%
+%
+
+%
+%
+%
+%
+
+%
+%
+%
+\icmlsetsymbol{equal}{*}
+
+\begin{icmlauthorlist}
+\icmlauthor{Zi Wang}{mit}
+\icmlauthor{Stefanie Jegelka}{mit}
+\end{icmlauthorlist}
+
+\icmlaffiliation{mit}{Computer Science and Artificial Intelligence Laboratory, Massachusetts Institute of Technology, Massachusetts, USA}
+
+\icmlcorrespondingauthor{Zi Wang}{ziw@csail.mit.edu}
+\icmlcorrespondingauthor{Stefanie Jegelka}{stefje@csail.mit.edu}
+%
+%
+%
+\icmlkeywords{Bayesian optimization, Gaussian process, Entropy search}
+
+\vskip 0.3in
+]
+%
+
+%
+%
+%
+%
+%
+
+\printAffiliationsAndNotice{}  %
+%
+%
+
+\begin{abstract} 
+\input{abstract}
+\end{abstract} 
+
+
+\input{intro}
+\input{background}
+
+\input{method}
+\input{regret}
+\input{model}
+\input{highdim}
+
+\input{exp}
+\input{highdimexp}
+\input{conclu}
+
+
+\section*{Acknowledgements}
+%
+%
+We thank Prof.\ Leslie Pack Kaelbling and Prof.\ Tom\'as Lozano-P\'erez for discussions on active learning and Dr.\ William Huber for his solution to ``Extreme Value Theory - Show: Normal to Gumbel'' at \url{stats.stackexchange.com}, which leads to our Gumbel approximation in Section~\ref{spec:gumbel}. We gratefully acknowledge support from NSF CAREER award 1553284, NSF grants 1420927 and 1523767, from ONR grant N00014-14-1-0486, and from ARO grant W911NF1410433.  We thank MIT Supercloud and the Lincoln Laboratory Supercomputing Center for providing computational resources. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the authors and do not necessarily reflect the views of our sponsors.
+
+\begin{small}
+\bibliography{refs}
+\bibliographystyle{icml2017}
+\end{small}
+
+\appendix
+
+\input{ap_related}
+\input{ap_gumbel}
+\input{ap_regret}
+\input{ap_exp}
+
+
+\end{document}

@@ -1,0 +1,191 @@
+\section{Preliminaries}
+\label{sec:prelims}
+
+\subsection{A Review of Gaussian processes and \gpucb}
+\label{sec:prelims}
+
+\textbf{Gaussian processes:}
+A GP over a space $\Xcal$ is a random process describing functions from $\Xcal$ to $\RR$.
+It is characterised by a mean function $\mu:\Xcal\rightarrow\RR$ and
+a covariance kernel $\kernel:\Xcal^2\rightarrow\RR$.
+If $\func\sim\GP(\mu,\kernel)$, then $f(x)$ is distributed normally
+$\Ncal(\mu(x), \kernel(x,x))$ for all $x\in\Xcal$.
+Suppose we are given $n$ observations from this GP, $\Dcal_n=\{(x_i, y_i)\}_{i=1}^n$ where
+$x_i\in\Xcal$, $y_i = \func(x_i) + \epsilon_i \in\RR$ and $\epsilon_i\sim\Ncal(0,\eta^2)$.
+Then the posterior process $\func|\Dcal_n$ is also a GP with some mean $\mu_n$ and
+covariance $\kernel_n$.
+We refer readers unfamiliar with GPs to chapter 2 of~\citet{rasmussen06gps} for
+the formulae for $\mu_n,\kernel_n$ and other properties of GPs.
+
+\insertFigBWSample
+\textbf{Radial kernels:}
+Radial kernels are commonly used in the prior covariance of GPs;
+% The squared exponential (SE) kernel and \matern{} kernels, which are popularly used in
+% practice, are radial kernels.
+some examples are the squared exponential (SE) and \matern{} kernels~\citep{rasmussen06gps}.
+When using a radial kernel,
+the prior covariance can be written as $\kernel(x,x') = \kernelscale\phi(\|x-x'\|)$ and
+depends only on the distance between $x$ and $x'$.
+Here, the scale parameter $\kernelscale$ 
+captures the magnitude $\func$ could deviate from $\mu$.
+The radial kernel, $\phi:\RR_{+}\rightarrow\RR_+$, is a decreasing function with
+$\|\phi\|_\infty = \phi(0) = 1$.
+In what follows, we will use the SE kernel in a running example to convey the
+intuitions in our methods. 
+For the SE kernel, $\phi(r) = \radialh(r) = \exp(-r^2/(2h^2))$, where $h$ is
+the bandwidth parameter.
+It is well known that when $h$ is large, the sample functions drawn from the GP tend to
+be smoother as illustrated in Fig.~\ref{fig:gpBWSample}.
+We will reference this observation frequently in the text.
+
+
+\textbf{\gpucb:}
+The Gaussian Process Upper Confidence Bound (\gpucb) algorithm
+of~\citet{srinivas10gpbandits}  is a method for bandit optimisation,
+which, like many other \bayos methods, models $\func$ as a sample from a Gaussian process.
+At time $t$, the next point $\xt$ for evaluating $\func$ is chosen via the following
+procedure.
+First, we construct an upper confidence bound
+$\utilt(x) = \mutmo(x) + \betath \sigmatmo(x)$ for the GP. 
+$\mutmo$ is the posterior mean of the GP conditioned on the previous $t-1$ evaluations
+and $\sigmatmo$ is the posterior standard deviation.
+The $\mutmo$ term encourages an \emph{exploitative} strategy -- in that we want to query
+regions where we already believe  $\func$ is high -- and $\sigmatmo$ encourages
+an \emph{exploratory} strategy -- in that we want to query where we are uncertain
+about $\func$ so that we do not miss regions which have not been queried yet.
+$\betath$ controls the trade-off between exploration and exploitation.
+
+
+\subsection{Problem Set Up}
+\label{sec:prelims}
+
+In stochastic bandit optimisation, our goal is to maximise a function
+$\func:\Xcal\rightarrow \RR$, over a domain $\Xcal$.
+When we evaluate $\func$ at $x\in\Xcal$ we observe $y=\func(x) + \epsilon$ where
+$\EE[\epsilon] = 0$.
+Let $\xopt \in \argmax_{x\in\Xcal}\func(x)$ be a maximiser of $\func$ and
+$\funcopt = \func(\xopt)$ be the maximum value.
+% $\func$ is accessible only via noisy point evaluations and has no gradient information.
+An algorithm for bandit optimisation is a sequence of points $\{\xt\}_{t\geq0}$, where
+at time $t$, the algorithm chooses to evaluate $\func$ at $\xt$ based on previous queries
+and observations $\{(\xtt{i},\ytt{i})\}_{i=1}^{t-1}$.
+After $n$ queries to $\func$,
+its goal is to achieve small \emph{simple regret} $\Sn$, as defined below.
+\begin{align*}
+\Sn = \min_{t=1,\dots,n} \funcopt - \func(\xt).
+\numberthis
+\label{eqn:SnDefn}
+\end{align*}
+In this work, we will assume that $\func$ itself is a slice of a function $\gunc$ that lies
+in a larger space.
+Precisely, we will assume the existence of a fidelity space $\Zcal$ and a function 
+$\gunc:\Zcal\times\Xcal \rightarrow \RR$.
+The function $\func$ which we wish to maximise is related to $\gunc$ via
+$\func(\cdot) = \gunc(\zhf, \cdot)$, where $\zhf\in\Zcal$.
+For instance, in the hyper-parameter tuning example discussed in Section~\ref{sec:intro},
+$\Zcal = [1,\Nmax]\times[1,\Tmax]$ and $\zhf = [\Nmax, \Tmax]$.
+Our goal is to find the maximiser $\xopt = \argmax_x \func(x) = \argmax_x \gunc(\zhf, x)$.
+We have illustrated this set up in Figure~\ref{fig:fidelSpace}.
+\insertFigFidelSpace
+
+The multi-fidelity framework is attractive when following two conditions are true
+about the problem.
+\vspace{-0.14in}
+\begin{itemize}[label=-\hspace{-0.02in},leftmargin=0.13in]
+\item
+There exist $z\in\Zcal$ values where evaluating $\gunc$ is cheaper than evaluating at
+$\zhf$.
+To this end, we will associate a \emph{known} cost function $\cost:\Zcal\rightarrow
+\RR_+$.
+In the hyper-parameter tuning example, $\cost(z) = \cost(N,T) = \bigO(N^2T)$.
+It is instructive to think of $\zhf$ as being the most expensive fidelity,
+i.e. maximiser of $\cost$, although this interpretation is not strictly
+required.\hspace{-0.1in}
+% It is instructive, albeit not necessary, to think of $\zhf$ as being the most expensive
+% fidelity,
+% i.e. maximiser of $\cost$, although this interpretation is not required.\hspace{-0.1in}
+\vspace{-0.08in}
+\item
+Secondly, the cheap $\gunc(z,\cdot)$ evaluation gives us information about
+$g(\zhf,\cdot)$. This is true if, for instance, $g$ is smooth across the fidelity space
+as illustrated in Fig.~\ref{fig:fidelSpace}.
+As we will describe shortly, we achieve this by modeling $\gunc$ as a Gaussian process
+with an appropriate kernel for $\Zcal$.
+\end{itemize}
+A multi-fidelity algorithm is a sequence of query-fidelity pairs $\{(\xt,\zt)\}_{t\geq 0}$
+where, at time $t$, the algorithm chooses $\zt\in\Zcal$ and $\xt\in\Xcal$ based on
+previous query-fidelity-observation triples $\{(\xtt{i},\ztt{i},\ytt{i})\}_{i=1}^{t-1}$.
+Here, $\yt = g(\zt,\xt) + \epsilon$ where $\EE[\epsilon] = 0$.
+
+\textbf{Simple Regret:}
+We provide bounds on the simple regret $S(\capital)$ of a multi-fidelity optimisation method
+after it has spent capital $\capital$ of a resource.
+Following~\citet{srinivas10gpbandits,kandasamy16mfbo} we
+will aim to provide \emph{any capital} bounds, meaning that an algorithm would be expected
+to do well for all values of (sufficiently large) $\capital$.
+Say we have made $N$ queries to $g$ within capital $\capital$,
+i.e. $N$ is the \emph{random} quantity such that
+$N = \max\{n\geq 1: \sum_{t=1}^n \cost(\zt) \leq \capital\}$.
+While the cheap evaluations $\gunc(z,\cdot)$, $z\neq \zhf$ are useful in guiding search 
+for the optimum of $\gunc(\zhf,\cdot)$, there is no reward for optimising a cheaper
+function. Accordingly we define the simple regret as,
+\vspace{-0.07in}
+\begin{align*}
+S(\capital) \,=
+\begin{cases}
+\displaystyle\min_{\substack{t=\,1,\dots,N\\t\,:\,\zt = \zhf}}\;
+  \funcopt - \func(\xt) % \hspace{0.01in}
+    &\text{if we have queried at $\zhf$,} \\
++\,\infty & \text{otherwise.}
+\\[-0.15in]
+\end{cases}
+\numberthis
+\label{eqn:SLambdaDefn}
+\end{align*}
+\vspace{-0.25in}
+
+This definition reduces to the single fidelity definition~\eqref{eqn:SnDefn} when we only
+query $g$ at $\zhf$.
+It is also similar to the definition in~\citet{kandasamy16mfbo}, but unlike them, we do
+not impose additional boundedness constraints on $\func$ or $\gunc$.
+
+\textbf{Assumptions:}
+As we will be primarily focusing on continuous domains and fidelity spaces,
+going forward we will assume w.l.o.g that $\Xcal = [0, 1]^d$ and $\Zcal = [0, 1]^p$.
+We discuss non-continuous settings briefly at the end of Section~\ref{sec:analysis}.
+In keeping with similar work in the \bayos literature we will assume
+$\gunc\sim\GP(\zero,\kernel)$ and upon querying at $(z,x)$ we observe
+$y = g(z,x) + \epsilon$ where $\epsilon\sim\Ncal(0,\eta^2)$.
+$\kernel:(\Zcal\times\Xcal)^2\rightarrow \RR$ is
+the prior covariance defined on the product space.
+In this work, we will study exclusively $\kernel$ of the following form,
+\begin{align*}
+\kernel([z,x],[z',x']) \;=\;
+\kernelscale\,\phiz(\|z-z'\|)\, \phix(\|x-x'\|).
+\end{align*}
+Here, $\kernelscale\in\RR_+$ is the scale parameter and $\phiz,\phix$ are radial kernels
+defined on $\Zcal,\Xcal$ respectively.
+The function $\phiz$ is a critical component in this work.
+It controls the
+smoothness of $\gunc$ across the fidelity space and hence determines how much
+information the lower fidelities provide about $f(\cdot) = g(\zhf,\cdot)$.
+For example, if we were to use a SE kernel for $\phiz$, a favourable setting for
+a multi-fidelity method would be for $\phiz$ to have a large bandwidth $\hz$.
+We will see that $\hz$ controls the behaviour and theoretical guarantees
+of \mfgpucbs in a natural way in this instance.
+
+For what follows we will also find it useful to define the following function
+$\inffunc:\Zcal\rightarrow[0,1]$.
+\begin{align*}
+\inffunc(z) = \sqrt{1 - \phiz(\|z-\zhf\|)^2}
+\label{eqn:inffunc}
+\numberthis
+\end{align*}
+One interpretation of $\inffunc(z)$ is that it measures the \emph{loss} in
+information about $g(\zhf,\cdot)$ when we query at $z\neq\zhf$.
+That is, it is the price we have to pay, in information, for querying at a cheap
+$z\neq\zhf$.
+Note that $\inffunc$ increases when we move away from $\zhf$ in the fidelity space.
+For the SE kernel, it can be shown $\inffunc(z) \approx \frac{\|z-\zhf\|}{\hz}$,
+which, as expected depends on the bandwidth $\hz$.
+For large $\hz$, this depends on 

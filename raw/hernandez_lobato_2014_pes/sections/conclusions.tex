@@ -1,0 +1,19 @@
+\section{Conclusions}
+
+We have proposed a novel information-theoretic approach for Bayesian
+optimization. Our method, predictive entropy search (PES), greedily maximizes
+the amount of one-step information on the location $\xopt$ of the global maximum
+using its posterior differential entropy.  Since this objective function is
+intractable, PES approximates the original objective using a reparameterization
+that measures entropy in the posterior predictive distribution of the function
+evaluations.  PES produces more accurate approximations than Entropy Search
+(ES), a method based on the original, non-transformed acquisition function.
+Furthermore, PES can easily marginalize its approximation with respect to the
+posterior distribution of its hyper-parameters, while ES cannot.  Experiments
+with synthetic and real-world functions show that PES often outperforms ES in
+terms of immediate regret. In these experiments, we also observe that PES often
+produces better results than expected improvement (EI), a popular heuristic for
+Bayesian optimization.  EI often seems to make excessively greedy decisions,
+while PES tends to explore more. As a result, EI seems to perform better for
+simple objective functions while often getting stuck with noisier objectives or
+for functions with many modes.

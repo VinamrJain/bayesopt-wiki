@@ -1,0 +1,297 @@
+%!TEX root=main.tex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                  Submodularity
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Submodularity of parallel acquisitions}
+\label{sect:submodularity}
+
+\newcommand{\idx}{i}
+\newcommand{\argdot}{\makebox[1ex]{\textbf{$\cdot$}}}
+
+\flag[inline]{jw: this section is much improved; but, probably too dense.}
+
+
+Greedy maximization is a popular strategy for approximately solving parallel decision-making problems \cite{azimi2010batch,chen2013near,contal2013parallel,desautels2014parallelizing,shah2015parallel,kathuria2016batched}. Iterative greedy strategies proceed by choosing one thing at a time. At each step \(k = 1,\dotsc, \parallelism\), one treats the \(k{-}1\) preceding choices \(\X\) as constants and grows the set by selecting an additional query \(\x_{k} \in \argmax_{\x \in \xspace} \Acq(\X \cup \{\x\}; \data)\). \warn{Algorithm~2} in Figure~\ref{fig:overview_pt2} outlines this process as it occurs within the context of BO's outer-loop.
+
+% Commonly associated with the notion of \emph{diminishing returns}, submodularity is an important property of set functions with far-reaching theoretical and practical implications \cite{bach2013learning,krause14}. 
+\temp{Celebrated} results~\cite{minoux1978accelerated,nemhauser78,krause14} \temp{prove} that this simple greedy approach is guaranteed to find a near-optimal solution provided that the maximization objective is a \emph{submodular}.\footnote{Submodularity is often likened to ``diminishing returns''. For a more technical overview, we defer to \cite{bach2013learning}.} Specifically, if \Acq{} is a normalized submodular function with maximum \(\opt{\Acq}\), then a greedy maximizer is guaranteed to incur at most \(\tfrac{1}{e}\opt{\Acq}\) regret.
+
+% provide regret bounds for greedy approaches to maximizing submodular functions. Specifically, if \Acq{} is a normalized submodular function with maximum \(\opt{\Acq}\), then a greedy maximizer is guaranteed to incur at most \(\tfrac{1}{e}\opt{\Acq}\) regret.
+% find a solution whose value is at least \((1 - \tfrac{1}{e})\opt{\Acq}\).
+
+In the context of BO, submodularity has previously been appealed to when establishing outer-loop regret bounds \cite{srinivas10,contal2013parallel,desautels2014parallelizing}. Like applications of submodularity utilize this property by relating an idealized BO strategy to greedy maximization of a submodular objective (\eg{} the mutual information between unknown function \(f\) and observations \data{}). In contrast, we directly show submodularity for \temp{various} parallel acquisitions functions \perse. 
+%
+\note{what's the implication? inner loop + ?}
+% \Y's dependence on \X{} can be ignored, allowing us to focus solely on \acq{} as a function of \Y.
+
+% (or \new{\X}) can 
+
+% potentially complex dependencies between \(\new{\mathbf{Y}}\) and corresponding inputs \(\new{\X}\)
+
+% Similarly, because integrals over outcome values \(\mathbf{Y} \subseteq \new{\mathbf{Y}}\) can be seen as marginalizing out additional terms in \(\new{\mathbf{Y}}\), potentially complex dependencies between \(\new{\mathbf{Y}}\) and corresponding inputs \(\new{\X}\)
+
+% Similarly, because integrals over random variables \(\mathbf{Y} \subseteq \new{\mathbf{Y}}\) can be seen as marginalizing out additional terms in \(\new{\mathbf{Y}}\), potentially complex dependencies between 
+
+% \(\new{\mathbf{Y}} \setminus \mathbf{Y}\)
+% \(\X \subseteq \new{\X}\) can be seen as marginalizing out additional terms \(\new{\X} \setminus \X\) complex dependencies on 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                       Submodular Acquisitions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subheading{Submodular acquisitions}
+% If \acq{} is a function of random variates \(\Y_{1:i} \subseteq \Y_{1:j}\) with \(i \le j\), \temp{basic probability tells us that} we can compute \acq's expectation by integrating over \(\Y_{1:j}\) while marginalizing out \(\Y_{>i}\).
+% If \acq{} is a function of random variates \(\Y \subseteq \new{\Y}\), \temp{basic probability tells us that} we can compute \acq's expectation by integrating over \(\new{\Y}\) while marginalizing out \(\new{\Y} \setminus \Y\).
+% 
+Let \(f^{(\idx)} \sim p(f | \data)\) denote the \(\idx\)-th draw from a belief over possible functions \(f\), \(\Y^{(\idx)} = \{f^{(\idx)}(\x) : \x \in \X\}\) the subset formed when indexing by (i.e. evaluating at) \X{} and \(\compl{\Y}^{(\idx)}\) its complement.
+\note{looks more like a mean. consider using $y_{\backslash\idx}$ instead}
+% 
+By marginalizing out \(\compl{\Y}\), we can interpret \Acq{} as integrating over functions \(f\) instead of unknown outcomes \(\Y = f(\X)\).
+% 
+% In the language of the preceding section, \temp{this amounts to interpreting}, the Gaussian reparameterizing mapping as \(\reparam(\x_{j}; \Z, \rparams) = \means_{j} + \Chol_{j}\Z\), where moments \((\means, \Cov)\) are now defined over the entirety of \xspace{} and \(\x_{j}\) acts as an index set.\ask{jw: sentence may no longer fit}
+% In the language of the preceding section, \temp{this amounts to interpreting} the Gaussian reparameterization as \(\reparam(\x_{j}; \Z, \rparams) = \means_{j} + \Chol_{j}\Z\), where generative parameters \((\means, \Cov)\) are now defined over the entirety of \xspace{}.
+In the language of the preceding section, \temp{this amounts to interpreting} the Gaussian reparameterization as \(\reparam(\X; \Z, \rparams) = \{\means_{j} + \Chol_{j}\Z\}_{\x_{j} \in \X}\), where moments \(\rparams = (\means, \Cov)\) are defined over \xspace{} rather than \X{}, which now \temp{simply} acts as an index set.\note{jw: sentence may no longer be needed}
+\note{what was $\xspace$ again?}
+\note{Why is this interpretation useful, i.e. where is this leading to?}
+% In the language of the preceding section, this rephrasing amounts to reparameterizing \(\y_{j}^{(\idx)} = \means_{j} + \Chol_{j}\Z^{(\idx)}\), where moments \((\means, \Cov)\) are now defined over the entirety of \xspace{}.\ask{jw: sentence may no longer fit}
+
+% Because \(\compl{\Y}^{(\idx)}\) can be marginalized out, we may analyze \Acq{} as an integral over sample paths \(f^{(\idx)}\)
+
+% In the language of the preceding section, \(\y_{i}^{(k)} = \means_{i} + \Chol_{i}\Z^{(k)}}\) 
+% In the language of the preceding section, \(\Y^{(k)} \triangleq \{(\means + \Chol\Z^{(k)})_{i}\}_{i \in \X}\) 
+% where, e.g., Cholesky factor \(\Chol\) is defined in terms of \(\X_{1:j}\).
+
+% outputs evaluated at \X{}.\footnote{More technically, \X{} is an index set of \(\f^{(k)}\).}
+% the set  evaluated (techically, indexed) at \X{}.\footnote{More technically, \X{} 
+% let \(f^{(k)}(\X) = \{f_{i}^{(k)}\}_{i \in \X}\)
+% 
+% In the language of the preceding section, this implies that we can define \(\Y_{1:i} \triangleq \left(\means + \Chol\Z\right)_{1:i}\) where, e.g., Cholesky factor \(\Chol\) is defined in terms of \(\X_{1:j}\).
+% rather than \(\X_{1:i}\).
+% Expected utility \(\Acq(\X) = \E_{\Y}[\acq(\Y)}]\) is therefore a weighted sum of an \temp{fixed} set of functions \(\acq(\{\y_{i}^{(k)} \in \yspace^{(k)} : \x_{i} \in \X\})\) where \(\yspace^{(k)}\) denotes the \(k\)-th sample path.
+% If \acq{} is a function of random variates \(\Y \subseteq \new{\Y}\), \temp{basic probability tells us that} we can compute \acq's expectation by integrating over \(\new{\Y}\) while marginalizing out \(\new{\Y} \setminus \Y\).
+
+Provided that \Acq{} is myopic, the individual functions \(f^{(\idx)}\) and corresponding probabilities \(\pi_{\idx}\) that define the expected utility \(\Acq(\X; \data) = \sum_{\idx=1}^{\infty} \pi_{\idx}\acq\left(\Y^{(\idx)}; \acqParams \right)\) are fixed since they only depend on observations \data{}. Moreover, since non-negative linear combinations of submodular functions are submodular, \(\Acq(\argdot; \data)\) is submodular so long as the same can be said of functions \(\acq\left(f^{(\idx)}(\argdot); \acqParams)\).
+\note{can we get a reference for this statement?}
+
+As seen in Table~\ref{table:reparameterizations}, the \(\max(\argdot)\) operator acts as a common thread tying together many parallel acquisition functions. We collectively refer to instances, where utility is defined as the maximum of an element-wise function,
+% , i.e.,
+% \(
+%     \acq(\Y) = \max(\{\hat{\acq}(\y) : \y \in \Y\})
+% \),
+as \emph{maximal} acquisition functions.
+% 
+\temp{Presuming} that such an acquisition function is myopic, it will typically be submodular.
+\note{what does 'typically' mean? what are the cornercases?}
+% inherit submodularity from the \(\max()\).
+% In myopic cases, maximal acquisition functions typically inherit submodularity from the \(\max{}\) operator.
+% Submodularity of myopic maximal acquisition functions such as \qEI{} follows directly from that of the \(\max{}\) operator.
+
+For a given function \acq{}, let \(\mathcal{V}\) be the set of possible utility values with  corresponding minimum \lboundAcq{} and define \(\max(\emptyset) = \lboundAcq\). Then, given sets \(\setA \subseteq \setB \subseteq \mathcal{V}\) and \(\forall v \in \mathcal{V}\), it holds that
+% Let\(\max(\emptyset) = \lboundAcq \triangleq u \in \mathcal{U} \min(\yspace)\); then, given sets \(\setA \subseteq \setB \subseteq \yspace\) it holds that, \(\forall \y \in \yspace\),
+\begin{align}
+\max(\setA \cup \{v\}) - \max(\setA) \ge \max(\setB \cup \{v\}) - \max(\setB).
+\label{eq:max_submodularity}
+\end{align}
+\temp{\emph{Proof:}} We prove the equivalent definition \(\max(\setA) + \max(\setB) \ge \max(\setA~\cup~\setB) + \max(\setA~\cap~\setB)\). Without loss of generality, assume \(\max(\setA~\cup~\setB) = \max(\setA)\). Then, \(\max(\setB) \ge \max(\setA~\cap~\setB)\) since, for any \(\setC \subseteq \setB\), \(\max(\setB) \ge \max(\setC)\). 
+%
+
+In order to enjoy theoretical guarantees however, the function being greedily maximized must be normalizable, such that the empty set evaluates to zero. Appendix~\ref{appendix:normalizing_utility} discusses this technical condition, which amounts to lower bounding \lboundAcq{}, in greater detail.
+
+% so \lboundAcq{} must be bounded from below such that the \(\max\) can be redefined with \(\max(\emptyset) = 0\). Appendix \ref{appendix:normalizing_utility} discusses normalization of myopic maximal acquisition functions.\flag{jw: add a comment in the body to the effect of "normalization is unnecessary in practice"?}
+
+% Guarantees for submodular maximization pertain to normalized set functions though, so \lboundAcq{} must be bounded from below such that the \(\max\) can be redefined with \(\max(\emptyset) = 0\). Appendix \ref{appendix:normalizing_utility} discusses normalization of myopic maximal acquisition functions.\flag{jw: add a comment in the body to the effect of "normalization is unnecessary in practice"?}
+
+% Equipped with this result, we outline the general-form greedy approach to solving the inner optimization problem \cite{azimi2010batch,contal2013parallel,desautels2014parallelizing,shah2015parallel,kathuria2016batched}.
+% % \temp{This demonstration of submodularity} motivates a greedy approach to the inner optimization problem. Whereas most BO papers discussing greedy parallelism focus on proposing new acquisition functions \cite{azimi2010batch, contal2013parallel, desautels2014parallelizing, kathuria2016batched, wang2017focused}, our results center on established cases. 
+% % 
+% % Aside from this distinction however, the submodular maximization procedure proposed here is the same. 
+% %
+% % At each iteration \(k = 1,\dotsc, \parallelism\), we treat the \(k{-}1\) preceding choices \(\new{\X}\) as constants and grow the set by selecting an additional query \(\x_{k} \in \argmax_{\x \in \xspace} \Acq(\new{\X} \cup \{\x\}; \data)\).
+% At each iteration \(k = 1,\dotsc, \parallelism\), we treat the \(k{-}1\) preceding choices \(\X\) as constants and grow the set by selecting an additional query \(\x_{k} \in \argmax_{\x \in \xspace} \Acq(\X \cup \{\x\}; \data)\).
+% % 
+% \warn{Algorithm~2} in Figure~\ref{fig:overview_pt2} outlines this process as it occurs within the context of the outer-loop.\note{jw: this paragraph needs some more content}
+
+% \subheading{Connection to asynchronous acquisitions} 
+\subheading{Iterated forms}
+So far, we have discussed greedy strategies, which select points \x{} by maximizing a joint utility \(\Acq(\X \cup \{\x\}; \data)\). A closely related approach \temp{[cite]} is to instead maximize  the expected value of a marginal utility \(\Acq(\x; \new{\data})\) when intergating over possible states \(\new{\data} \gets \data \cup  \{(\x_{i},\y_{i})\}_{i=1}^{q}\).
+
+\temp{In some cases, this latter approaches have certain benefits: i) closed-form marginal acquisition function allow us to avoid reparameterization, ii) better caching, iii) STUFF}.
+% the expected marginal utility \(\E_{\Y}[\Acq(\x; \data \cup \{(\x_{i},\y_{i})\}_{i=1}^{q}]\).
+
+
+\temp{These approaches and, more specifically, the associated utility expressions have more in common than might previously have been expected however.} 
+
+
+\temp{In most cases, myopic maximal acquisition functions can equivalently be written in both joint and iterated forms. To prove this equivalence, we introduce the following identity while reusing the notation of \eqref{eq:max_submodularity}}
+\begin{align}
+\max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right).
+\label{eq:max_growth}
+\end{align}
+\emph{Proof:} Since \(\lboundAcq\) is defined as the smallest possible element of either set, the \relu's argument is negative if and only if \setB's maximum is a member of \setA{} (in which case both sides equate to zero). In all other cases, the \relu{} can be eliminated and \(\max(\setB) = \max(\setB \setminus \setA)\) by definition.
+
+
+By rewriting \(\Acq(\X)\) as a telescopic sum of growth function
+\(
+\Delta(\x; \X) = \Acq(\X \cup \{\x\}) - \Acq(\X)
+\)
+and subsequently applying \eqref{eq:max_growth} along with the law of iterated expectation, we arrive at the result that, for \temp{myopic}{\ask{jw: only for myopic?}} maximal acquisition functions,
+\begin{align}
+\Acq(\X)
+    =
+    \sum_{k=1}^{q} 
+        \E_{\Y_{1:k-1}}
+        \left[
+            \E_{\y_{k}}
+            \left[
+                 \relu\left(\acq(\y_k) - \max \acq(\Y_{1:k-1})\right)
+            \right]
+        \right].
+\label{eq:iterated_form}
+\end{align}
+Because the right-hand side of \eqref{eq:max_growth} amounts to the improvement of \setB's max over that of \setA, the special case of parallel \EI{} further simplifies as
+% \begin{align}
+\(
+\Acq_{\abbrScript{\EI}}(\X; \data)
+    = \sum_{k=1}^{q}\E_{\Y_{1:k-1}}
+    \left[
+        \Acq_{\abbrScript{\EI}}(\x_{k}; \data \cup \{(\x_i,\y_i)\}_{i=1}^{k-1})
+    \right]
+\).
+\note{we need a concluding sentence/paragraph here. summarize this subsection.}
+% \label{eq:iterated_form_ei}
+% \end{align}
+
+
+% By rewriting \(\Acq(\X; \data)\) as a telescopic sum of growth function
+% \(
+% \Delta(\x; \X, \data) = \Acq(\X \cup \{\x\}; \data) - \Acq(\X; \data)
+% \)
+% and, subsequently, applying both \eqref{eq:max_growth} and the law of iterated expectation to the right-hand side, we arrive at the result
+% \begin{align}
+% \Acq(\X; \data)
+%     =
+%     \sum_{k=1}^{q} 
+%         \E_{\Y_{1:k-1}}
+%         \left[
+%             \E_{\y_{k}}
+%             \left[
+%                  \relu(\acq(\y_k; \acqParams) - \max \acq(\Y_{1:k-1}; \acqParams))
+%             \right]
+%         \right].
+% \label{eq:iterated_form}
+% \end{align}
+
+% The greedy strategy outlined above is closely related to parallel asynchronous acquisition functions \cite{ginsbourger2011dealing,snoek-nips12a}. We differentiate between these \temp{types} of acquisition functions according to their treatment of \temp{integrands' arguments}. Given pending inputs \X, the synchronous form posits additional query \x's value as the expectation of \(\Acq(\X \cup \{\x\}; \data)\). In contrast, the asynchronous form integrates \x's marginal value \(\Acq(\x; \new{\data})\) against possible states \(\new{\data} \gets \data \cup  \{(\x_{i},\y_{i})\}_{i=1}^{q}\). We refer to the former as the \emph{joint} form, since it conveys the utility for \x{} and \X simultaneously, and to the latter as the \emph{iterated} form, since it communicates \x's utility subsequent to \X. 
+
+% The joint form of a myopic maximal acquisition function can be equivalently expressed as an iterated one. To see this, we first introduce the identity 
+
+% By applying the following identity enables myopic maximal acquisition functions to be rewritten in an iterated form
+% \(
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right)
+% \).
+% In order to better connect joint and iterated forms,
+
+% because \setB's maximum does not reside in \setA.
+
+
+% By applying the identity
+% \(
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right)
+% \) with terms defined as in \eqref{eq:max_submodularity}, the joint form of a myopic maximal acquisition function can be directly translated into an iterated one (see Appendix \temp{XYZ}). For the special case of parallel \EI{}, the joint and iterated forms are equivalent, i.e.,
+% \(
+% \Acq_{\abbrScript{\EI}}(\X; \data)
+%     = \sum_{k=1}^{q}\E_{\Y_{<k}}
+%     \left[
+%         \Acq_{\abbrScript{\EI}}(\x_{k}; \data \cup \{(\x_i,\y_i)\}_{i<k})
+%     \right]
+% \).
+
+
+
+% The following three-step procedure can generally be used to translate a myopic maximal acquisition function's joint form into an iterated one. First, express the joint acquisition as the telescopic sum
+% \(
+% \Acq(\X; \data)
+%     = \sum_{k=1}^{q} \Delta(\x_k; \X_{1:k-1}, \data)
+% \), where growth function \(\Delta(\x; \X, \data) = \Acq(\X \cup \{\x\}; \data) - \Acq(\X; \data)\) and where \(\Acq(\emptyset; \data) \triangleq 0\). Second, rewrite the growth function as
+% \(
+% \Delta(\x_k; \X_{1:k-1}, \data) = \E_{\Y_{1:k}}\left[\relu(\acq(\y_k; \data) - \max \acq(\Y_{1:k-1}; \data)) \right]. Third, 
+
+
+% \begin{emumerate}
+% \item{1.} Express the joint function as the telescopic sum
+% \(
+% \Acq(\X; \data)
+%     = \sum_{k=1}^{q} \Delta(\x_k; \X_{<k}, \data)
+% \), where growth function \(\Delta(\x; \X, \data) = \Acq(\X \cup \{\x\}; \data) - \Acq(\X; \data)\) and where \(\Acq(\emptyset; \data) \triangleq 0\).
+% \end{emumerate}
+
+% The following identity enables myopic maximal acquisition functions to be rewritten in an iterated form
+% \(
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right)
+% \).
+
+% For the special case of parallel \EI{}, the joint and iterated forms are equivalent, i.e.,
+% % \begin{align}
+% \(
+% \Acq_{\abbrScript{\EI}}(\X; \data)
+%     % = \sum_{k=1}^{q}
+%     %     \Acq_{\abbrScript{\EI}}(\X_{\le k}; \data) - \Acq_{\abbrScript{\EI}}(\X_{<k}; \data)
+%     = \sum_{k=1}^{q}\E_{\Y_{<k}}
+%     \left[
+%         \Acq_{\abbrScript{\EI}}(\x_{k}; \data \cup \{(\x_i,\y_i)\}_{i<k})
+%     \right]
+% \).
+
+% Other parallel acquisition functions can similarly be rewritten in an iterated form, usually resulting in a sum over expected improvements of the associated utility function itself.
+
+% \end{align}
+
+
+% For the special case of parallel \EI{}, we can use the identity
+% \(
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right)
+% \)
+% to show that the joint and iterated forms are equivalent, i.e. that
+% \begin{align}
+% \Acq_{\abbrScript{\EI}}(\X; \data)
+%     = \sum_{i=1}^{q}\E_{\Y_{<i}}[\Acq_{\abbrScript{\EI}}(\x_{i}; \data \cup \{(\x_j,\y_j)\}_{j<i})]
+% \end{align}
+ 
+% We summarize important aspects of this connection and provide full details in Appendix \temp{XYZ}.
+
+
+
+% Whereas the greedy synchronous (joint) form, posits \x's value given pending inputs \new{\X} as the expectation of \(\Acq(\new{\X} \cup \{\x\}; \data)\), the asynchronous (iterated) integrates \x's
+
+% \(\Acq(\x; \new{\data})\)
+
+% whereas, in the greedy synchronous (joint) form, 
+% \x's value is the expectation of \(\Acq(\new{\X} \cup \{\x\}; \data)\).
+
+% In the asynchronous (iterated) form, the value for \x{} given pending inputs \new{\X} is the expected value of \(\Acq(\x; \new{\data})\) when integrating over possible scenarios \(\new{\data} \gets \data \cup  \{(\x_{i},\y_{i})\}_{i=1}^{q}\). In the greedy synchronous (joint)  form, \x's value is the expectation of \(\Acq(\new{\X} \cup \{\x\};; \data)\).
+
+% \cup \{(\x_{i},\y_{i})_{i=1}^{q-1})\)
+
+% Under the joint formulation (synchronous) and given pending \X{}, the utility for is a function of outcomes \(\new{\Y} \triangleq \Y \cup \{\new{\y}\}\)
+
+% Regarding the acquisition functions themselves (specifically Monte Carlo variants thereof), we differentiate between these approaches in terms of how
+
+% their treatment of 
+% as: i) the synchronous 
+
+% by the fact that
+% Over and beyond differences between synchronous and asynchronous paradigms, we two approaches are differentiated by the fact that
+
+% In addition to inherent differences between synchronous and asynchronous 
+
+% In \cite{shah2015parallel,letham2017constrained}, asynchronous \qEI{} was used to greedily select queries for synchronous.
+
+% The primary difference between the two approaches is 
+
+% In addition to the fact
+% acquisition functions used for parallel asynchronous BO. 
+% For \qEI{}, we recover the parallel asynchronous strategy proposed by \cite{ginsbourger2011dealing,snoek-nips12a}, further justifying its use as a synchronous one \cite{shah2015parallel,letham2017constrained}.
+
+

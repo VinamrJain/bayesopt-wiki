@@ -1,0 +1,95 @@
+\documentclass{article}
+\usepackage{hyperref}
+\usepackage{nips14submit_e,times}
+\usepackage{graphicx}
+\usepackage[numbers]{natbib}
+\usepackage{algorithm,algorithmic}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\def\tikzmark#1{\tikz[remember picture,overlay]\coordinate(#1);}
+
+% define some general macros this will also require ams packages and things to
+% bold various symbols.
+\usepackage{macros}
+
+% redefine require in algorithmic
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+
+% define some paper-specific macros
+\def\x{\vx}
+\def\i{^{(i)}}
+\def\xopt{\vx_\star}
+\def\xrec{\widetilde\vx}
+\def\X{\calX}
+\def\D{\calD}
+\def\H{\mathrm{H}}
+
+%===============================================================================
+
+\title{Predictive Entropy Search for Efficient Global Optimization of Black-box
+Functions}
+
+\author{
+Jos\'e Miguel Hern\'andez-Lobato\\
+\texttt{jmh233@cam.ac.uk}\\
+University of Cambridge
+\And
+Matthew W. Hoffman\\
+\texttt{mwh30@cam.ac.uk}\\
+University of Cambridge
+\And
+Zoubin Ghahramani\\
+\texttt{zoubin@eng.cam.ac.uk}\\
+University of Cambridge
+}
+
+\nipsfinalcopy
+
+\begin{document}
+\maketitle
+
+%===============================================================================
+\begin{abstract}
+We propose a novel information-theoretic approach for Bayesian optimization
+called Predictive Entropy Search (PES). At each iteration, PES selects the next
+evaluation point that maximizes the expected information gained with respect to
+the global maximum. PES codifies this intractable acquisition function in terms
+of the expected reduction in the differential entropy of the predictive
+distribution.  This reformulation allows PES to obtain approximations that are
+both more accurate and efficient than other alternatives such as Entropy Search
+(ES). Furthermore, PES can easily perform a fully Bayesian treatment of the model
+hyperparameters while ES cannot. We evaluate PES in both synthetic and
+real-world applications, including optimization problems in machine learning,
+finance, biotechnology, and robotics. We show that the increased accuracy of PES
+leads to significant gains in optimization performance.
+\end{abstract}
+
+%===============================================================================
+\input{sections/introduction}
+\input{sections/method}
+\input{sections/sampling}
+\input{sections/predictiveEntropy}
+\input{sections/integration}
+\input{sections/experiments}
+\input{sections/experimentsSyntheticFunctions}
+\input{sections/experimentsRealWorldFunctions}
+\input{sections/conclusions}
+
+%===============================================================================
+\newpage
+\addtolength{\bibsep}{-1pt}
+{\small
+\bibliographystyle{abbrv}
+\bibliography{esbald}
+}
+
+%===============================================================================
+\newpage
+\appendix
+\input{sections/samplingAppendix}
+\input{sections/predictiveEntropyAppendix}
+
+
+%===============================================================================
+\end{document}

@@ -1,0 +1,24 @@
+\subsection{Regret Bound}
+The connection with EST directly leads to a bound on the simple regret of MES, when using only one sample of $y_*$. We prove Theorem~\ref{thm:regret} in the appendix.
+%
+\begin{restatable}[Simple Regret Bound]{thm}{regret}
+\label{thm:regret}
+Let $F$ be the cumulative probability distribution for the maximum of any function $f$ sampled from $GP(\mu, k)$ over the compact search space $\mathfrak X \subset R^{d}$, where $k(\vx,\vx')\leq 1,\forall \vx,\vx'\in\mathfrak X$.
+%
+Let $f_*=\max_{\vx\in \mathfrak X} f(\vx)$ 
+%
+ and $w = F(f_*) \in (0,1)$, and assume the observation noise is iid $\mathcal N(0,\sigma)$.
+%
+If in each iteration $t$, the query point is chosen as $\vx_t = \argmax_{\vx\in\mathfrak X} \gamma_{y^t_*}( \vx)\frac{\psi(\gamma_{y^t_*}( \vx))}{2\Psi(\gamma_{y^t_*}(\vx))} - \log(\Psi(\gamma_{y^t_*}( \vx)))$, where $\gamma_{y^t_*}(\vx) = \frac{y^t_* - \mu_t(\vx)}{\sigma_t(\vx)}$ and $y^t_*$ is drawn from $F$, then with probability at least $1-\delta$, in $T' = \sum_{i=1}^T\log_{w} \frac{\delta}{2\pi_i}$ number of iterations, the simple regret satisfies
+\begin{align}
+\label{eq:regret}
+r_{T'} \leq  \sqrt{\frac{C \rho_T}{T}} (\bt_{t^*} + \zeta_T)
+\end{align}
+where $C = 2/\log (1+\sigma^{-2})$ and $\zeta_T=(2\log(\frac{\pi_T}{\delta}))^{\frac12}$; $\pi$ satisfies $\sum_{i=1}^T \pi_i^{-1} \leq 1$ and $\pi_t > 0$, and $t^*=\argmax_t \bt_t$ with $\bt_t \triangleq \min_{\vx\in\mathfrak X, y^t_* > f_*} \gamma_{y^t_*}(\vx)$, and $\rho_T$ is the maximum information gain of at most $T$ selected points.
+\end{restatable}
+%
+%
+\hide{
+\sj{I do not understand the following discussion. The reader does not know the bounds for EST or UCB unless you state them, and not sure anyone would know the effect of a large or small $y_*$ without reading your other paper. Maybe cut this, or make it more high-level, or discuss what we would expect for using more than one $y_*$}
+At first sight, it might seem like MES with a point estimate does not have a converging rate as good as $EST$ or $GP-UCB$. However, notice that $\min_{\vx\in\mathfrak X}\gamma_{y_1}(\vx) < \min{\vx\in\mathfrak X} \gamma_{y_2}(\vx)$ if $y_1 < y_2$, which decides the rate of convergence in Eq.~\ref{eq:regret}. So if we use $y_*$ that is too large, the regret bound could be worse. If we use $y_*$ that is smaller than $f_*$, however, its value won't count towards the learning regret in our proof, so it is also bad for the regret upper bound. With no principled way of setting $y_*$ since $f_*$ is unknown. Our regret bound in Theorem~\ref{thm:regret} is a randomized trade-off between sampling large and small $y_*$.
+}

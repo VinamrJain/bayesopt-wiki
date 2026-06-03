@@ -1,0 +1,120 @@
+
+\subsection{Theoretical Results}
+\label{sec:theory}
+
+
+We now present our main theoretical contributions.
+In order to simplify the exposition and convey the gist of our results, we will
+only present a simplified version of our theorems.
+We will suppress constants, $\polylog$ terms, and other technical
+details that arise due to a covering argument in our proofs.
+A rigorous treatment is available in Appendix~\ref{sec:analysis}.
+
+
+\textbf{Maximum Information Gain:}
+Up until this point, we have not discussed much about the kernel $\phix$ of the
+domain $\Xcal$.
+Since we are optimising $\func$ over $\Xcal$, it is natural to expect that this
+will appear in the bounds.
+\citet{srinivas10gpbandits} showed that the statistical difficulty of GP bandits is
+determined by the \emph{Maximum Information Gain} (\mig) which measures the maximum
+information a subset of observations have about $\func$. 
+We denote it by $\IGn(A)$ where $A$ is a subset of $\Xcal$ and $n$ is the number of
+queries to $\func$.
+We have given the technical definition of the \migs in Appendix~\ref{sec:analysis},
+but for our purposes it is sufficient to know that $\IGn(A)$ depends
+on the domain kernel $\phix$,
+the number of times $n$ we have queried $\func$ and the volume of $A$. 
+The latter dependence on $\vol(A)$ will be most important to us.
+For instance, when we use an SE kernel for $\phix$, we have
+$\IGn(A) \propto \vol(A)\,\logn^{d+1}$%
+~\citep{srinivas10gpbandits,seeger08information}.
+The simple regret $S(\capital)$ for \gpucbs after capital $\capital$ can be bounded by,
+\begin{align*}
+\hspace{-0.1in}
+\text{Simple Regret for \gpucb:}\hspace{0.15in}
+S(\capital) \lesssim 
+  \sqrt{\frac{\IGnc(\Xcal)}{\ncapital}},
+\label{eqn:gpucbregret}
+\numberthis
+\end{align*}
+where $\ncapital = \floor{\capital/\cost(\zhf)}$.
+
+
+In our analysis of \mfgpucbtwos we show that most queries to $\gunc$ at fidelity
+$\zhf$ will be confined to a small subset of the domain $\Xcal$ which contains the
+ optimum $\xopt$.
+Precisely, after capital $\capital$, for all $\alpha\in(0,1)$,
+there exists $\rho>0$ such that the number of queries \emph{outside} the following
+set $\Xcalrho$ is less than $\ncapital^\alpha$.
+\begin{align*}
+\Xcalrho = \big\{x\in\Xcal\,:\, \funcopt - \func(x)
+\leq 2\rho\sqrt{\kernelscale}\,\inffunc(\diamz) \big\}.
+\label{eqn:Xcalrho}
+\numberthis
+\end{align*}
+Here, $\inffunc$ is from~\eqref{eqn:inffunc} and $\diamz$ is the $L_2$
+diameter of $\Zcal$. %\todo{the following lines are not very clear.}
+While it is true that any optimisation algorithm would eventually query extensively
+in a neighbourhood around the optimum, a strong result of the above type is
+not always possible.
+For e.g., the best achievable bound on the number of queries by \gpucbs for any
+set that does not contain $\xopt$ is $\ncapital^{1/2}$.
+The above set $\Xcalrho$ arises exclusively due to our multi-fidelity assumptions
+and we are able to control the plays outside $\Xcalrho$ using information
+from lower fidelities.
+% and is determined by the smoothness of $\gunc$ across $\Zcal$.
+As $\inffunc$ is small when $\gunc$ is smooth across $\Zcal$,  the set $\Xcalrho$ will
+be small when the approximations are highly informative about $\gunc(\zhf, \cdot)$. 
+To see this more clearly, we revert to the case where $\phiz$ is a SE kernel
+where we have 
+ $\Xcalrho \approx \{x\in\Xcal: \funcopt - \func(x) \leq 2\rho\sqrt{p}/\hz\}$.
+When $\hz$ is large and $\gunc$ is smooth across $\Zcal$, $\Xcalrho$ is small 
+as the right side of the inequality is smaller.
+As \mfgpucbtwos confines most of its evaluations to this small set
+containing $\xopt$, we will be able to achieve much better regret than \gpucb.
+When $\hz$ is small and $\gunc$ is not smooth across $\Zcal$,
+the set $\Xcalrho$ becomes large and the advantage of multi-fidelity
+optimisation diminishes.
+
+
+We now provide an informal statement of our main result below.
+$\lesssim,\asymp$ will denote inequality and equality ignoring constant and
+$\polylog$ terms.
+
+\begin{theorem}[Informal, Regret of \mfgpucbtwo]
+\label{thm:regret}
+Let $g\sim\GP(0,\kernel)$ where $\kernel$ satisfies~\eqref{eqn:mfkernel}.
+Choose $\betat \asymp d\log(t/\delta)$.
+Then, for sufficiently large $\capital$ and for all $\alpha \in(0,1)$, there exists $\rho$
+depending on $\alpha$ such that the following bound holds w.h.p.
+\[
+S(\capital) \;\lesssim\;
+  \sqrt{\frac{\IGnc(\Xcalrho)}{\ncapital}}
+  \;+\;
+  \sqrt{\frac{\IGncalpha(\Xcal)}{\ncapital^{2-\alpha}}}
+\]
+\end{theorem}
+In the above bound, the latter term vanishes fast due to the $\ncapital^{-(1-\alpha/2)}$
+dependence.
+When comparing this with~\eqref{eqn:gpucbregret},
+we see that we outperform \gpucbs by a factor of
+$\sqrt{\IGnc(\Xcalrho)/\IGnc(\Xcal)} \asymp \sqrt{\vol(\Xcalrho)/\vol(\Xcal)}$
+asymptotically.
+If $\gunc$ is smooth across the fidelity space, $\Xcalrho$ is small and
+the gains over \gpucbs are significant.
+If $\gunc$ becomes less smooth across $\Zcal$, the bound decays gracefully, but
+we are never worse than \gpucbs up to constant factors.
+
+Theorem~\ref{thm:regret} also has similarities to the bounds 
+of~\citet{kandasamy16mfbo} who also demonstrate better regret than \gpucbs by
+showing that it is dominated by queries inside a set $\Xcal'$ which contains the optimum.
+However, their bounds also depend critically on certain threshold hyper-parameters
+which determines the volume of $\Xcal'$ among other  terms in their regret.
+The authors of that paper note that their bounds will suffer if these hyper-parameters are not
+chosen appropriately, but do not provide theoretically justified methods to do so.
+In contrast, many of the design choices of our method fall out naturally from
+our modeling assumptions.
+Beyond this analogue, our results are not comparable to~\citet{kandasamy16mfbo}
+as the assumptions are very different.
+

@@ -1,0 +1,29 @@
+
+
+\vspace{-0.05in}
+\section{Conclusion}
+\label{sec:conclusion}
+\vspace{-0.05in}
+
+We studied Bayesian optimisation with continuous approximations, by treating the
+approximations as arising out of a continuous fidelity space.
+While previous multi-fidelity literature has predominantly focused on a finite number of
+approximations, \bocas applies to continuous fidelity spaces and can potentially
+be extended to arbitrary spaces.
+We bound the simple regret for \bocas and demonstrate that it is better than methods such
+as \gpucbs which ignore the approximations and that the gains are determined by the
+smoothness of the fidelity space.
+When compared to existing multi-fidelity methods, \bocas is able to share information
+across fidelities
+effectively, has more natural modelling assumptions and has fewer hyper-parameters to tune.
+Empirically, we demonstrate that \bocas is competitive with other baselines in synthetic
+and real problems.
+
+Going forward, we wish to extend our theoretical results to more general settings.
+For instance, we believe a stronger bound on the regret might be possible
+if $\phiz$ is a finite dimensional kernel.
+Since finite dimensional kernels are typically not radial~\citep{sriperumbudur2016optimal},
+our analysis techniques will not carry over straightforwardly.
+Another line of work that we have alluded to is to study more general
+fidelity spaces with an appropriately defined kernel $\phiz$.
+

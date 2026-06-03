@@ -1,0 +1,73 @@
+\section{Bayesian Optimization and Adaptive Stopping}
+\label{sec:background}
+
+
+In black-box optimization, the goal is to find an approximate optimum of an unknown objective function $f : X \to \mathbb{R}$ using a limited number of function evaluations at points $x_1, \ldots, x_T \in X$ where $X$ is the search space and $T$ is a given search budget, potentially chosen adaptively. 
+The convention measures performance in terms of \emph{expected simple regret} \citep[Sec. 10.1]{garnett2023bayesian}, given by
+\begin{equation}
+\label{eqn:bayesopt_problem}
+\mathcal{R} = \mathbb{E} \left[\min_{1\leq t\leq T} f(x_t) - \inf_{x\in X} f(x) \right],
+\end{equation}
+where the expectation is taken over all sources of randomness, including the sequence of points $x_1, \ldots, x_T$ selected by the algorithm.
+Bayesian optimization approaches this problem by building a probabilistic model of $f$---typically a Gaussian process (GP)~\citep{rasmussen2006gaussian}, conditioned on the observed data points $(x_t, y_t)_{t=1}^T$, where $y_t = f(x_t)$. 
+For each iteration $t=1,\ldots,T$, an acquisition function $\alpha_{t}: X \to \mathbb{R}$ then guides the selection of new samples by carefully balancing the exploration-exploitation tradeoff arising from uncertainty about $f$. 
+
+
+\subsection{Cost-aware Bayesian Optimization}
+\label{sec:background:acquisition}
+\emph{Cost-aware Bayesian optimization} \citep{lee2020cost,astudillo2021multi} extends the above setup to account for the fact that evaluation costs can vary across the search space.
+For instance, in the hyperparameter tuning example of \Cref{sec:intro}, costs can vary according to the time needed to train a machine learning model under a given set of hyperparameters $x$.
+Cost-aware Bayesian optimization handles this by introducing a cost function $c: X \to \mathbb{R}^+$, which may be known or unknown ahead.
+The cost function, or observed costs, are then used to construct the acquisition function $\alpha_t$.
+
+In this work, we focus primarily on the \emph{cost-per-sample} formulation \citep{chick2012sequential,cashore2016multi,xie2024cost} of cost-aware Bayesian optimization, which seeks methods with stopping time $\tau$, not necessarily fixed, that achieve a low \emph{expected cost-adjusted simple regret}
+\begin{equation}
+\mathcal{R}_c = \mathbb{E} \Bigg[\underbrace{\vphantom{\sum_{t=1}^{\tau}}\min_{1\le t \le \tau} f(x_t) - \inf_{x \in X} f(x)}_{\text{simple regret}} + \underbrace{\sum_{t=1}^{\tau} c(x_t)
+    }_{\text{cumulative cost}}\Bigg] \label{eqn:cost_per_sample}
+    .
+\end{equation}
+One can also work with the \emph{expected budget-constrained} formulation \citep{xie2024cost}, which incorporates budget constraints explicitly, and seeks algorithms which achieve a low expected simple regret under an expected evaluation budget.
+Here, performance is evaluated in terms of
+\begin{align}
+\mathcal{R} &= \mathbb{E} \left[\min_{1\leq t\leq {\tau}} f(x_t) - \inf_{x\in X} f(x)\right] \nonumber \\
+&\text{where } x_1,\ldots,x_{\tau} \text{ satisfy \quad } 
+\mathbb{E}\sum\limits_{t=1}^{\tau} c(x_t) \leq B. \label{eqn:cost_aware_bayesopt_problem}
+\end{align}
+The stopping rules we study can be applied in this setting as well: we discuss this in \Cref{sec:method:theory}.
+
+For both settings, we work with a few acquisition functions---chiefly, the \emph{Pandora's Box Gittins Index (PBGI)} \citep{xie2024cost} and \emph{log expected improvement per cost (LogEIPC)} \citep{xie2024cost} (the log variant \citep{ament2023unexpected} of the expected improvement per cost \citep{snoek2012practical}).
+At iteration $t$, let $x_{1:t}:=\{x_1, \dots, x_t\}$ be the evaluated points, $y_{1:t}:=\{y_1, \dots, y_t\}$ be their observed values, $y^*_{1:t}=\min_{1\leq s \leq t} y_s$ be the current best observed value, and $f \mid x_{1:t}, y_{1:t}$ be the posterior distribution of $f$. Then the PBGI acquisition function is defined as
+\begin{align}
+\label{eqn:PBGI}
+&\alpha_t^{\mathrm{PBGI}}(x) := \nonumber\\
+&\begin{cases}
+g \quad \text{s.t. } % g \text{ solves} \quad
+\mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}(x; g) =  c(x), & x\notin x_{1:t}, \\
+f(x), & x\in x_{1:t},
+\end{cases}
+\end{align}
+where the value $g$ is the threshold such that the expected improvement over $g$ equals the cost\footnote{For an evaluated point $x$, we set $g = f(x)$ since the posterior at $x$ collapses to a point mass at the observed value $f(x)$ and its evaluation cost can be treated as $0$.} and $\mathrm{EI}_\psi(x; y) = \mathbb{E} \left[\max(y - \psi(x),0)\right]$ is the expected improvement at point $x$ with respect to some random function $\psi : X \to \mathbb{R}$ and a baseline value~$y$.
+The LogEIPC acquisition function is defined as
+\begin{align}
+\label{eqn:EIC} \alpha_{t}^{\mathrm{LogEIPC}}(x) := \log\frac{\mathrm{EI}_{f \mid x_{1:t}, y_{1:t}}(x; y^*_{1:t})}{c(x)},
+\end{align}
+i.e., the logarithm of the expected improvement divided by the cost.
+We also consider classical cost-unaware acquisition functions---\emph{lower confidence bound (LCB)} and \emph{Thompson sampling (TS)}; see \citet{garnett2023bayesian} for details.
+
+
+\subsection{Adaptive Stopping Rules} \label{sec:background:stopping_rule_review}
+%To the best of our knowledge, stopping rules for Bayesian optimization have only been studied in the classical setting without explicit evaluation costs.
+To the best of our knowledge, stopping rules for Bayesian optimization typically do not incorporate cost explicitly into the stopping criterion.
+We broadly categorize existing methods as follows:
+
+\textbf{Criteria based on convergence or significance of improvement.} 
+This includes empirical convergence, namely stopping when the best value remains unchanged for a fixed number of iterations, or the \emph{global stopping strategy (GSS)} \citep{bakshy2018ae}, which stops when the improvement is no longer statistically significant relative to the inter-quartile range (i.e., the range between the 25th percentile and the 75th percentile) of prior observations.
+In the multi-fidelity setting, \citet{FourmaniB25} proposed stopping when the high-fidelity surrogate’s estimated optimum has stabilized over a window of iterations, which is related to cost-awareness but differs from our setting with explicitly varying evaluation costs.
+
+\textbf{Acquisition-based criteria.} This includes stopping rules based on acquisition functions such as PI, EI, and KG. These approaches typically stop when the acquisition value falls below a threshold—such as a predetermined constant \citep{lorenz2015stopping,locatelli1997bayesian}, the median of the initial acquisition values \citep{ishibashi2023stopping}, or the cost of sampling \cite{nguyen2017regret,zhou2024corrected,frazier2008knowledge}. They are typically defined via fixed thresholds and are primarily designed for the uniform-cost setting, without explicitly accounting for varying evaluation costs.
+
+\textbf{Regret-based criteria.} This includes stopping rules based on confidence bounds such as \emph{UCB-LCB} \citep{makarova2022automatic} and the \emph{gap of expected minimum simple regrets} \citep{ishibashi2023stopping}. These stop when certain estimated regret bounds fall below a preset or data-driven threshold. The related \emph{probabilistic regret bound (PRB)} stopping rule \citep{wilson2024stopping} stops when estimated simple regret is below a small threshold $\epsilon$ with confidence $1 - \delta$.
+In contrast to these forward-looking rules, \citet{li2023not} propose a backward-looking stopping rule that detects when the search has entered a locally convex region and stops once an estimate of local regret falls below a predetermined threshold.
+
+In settings beyond Bayesian optimization, \citet{chick2012sequential} have proposed a cost-aware stopping rules for finite-domain sequential sampling problems with independent values. 
+Although this formulation allows for varying costs, it does not extend to general Bayesian optimization settings which use correlated GP models.

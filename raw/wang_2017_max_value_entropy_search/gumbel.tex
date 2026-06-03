@@ -1,0 +1,112 @@
+%
+When we use Gaussian process to model the black-box function we are optimizing, we make the assumption that each function value is distributed according to a Gaussian distribution. However, this introduce computational difficulties if we want to calculate some values related to the max or argmax of the function values. 
+
+Gumbel distribution is one special case of the generalized extreme value distribution, and it has some nice properties when it comes to modeling the maximum. We use Gumbel distribution to approximate the Gaussians, which enables efficient sampling for the maximum of the function.%
+
+\section{Gumbel distribution}
+Let $\vy\sim \mathcal G(\alpha,\beta)$ be a random variable distributed according to a Gumbel distribution with parameters $\alpha$ and $\beta$, and $\vy\in \R$. The CDF of $\vy$ is 
+$$ \Psi(y)=\Pr[\vy\leq y] = \exp{(-\exp{(-\frac{y-\alpha}{\beta})})},$$
+and the PDF of $\vy$ is 
+$$ \psi(y)=p_{\vy}[y] = \frac{1}{\beta}\exp{(-\frac{y-\alpha}{\beta}-\exp{(-\frac{y-\alpha}{\beta})})}.$$
+The mode of the PDF distribution is at $\vy=\alpha$, the mean is $\alpha+\gamma\beta$, and the variance is $\pi^2\beta^2/6$. 
+
+
+\section{Maximum of a collection of Gumbels}
+We consider a collection of random variables $\{\vy_i\}_{i=1}^N$, $\vy_i\sim \mathcal G(\alpha_i,\beta_i), \beta_i>0$. Let $\vv_{N}=\underset{i\in[1,N]}{\max} \vy_i$, and the CDF for $\vv_N$ is
+\begin{align}
+\Pr[\vv_N\leq y] &=\prod_i \exp{(-\exp{(-\frac{y-\alpha_i}{\beta_i})})}\\
+&=\exp{(-\sum_i\exp{(-\frac{y-\alpha_i}{\beta_i})})}
+\end{align}
+and the PDF for $\vv_N$ is
+\begin{align}
+p_{\vv_N}(y) &= \left(\sum_i\frac{1}{\beta_i}\exp{(-\frac{y-\alpha_i}{\beta_i})}\right)\exp{\left(-\sum_i\exp{(-\frac{y-\alpha_i}{\beta_i})}\right)}\\
+&= \sum_i\frac{1}{\beta_i}\exp{\left(-\frac{y-\alpha_i}{\beta_i} -\sum_j\exp{(-\frac{y-\alpha_j}{\beta_j})}\right)}
+\end{align}
+
+\hide{
+The mode of the PDF can be calculated by setting the derivative to be 0:
+\begin{align}
+\frac{\dif p_{\vv_N}(y)}{\dif y} =  \sum_i\frac{1}{\beta_i}\exp{\left(-\frac{y-\alpha_i}{\beta_i} -\sum_j\exp{(-\frac{y-\alpha_j}{\beta_j})}\right)} \left(\sum_j\frac{1}{\beta_j}\exp{(-\frac{y-\alpha_j}{\beta_j})}-\frac{1}{\beta_i}\right) &= 0\\
+ \sum_i\frac{1}{\beta_i}\exp{\left(-\frac{y-\alpha_i}{\beta_i} \right)} \left(\sum_j\frac{1}{\beta_j}\exp{(-\frac{y-\alpha_j}{\beta_j})}-\frac{1}{\beta_i}\right) &= 0 \\
+  \left(\sum_i\frac{1}{\beta_i}\exp{(-\frac{y-\alpha_i}{\beta_i} )}\right)^2 -\sum_i\frac{1}{\beta^2_i}\exp{(-\frac{y-\alpha_i}{\beta_i} )} &= 0
+\end{align}
+Todo: find the condition for single solution.
+
+And, we can get the probability of $\vy_i$ being the one that achieve the max:
+\begin{align}
+\Pr[\vy_i = \max \vy_i] &= \int \psi(y) \exp{(-\sum_{j\neq i}\exp{(-\frac{y-\alpha_j}{\beta_j})})}\dif y \\
+&= \int \frac{1}{\beta_i}\exp{(-\frac{y-\alpha_i}{\beta_i}-\exp{(-\frac{y-\alpha_i}{\beta_i})})} \exp{(-\sum_{j\neq i}\exp{(-\frac{y-\alpha_j}{\beta_j})})}\dif y \\
+& = \int \frac{1}{\beta_i}\exp{(-\frac{y-\alpha_i}{\beta_i})} \exp{(-\sum_{j}\exp{(-\frac{y-\alpha_j}{\beta_j})})}\dif y
+\end{align}
+
+}
+\subsection{Case study 1}
+If $\beta_i=\beta_j=\beta,\forall i,j$, $\vy$ is still distributed according to a Gumbel distribution, $\vv_N\sim\mathcal G(\beta\ln\sum_i e^{\alpha_i/\beta},\beta)$.
+\begin{align}
+\Pr[\vv_N\leq y] 
+&=\exp{(-\sum_i\exp{(-\frac{y-\alpha_i}{\beta})})}\\
+&=\exp{(-\exp{(-\frac{y}{\beta})}\sum_i\exp{(\frac{\alpha_i}{\beta})})}\\
+&=\exp{(-\exp{(-\frac{y-\beta\ln\sum_i e^{\alpha_i/\beta}}{\beta})})}
+\end{align}
+If, in addition to $\beta_i=\beta_j,\forall i,j$, we have $\alpha_i=\alpha_j=\alpha,\forall i,j$, then $\vv_N\sim\mathcal G(\alpha+\beta\ln N,\beta)$.
+\begin{align}
+\Pr[\vv_N\leq y] 
+&=\exp{(-\exp{(-\frac{y-\beta\ln\sum_i e^{\alpha_i/\beta}}{\beta})})}\\
+&=\exp{(-\exp{(-\frac{y-(\alpha+\beta\ln N) }{\beta})})}
+\end{align}
+
+For notational convenience, we  use $\vv_n = \underset{i\in[1,n]}{\max} \vy_i$ to denote the maximum of $\{\vy_i\}_{i=1}^n$. Notice that $\vv_{n+1} = \max(\vv_n,\vy_{n+1}) $.
+
+\subsection{Case Study 2}
+We consider the case where $\beta_i = \beta(x_i), \alpha_i = \alpha(x_i)$, and $\{x_i\}_{i=0}^{N-1}$ contains an $\epsilon$-covering of a compact and convex set $\mathfrak X\subseteq \R^d$.  %
+
+We would like to show that there exists $a$ and $b$ such that 
+$\underset{N\rightarrow\infty}{\lim}\|\exp\left(-\exp(-\frac{y-a}{b})\right) - \exp\left(-\sum_{i=0}^{N-1}\exp(-\frac{y-\alpha_i}{\beta_i}) \right)\| =0 $.
+
+As we will see, by matching the mode of $p_{\vv_N}(y)$, we can achieve this limit. %
+
+For intuition, let's consider $\alpha_i=\alpha_j=\alpha, \forall i,j$, $\gamma_i = \frac{1}{\beta_i}$, and $\gamma_{i+1}-\gamma_i = \frac{L}{N}=\epsilon$, $0<1/\gamma_{N-1}\leq 1/\gamma_{0}\ll \log N$ (variance is not too large or too small).
+It's not hard to see that if $y\neq \alpha$,
+\begin{align}
+R(y)&=\sum_{i=0}^{N-1}\exp(-\frac{y-\alpha_i}{\beta_i}) \\
+&= \sum_{i=1}^{N-1}\exp(-(y-\alpha)(\gamma_0+\epsilon*i)) \\
+&= \frac{\exp{(-(y-\alpha)\gamma_0)} - \exp{(-(y-\alpha)\gamma_{N-1})}}{1-e^{-(y-\alpha)\epsilon}}\\
+&\approx \frac{\exp{(-(y-\alpha)\gamma_0)} - \exp{(-(y-\alpha)\gamma_{N-1})}}{(y-\alpha)\epsilon}\\
+&=N \frac{\exp{(-(y-\alpha)\gamma_0)} - \exp{(-(y-\alpha)\gamma_{N-1})}}{y-\alpha}
+\end{align}
+If $y=\alpha$,
+\begin{align}
+\sum_{i=0}^{N-1}\exp(-\frac{y-\alpha_i}{\beta_i}) &= N
+\end{align}
+Notice that for $y \leq \alpha$, $R(y)\geq N$, and $\underset{N\rightarrow\infty}{\lim} e^{-R(y)} = 0$, which is not an interesting region. In fact, since for $y > \alpha$ we have 
+$$ N\exp(-(y-\alpha)(\gamma_{N-1})) \leq R(y) \leq N\exp(-(y-\alpha)(\gamma_0)).$$ 
+If $\log N \leq N\exp(-(y-\alpha)(\gamma_{N-1})) \leq R(y)$, we also have $\underset{N\rightarrow\infty}{\lim} e^{-R(y)} = 0$; If $R(y) \leq N\exp(-(y-\alpha)(\gamma_0)) \leq \frac1{\log N}$, we have $\underset{N\rightarrow\infty}{\lim} e^{-R(y)} = 1$. Hence, the only region we care about is 
+$$\alpha + \frac{1}{\gamma_{N-1}}(\log N-\log\log N) \leq y \leq \alpha + \frac{1}{\gamma_0}(\log N+\log\log N). $$
+In this region, we would like to find $a, b$ to match $\exp(-\frac{y-a}{b})$ with $R(y)$. Notice that as long as the fit within this region is good, $\exp(-\frac{y-a}{b})$ will naturally match $R(y)$ outside this region. 
+
+We reparameterize $\exp(-\frac{y-a}{b})$ to be $\exp(-\frac{y-a}{b}) = \exp(-(y-\alpha)\gamma_{N-1} + cy + t+\log(N))$, where $c < \gamma_{N-1}$. Hence, 
+\begin{align}
+e^{-\frac{y-a}{b}} - R(y) &= N e^{-(y-\alpha)\gamma_{N-1} + cy + t} \\
+& - N \frac{\exp{(-(y-\alpha)\gamma_0)} - \exp{(-(y-\alpha)\gamma_{N-1})}}{y-\alpha}\\
+& = N e^{-(y-\alpha)\gamma_{N-1}} (e^{cy+t} - \frac{1}{y-\alpha}(e^{L(y-\alpha)}-1))
+\end{align}
+Since $$\frac{1}{\gamma_{N-1}}(\log N-\log\log N) \leq y -\alpha\leq \frac{1}{\gamma_0}(\log N+\log\log N)$$ is approximately equivalent to $$c_0\log N \leq y -\alpha\leq c_1\log N$$
+when $N$ is large, we may do a taylor expansion at $y-\alpha = c_m \log N$, $c_0 \leq c_m \leq c_1$. Let $z=y-\alpha$. 
+\begin{align} 
+e^{-\frac{y-a}{b}} - R(y) & \approx N e^{-(y-\alpha)\gamma_{N-1}} (e^{cy+t} - \frac{e^{L(y-\alpha)}}{y-\alpha}) \\
+& = N e^{-(y-\alpha)\gamma_{N-1}} (e^{cy+t} \\
+&-e^{\left(L-1/(c_m\log N)\right)(y-\alpha)+1-\log(c_m\log N)+o(1)}) 
+\end{align}
+More specifically, this is because
+\begin{align}
+\log(z) & = log(c_m\log N) + \frac{z-c_m\log N}{c_m\log N}\\&-\sum_{i=2}^{+\infty} \frac{(-1)^i}{i}(\frac{z-c_m\log N}{c_m\log N})^i.
+\end{align}
+The closer $c_0$ and $c_1$ are to $c_m$, the better the linear approximation is. We assign $c=L-1/(c_m\log N)$ and $t=1-\log(c_m\log N)-\alpha c$. Since $z=c\log N$, $c_0\leq c \leq c_1$, 
+\begin{align} 
+e^{-\frac{y-a}{b}} - R(y) & \approx N e^{-(y-\alpha)\gamma_{N-1}} e^{cy+t}(1 -e^{o(1)}) \\
+&= N e^{ -z(\gamma_0+\frac{1}{c_m\log N} ) + 1-\log(c_m\log N) }(1 -e^{o(1)})\\
+&= O(N^{1-c\gamma_0}/\log N)(1 -e^{o(1)})
+\end{align} 
+For $c\gamma_0>1$, we have at least polynomial convergence rate.
+
+TODO: c0 and c1 need to be restrained within a small range, possibly closer to $1/\gamma_0$ to make this work.

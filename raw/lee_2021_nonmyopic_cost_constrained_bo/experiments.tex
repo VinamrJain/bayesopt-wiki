@@ -1,0 +1,77 @@
+We compare CMDP rollout, which we compute via quasi-Monte Carlo integration, to EI and EIpu.
+We use a GP with the Mat\'ern-$5/2$ ARD kernel to model both the objective and the cost function\footnote{We use a log-warped GP to model positive cost.}, and learn hyperparameters via maximum likelihood estimation.
+When rolling out acquisition functions, we use L-BFGS-B using $5$ restarts, selected by evaluating the acquisition on a Latin hypercube of $10d$ points and picking the five best as starting points.
+When comparing different replications we first need to interpolate the objective function values onto a set of discrete costs.
+Given these interpolated value, we plot the mean with one standard deviation. Code to reproduce our experiments is found at \url{https://github.com/ericlee0803/lookahead_release}.
+
+\subsection{Synthetic Problem}
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.48\textwidth]{figures/costrollout_synthetic2.pdf}
+    \caption{In this example, we examine a carefully chosen example showcasing the strength of the rollout approach. We consider the a multimodal objective whose most expensive point is the global minimum. EIpu performs worse than EI, and both tend to get stuck in cheaper, local minimum. Our rollout policy for horizons $2$ and $4$ performs better than both EI and EIpu}
+    \label{fig:costrollout2d}
+\end{figure}
+
+In Figure~\ref{fig:costrollout2d}, we examine a carefully chosen synthetic example showcasing the strength of the rollout approach. We consider the cost-constrained optimization problem
+\begin{align*}
+    f(\bx) &= 10 \|\bx\|_2 \sin(2\pi \|\bx\|_2), \\
+    c(\bx) &= 10 - 5\|\bx\|_2,
+\end{align*}
+in the domain $[-1, 1]^2$, and a budget of $150$. The cost function has been designed so that its maximum aligns with the minimum of the objective.
+As we motivated earlier, EIpu struggles with these types of problems.
+We run BO with EI, EIpu, and rollout with our base policy $50$ times and plot the results.
+This is seen on the right, in which EIpu (green) performs worse than EI (blue).
+However, rollout of our base policy, for horizons two and four in pink and red respectively, performs much better than both.
+
+\subsection{Hyperparameter Optimization}
+\begin{figure*}[!ht]
+    \centering
+    \includegraphics[width=\textwidth]{figures/HPO_results.pdf}
+    \caption{We compare the classification error among EI, EIpu, and our cost-constrained rollout for horizons $2$ and $4$. Rollout performs better than both EI and EIpu. Shaded areas represent one standard deviation around the mean. }
+    \label{fig:hpo_results}
+\end{figure*}
+We compare rollout performance to EI and EIpu on HPO of three different models: $k$-nearest neighbors (KNN), decision trees, and random forests, with budgets of $800$, $15$, and $15$ seconds respectively. These are relatively small problems, chosen due to the number of replications required to show statistical significance.
+All models are trained for $50$ replications on the OpenML w2a dataset~\citep{OpenML2013}. We compare the competing algorithms in terms of the best classification error achieved on the validation set.
+
+\textbf{$k$-nearest neighbors:} The $k$-nearest neighbors algorithm is a class of methods used for classification of either spatially-orientated data or data with a known distance metric (i.e., data embedded in a Hilbert space).
+We consider a $5d$ search space: dimensionality reduction percentage in $[1\mathrm{e}{-6}, 1.0]$ (log-scaled), type in \{Gaussian, Random\}, neighbor count in $\{1, 2, \ldots, 256\}$, weight function in \{Uniform, Distance\}, and distance in \{Minkowski, Cityblock, Cosine, Euclidean, L$1$, L$2$, Manhattan\}. We one-hot encode categorical variables.\looseness-1
+
+\textbf{Decision Trees:} Decision trees are popular predictive models used in statistics, data mining, and machine learning.
+In the case of classification, leaves represent class labels and paths represent sets of features that lead to those class labels.
+During training, a tree is built by splitting the source set into subsets which constitute the successor children.
+The splitting is based on a threshold that maximizes some notion of information gain such as entropy.
+The depth of a decision tree is pre-specified.
+We consider a $3d$ search space: tree depth in $\{1, 2, \ldots, 64\}$, tree split threshold in $[0.1, 1.0]$ log-scaled, and split feature size in $[1\mathrm{e}{-3}, 0.5]$ (log-scaled).
+
+\textbf{Random Forests:} A random forest is a set $k$ of decision trees, and classifies based off the plurality decision generated from all its trees ---this technique is known as \textit{bagging}, and improves robustness in the classification algorithm.
+We consider a $3d$ search space: number of trees in $\{1, 2, \ldots, 256\}$, tree depth in $\{1, 2, \ldots, 64\}$, and tree split threshold in $[0.1, 1.0]$ (log-scaled).
+
+\subsection{Sensor Set Selection}
+
+The sensor set selection problem~\citep{garnett2010bayesian} seeks to improve the predictive accuracy, as measured by the root mean squared error (RMSE), of a physical sensor network.
+We denote a sensor network's configuration of $m$ sensors in $d$-dimensional space as $\mathbf{X}\in\R^{m \times d}$.
+
+This configuration must be manually adjusted each time it is updated.
+This is typically assumed to have uniform cost; we modify the problem to consider a \textit{sensor adjustment cost}.
+We assume this cost is correlated with the distance each sensor in the network has to move; for simplicity, we assume the cost of any new sensor configuration $\mathbf{X}'$ is proportional to the straight-line distance $d(\mathbf{X}, \mathbf{X}') = \|\mathbf{X} - \mathbf{X}'\|_F$.
+This is an example of a CMDP whose cost is not state-independent; our cost now depends on the prior state.
+
+We consider a small sensor set selection problem using ten sensors.
+Our objective is RMSE of the sensor predictions against ground truth weather data taken from UK Meteorological Office MIDAS surface stations~\citep{midas2012}.
+The time budget is twenty years.
+
+\subsection{Analysis}
+We plot the resuts of our HPO and sensor set selection experiments in Figure~\ref{fig:hpo_results}, and find that CMDP rollout generally outperforms both EI and EIpu.
+In this section we discuss key insights gained over the course of experimentation.
+
+\textbf{Cost Modeling:} We found the cost function to be simpler to model than the objective function.
+In practice, the cost may only depend on a few key parameters (e.g., tree depth).
+Thus, using a vanilla GP to model the cost is inefficient ---a tailored (parametric) cost model or a GP that incorporates parameter importance into its lengthscale priors will likely lead to better results~\citep{lee2020cost, guinet2020}.
+
+\textbf{Search Space Sensitivity:}
+EIpu's performance depends on the correlation between objective value and cost.
+Unsurprisingly, this correlation often depends on the search space in practice.
+For example, assume a decision tree of depth $d$ achieves maximal classification error and that its training cost increases with depth.
+(\textbf{i}) If the search space is $[1, d\,]$, the maximum will be the most expensive point and EIpu will perform poorly; (\textbf{ii}) if the search space is $[1, 2d\,]$, the maximum will be have middling cost and EIpu will perform moderately well; (\textbf{iii}) if the search space is $[1, 10d\,]$, the maximum will have cheap cost and EIpu will perform very well.
+In our experiments, we found CMDP rollout to be more robust to the shape of the cost surface.
+This is expected, as a CMDP optimal policy selects the point that maximally reduces the objective function given the cost constraint.

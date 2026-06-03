@@ -1,0 +1,14 @@
+In this paper, we have shown the importance of cost-constrained BO and formulated it as an instance of a constrained Markov decision process (CMDP).
+We developed a rollout algorithm using a cheap exploration, expensive exploitation base policy that performed better than EI and EIpu on three hyperparameter optimization problems and a sensor set selection problem.  
+
+These investigations into cost-constrained BO are promising and we believe there are many interesting directions for future work. 
+First, the overhead of the optimizer itself should be taken into account, especially in the context of HPO. 
+While the overhead is negligible when the cost of evaluating the black-box is large (e.g., when training neural networks), future work could explore simpler heuristics to lower the overhead of using rollouts.
+Second, we believe approximate solutions to CMDPs other than rollout are worth investigating. 
+State aggregation and state truncation are classical methods in the MDP setting that reduce the state space according to the transition probabilities and~\citet{altman1999constrained} extends them to the CMDP setting. 
+Consequently, we may approximate our model through state aggregation and state truncation and compute an exact solution via linear programming.\looseness-1
+
+Finally, we have limited our discussion to the sequential BO setting. 
+However, cost-constrained BO becomes significantly more complex in the batch setting, when evaluations are performed in parallel.
+This is another interesting topic for future work.
+

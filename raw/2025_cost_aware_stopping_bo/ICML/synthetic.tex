@@ -1,0 +1,25 @@
+\subsection{Bayesian Regret}
+We first evaluate our PBGI/LogEIPC stopping rule on random functions sampled from prior. 
+Specifically, objective functions are sampled from Gaussian processes with Matérn 5/2 kernels with length scale $0.1$, defined over spaces of dimension $d=1$ and $d=8$.
+We consider a variety of evaluation cost function types, including uniform costs, linearly increasing costs in terms of parameter magnitude, and periodic costs that vary non-monotonically over the domain. 
+
+In the 1-dimensional experiments, we perform an exhaustive grid search over $[0,1]$ to isolate the effect of stopping behavior from numerical optimization.
+In the 8-dimensional setting, due to instability from higher dimensionality, we apply moving average with a window size of 20 when computing the PBGI/LogEIPC stopping condition. See \Cref{fig:moving_average} in \Cref{apdx:experiment_setup} for an illustration.
+%We omit PRB in the 8D experiment due to its high computational overhead.
+More details on our experiment setup, and computational considerations are provided in \Cref{apdx:experiment_setup,apdx:experiment_results}.
+
+\Cref{fig:synthetic} shows a comparison of cost-adjusted regret for pairings of acquisition functions and stopping rules under different cost-scaling factors $\lambda = 0.1, 0.01, 0.001$ in the 1-dimensional setting, and under different cost regimes (uniform, linear, periodic) in 8-dimensional setting. 
+
+In the 1-dimensional setting, the optimization problem is relatively straightforward and all acquisition functions have nearly identical hindsight optima, independent of cost scale or cost type. From the plots, our PBGI/LogEIPC stopping rule, when paired separately with the PBGI and LogEIPC acquisition functions, delivers competitive performance for each $\lambda$, and is particularly strong in handling high-cost scenarios---those with large $\lambda$.
+
+In the 8-dimensional experiments, however, clear gaps emerge. Under uniform and linear costs, PBGI, LogEIPC, and LCB exhibit similar hindsight optima, substantially better than TS, while in the periodic case, PBGI and LogEIPC achieve much better hindsight optima than LCB and TS. In every cost regime, combining our stopping rule with the PBGI  or LogEIPC acquisition function yields cost-adjusted regret that nearly matches the hindsight optimal. 
+
+This demonstrates that our PBGI/LogEIPC stopping rule is relatively robust to the increased optimization difficulty. 
+Further discussions of our experiments across multiple cost types and cost-scaling factors can be found in \Cref{apdx:experiment_results}.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.48\textwidth, trim=0 0.2cm 0 0.2cm, clip]{plots/single_column/BarPlot_Matern52.pdf}
+    \caption{Cost-adjusted simple regret across acquisition-stopping rule pairs in 1D and 8D Bayesian regret setting. In 1D, objective functions are sampled from a GP with a Matérn-5/2 kernel and a linear cost function scaled by $\lambda = 0.1, 0.01, 0.001$. The Immediate baseline is omitted at $\lambda = 0.001$ due to its much higher regret (mean 0.6942, error bar [0.5314, 0.8570]). In 8D, objective functions are also drawn from a GP with a Matérn-5/2 kernel, using three cost functions scaled by $\lambda = 0.01$.}
+    \label{fig:synthetic}
+\end{figure}

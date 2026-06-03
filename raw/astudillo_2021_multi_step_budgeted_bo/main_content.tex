@@ -1,0 +1,465 @@
+
+\begin{abstract}
+Bayesian optimization (BO) is a sample-efficient approach to optimizing costly-to-evaluate black-box functions. Most BO methods ignore how evaluation costs may vary over the optimization domain. However, these costs can be highly heterogeneous and are often unknown in advance. This occurs in many practical settings, such as hyperparameter tuning of machine learning algorithms or physics-based simulation optimization. Moreover, those few existing methods that acknowledge cost heterogeneity do not naturally accommodate a budget constraint on the total evaluation cost. This combination of unknown costs and a budget constraint introduces a new dimension to the exploration-exploitation trade-off, where learning about the cost incurs the cost itself. Existing methods do not reason about the various trade-offs of this problem in a principled way, leading often to poor performance. We formalize this claim by proving that the expected improvement and the expected improvement per unit of cost, arguably the two most widely used acquisition functions in practice, can be arbitrarily inferior with respect to the optimal non-myopic policy. To overcome the shortcomings of existing approaches,  we propose the \emph{budgeted multi-step expected improvement}, a non-myopic acquisition function that  generalizes classical expected improvement to the setting of heterogeneous and unknown evaluation costs. Finally, we show that our acquisition function outperforms existing methods in a variety of synthetic and real problems. 
+\end{abstract}
+
+
+%%%%%%%%%
+\section{Introduction}
+
+
+\looseness-1 Bayesian optimization (BO) \citep{shahriari2015survey,frazier2018tutorial} is a family of algorithms for optimizing black-box functions that performs well when the number of evaluations is limited \citep{Snoek2012ML,calandra2016bayesian,griffiths2020constrained}. However, most BO algorithms ignore the fact that the cost of evaluating the black-box objective function may vary substantially across the optimization domain and is often unknown. Problems with this feature arise commonly in practice. For instance, in the context of hyperparameter optimization of machine learning algorithms \citep{swersky2013multi, wu2020practical}, certain values of hyperparameters such as the learning rate may yield longer training times. Similarly, in materials design and robotics, simulation experiments can take longer for certain parameter configurations \citep{field1999practical}. %\ra{(See Figure~\ref{fig:lda_costs_hist} for examples of heterogeneity in evaluation costs from benchmark problems used in this paper. For example, evaluation times on the latent Dirichlet allocation problem vary between two and ten hours.) In these problems, failing to account for heterogeneous evaluation costs can lead to evaluate an expensive point when another less expensive one would provide equal benefit towards finding the optimum.}
+ Figure~\ref{fig:lda_costs_hist} illustrates heterogeneity in evaluation costs from benchmark problems used in this paper, which can vary by an order of magnitude. Failing to account for these heterogeneous evaluation costs can lead to evaluating an expensive point when another less expensive one would provide equal benefit towards finding the optimum.
+
+\begin{figure}
+  \centering
+ \includegraphics[width=0.32\textwidth]{figures/lda_costs_hist.pdf}
+ \includegraphics[width=0.32\textwidth]{figures/rfboston_costs_hist.pdf}
+ \includegraphics[width=0.32\textwidth]{figures/robotpush3d_costs_hist.pdf}
+   \vspace{-5pt}
+  \caption{Evaluation times of the latent Dirichlet allocation, random forest, and energy-aware robot pushing benchmark problems (described later in Section~\ref{sec:description_benchmark}).} \label{fig:lda_costs_hist}
+\end{figure}
+
+ We consider \emph{budgeted} BO of a black-box objective function, whose evaluation costs are unknown and possibly heterogeneous across the domain. The goal is to find a point with the largest possible objective value by querying the objective function at a sequence of adaptively chosen points, where the total evaluation cost is subject to a budget constraint (this cost only affects evaluation, and not a point's quality upon implementation).
+% In our setup, the evaluation cost plays a role only during the optimization phase and not during selection of the best point. 
+%
+%Note that this is a critcal departure from the situation where the goal is to find a point with the highest objective to cost ratio \citep{xia2016budgeted}.
+%
+% budgeted bandits where r/c is the objective
+% https://arxiv.org/pdf/1505.00146.pdf
+%
+%Informally, the goal is to find $x\in\X$ with the largest possible objective value by querying $f$ at a sequence of adaptively chosen points $\{x_i\}_{i=1}^n$ subject to the constraint $\sum_{i=1}^n c(x_n)\leq B$, where $B$ is the evaluation budget. 
+%
+%We consider budgeted Bayesian optimization of a black-box continuous objective function, $f:\X \rightarrow \R$, whose evaluation costs are heterogeneous across its domain, given by a potentially unknown continuous function $c:\X\rightarrow (0,\infty)$. Informally, the goal is to find $x\in\X$ with the largest possible objective value by querying $f$ at a sequence of adaptively chosen points $\{x_i\}_{i=1}^n$ subject to the constraint $\sum_{i=1}^n c(x_n)\leq B$, where $B$ is the evaluation budget. 
+%
+%some neural network architectures may be more expensive to train than others. Once the network is trained or the simulation is completed, the version with the best performance is typically preferred, regardless of the evaluation cost (in other words, the training/optimization cost of a configuration does not generally affect its deployment cost) \ra{Do we really need to clarify this?}. 
+
+
+% \begin{figure}[ht]
+% \floatbox[{\capbeside\thisfloatsetup{capbesideposition={right,center},capbesidewidth=0.5\textwidth}}]{figure}[\FBwidth]
+% {\caption{Evaluation times of the latent Dirichlet allocation problem (described in Section~\ref{sec:description_benchmark}) over a uniform grid of points. These evaluations times are highly heterogeneous, with each evaluation taking between 2 and 10 hours. }\label{fig:lda_costs_hist}}
+% {\includegraphics[clip,width=0.35\textwidth]{figures/lda_costs_hist.pdf}}
+% %\vspace{-30pt}
+% \end{figure}
+
+%The above problems are often tackled using Bayesian optimization (BO) \citep{frazier2018tutorial}, a family of algorithms that has been shown to perform well when the number of evaluations is severely limited \cite{Snoek2012ML}. However, most of these algorithms ignore the fact that evaluation costs may vary substantially across the optimization domain. Failing to model heterogeneity in costs can lead one to evaluate an expensive point when another less expensive one would provide equal benefit toward reducing simple regret.
+\looseness-1 
+%\ra{
+While some existing approaches do address heterogeneous evaluation costs, all do so heuristically, e.g. by maximizing a traditional cost-agnostic acquisition function divided by the cost of evaluation \citep{Snoek2012ML,poloczek2017multi,wu2020practical,lee2020cost}, or by rolling out a heuristic base policy \citep{lee2021}. Importantly, most of these approaches accommodate neither budget constraints nor uncertainty about the cost function as part of the exploration-exploitation trade-off. As we argue theoretically and demonstrate through experiments, this can lead to poor performance. A notable exception is the concurrent work of \cite{lee2021}, which introduces a budget-aware non-myopic acquisition function based on rollout of a heuristic base policy. This work appeared while the present paper was under review. %However, as we discuss more in Section \ref{sec:background}, this acquisition function has multiple drawbacks.
+%}
+
+
+% While greedily choosing items to  divided by cost is well-justified theoretically in knapsack problems (cite), this theoretical justification depends strongly on the  
+
+\textbf{Main Contributions.} Motivated by the above shortcomings in existing work, we provide a principled approach to budgeted BO with unknown and potentially heterogeneous evaluation costs. Our main contributions are:
+\begin{itemize}[itemsep=2pt,topsep=1pt,leftmargin=20pt]
+\item We propose a Markov decision process (MDP) formulation of the budgeted BO problem with unknown and heterogeneous evaluation costs. Our formulation allows for a random time horizon (i.e., the last time before the budget is depleted),  %\sout{and accounting for costs}, 
+going beyond the fixed-horizon MDPs formulated in existing work on non-myopic BO.
+%
+\item %Based on this dynamic programming formulation, we develop 
+\emph{Budgeted multi-step expected improvement} (\BMSEI{}), a novel look-ahead acquisition function that generalizes classical expected improvement to the budgeted cost-heterogeneous setting. \BMSEI{} can be seen as a principled approximation of the optimal policy of our MDP. % formulation.
+%
+\item We prove that expected improvement (EI) and its cost-normalized variant, two popular existing approaches, can be arbitrarily inferior with respect to the optimal non-myopic policy.
+%
+\item An empirical evaluation on a number of synthetic and real-world experiments demonstrates that \BMSEI{} performs favorably with respect to other acquisition functions that are widely-used in settings with heterogeneous costs.
+\end{itemize}
+
+The remainder of this work is organized as follows: In Section \ref{sec:background}, we review related work. Our problem setup is formalized in Section \ref{sec:problem}. In Section \ref{sec:acqf}, we introduce %our acquisition function, the budget-constrained multi-step expected improvement, 
+\BMSEI{} and discuss its efficient maximization via one-shot multi-step Monte Carlo trees. Numerical experiments are presented in Section \ref{sec:experiments}. Finally, we discuss directions of future work and conclude in Section \ref{sec:conclusion}.
+
+
+
+\section{Related Work}
+\label{sec:background}
+Our work falls within the BO framework \citep{frazier2018tutorial}, whose origins date back to the seminal work of \cite{kushner1964new}. BO has been successful in a wide range of applications, such as hyperparameter tuning of machine learning algorithms \citep{Snoek2012ML, wu2020practical}, materials design \citep{zhang2020bayesian}, drug discovery \citep{griffiths2020constrained}, and robot locomotion \citep{calandra2016bayesian, wang2017max}. 
+
+Within the BO literature, the works most closely related to ours are those that acknowledge the existence of costs for evaluating the objective function that are heterogeneous across the search space and aim to devise algorithms that are cost-aware. Much of this work has occurred in the multi-fidelity setting \citep{swersky2013multi,kandasamy2016gaussian,kandasamy2017multi, poloczek2017multi, song2019general, wu2020practical}, i.e., where cheaper approximations of the objective function are available. The only exceptions known to us are \cite{Snoek2012ML}, \cite{lee2020cost}, and \cite{lee2021}, which consider the single-fidelity setting.
+
+%\ra{
+
+\cite{Snoek2012ML} proposes the \textit{expected improvement per unit of cost (EI-PUC)}, i.e, $\mathrm{EI}(x) / c(x)$\footnote{This expression is for the case when $c(x)$ is known. When $c(x)$ is unknown and learned, then either the expectation is taken over the distribution of improvement to cost ratios (as we do in our experiments) or the denominator is replaced by the mean cost.} where $c(x)$ is the cost of evaluating the objective at $x$ and $\mathrm{EI}(x)$ is the expected improvement. \cite{lee2020cost} proposes a simple variation called the \textit{expected improvement per unit of cost with cost cooling (EI-PUC-CC)}. EI-PUC-CC is defined by $\textnormal{EI}(x)/c(x)^\nu$, where $\nu$ is the ratio between the current remaining and initial budgets. The intuition behind the cost exponent is that evaluating points with high cost should be discouraged early in the BO loop (when $\nu \approx 1$) and accommodated as the budget is consumed and $\nu$ decreases to $0$. However, neither EI-PUC nor EI-PUC-CC 
+consider uncertainty in the cost or measure the budget-dependent value of information in a principled way. 
+
+Work concurrent to ours, \cite{lee2021}, also tackles budgeted BO with heterogeneous costs using a non-myopic strategy. However, our work differs in both the model and solution method. \cite{lee2021} uses a finite-horizon constrained MDP, while our model is an MDP with a random horizon.
+We argue that the
+random horizon formulation is more natural: the formulation of \cite{lee2021} requires the addition of a zero reward, zero cost state to accommodate trajectories with a small number of evaluations. Within this formulation, \cite{lee2021} proposes a rollout acquisition function with a particular heuristic base policy: $h-1$ steps of EI-PUC followed by a last step of EI, where $h$ is the number of look-ahead steps performed. The acquisition function is essentially a single step of policy improvement over the ``EI-PUC followed by EI'' heuristic \citep{sutton2018reinforcement}. In contrast, our acquisition function aims to directly approximate the optimal policy.
+
+%As our acquisition function, this acquisition function is budget-aware and non-myopic. Unlike our acquisition function, however, this acquisition function does not aim to directly approximate the optimal policy.
+
+%}
+
+\looseness-1 The approach of dividing a cost-agnostic acquisition function by some cost term is widely used in practice for addressing heterogeneity in costs, and  
+% The type of acquisition function most widely used in practice for addressing heterogeneity in costs is a cost-agnostic acquisition function (such as expected improvement or the knowledge gradient) divided by some cost term.
+%This
+is closely related to the use of ``value divided by cost'' in knapsack problems \citep{badanidiyuru2013bandits}.
+In the knapsack problem, one selects items to include into a knapsack to maximize the sum of the selected items' values subject to a budget constraint on the sum of the items' costs.
+In this setting, myopically adding items to the knapsack that maximize value divided by cost has strong theoretical guarantees: % when multiple copies of an item can be added, 
+this algorithm provides at least $1/2$ the optimal value \citep{williamson2011design}.
+% Also see Theorem 2 in this pdf for a proof
+% https://ocw.mit.edu/courses/sloan-school-of-management/15-083j-integer-programming-and-combinatorial-optimization-fall-2009/lecture-notes/MIT15_083JF09_lec21.pdf
+% In the 0-1 setting, when used within a broader algorithm that also considers including only the highest-value feasible item, the value provided is at least $1/2$ the optimal value.
+However, this theoretical guarantee relies on the additive nature of value in the knapsack problem. In contrast, in BO, the value obtained from multiple evaluations is the maximum of the values of the evaluations, not their sum. Indeed, we show that in this setting the ``value divided by cost'' approach can perform arbitrarily worse than the optimal policy.
+%, the total improvement of many function evaluations is not the sum of the expected improvements (or of any other standard acquisition function) from these evaluations. Indeed,
+
+
+\looseness-1 Heterogeneous evaluation costs have also been considered in the multi-armed bandits literature \citep{badanidiyuru2013bandits,xia2015thompson,xia2016budgeted}. These works develop algorithms based on optimistic policies that maximize some form of reward-to-cost ratio. As mentioned above, this type of policy is sensible when the measure of performance is the cumulative regret but is not appropriate in an optimization or ``best-arm identification'' setting.
+
+Our work is also closely related to non-myopic BO \citep{gonzalez2016glasses, lam2016bayesian, yue2020non, jiang2020binoculars, lee2020efficient, jiang2020efficient,lee2021}, a class of acquisition functions that account for future evaluations when quantifying a point's acquisition value. To the best of our knowledge, the work of \cite{lee2021} discussed above is the only one among these that is able to handle heterogeneous evaluation costs.
+%These papers formulate the non-myopic problem with a \emph{fixed horizon} and are therefore not appropriate for the budgeted setting since the budget is random. 
+
+% In our work, we leverage the \textit{one-shot multi-step tree} approach proposed by \cite{jiang2020efficient} for efficient optimization of our acquisition function.
+
+\section{Budgeted Bayesian Optimization with Unknown Evaluation Costs}
+\label{sec:problem}
+We now formally state the problem of budgeted BO with unknown evaluation costs. Given a compact optimization domain $\X\subset\R^d$, our goal is to find a point $x\in\X$ with the largest possible objective value by querying the black-box objective function, $f:\X \rightarrow \R$, at a sequence of points $\{x_i\}_{i=1}^n$, subject to the constraint $\sum_{i=1}^n c(x_n)\leq B$, where $c(x)$ is the cost of evaluating $f$ at $x$ and $B$ is the evaluation budget. The cost observation $c(x)$ is revealed immediately after the evaluation of $f(x)$ is performed. However, the actual cost function $c$ is unknown. 
+As is typical in BO, we endow $f$ and $c$ with a joint prior distribution, $p$. An \emph{observation} in our setting is a triple $(x_i, y_i, z_i) \in \X\times\R\times \R_{>0}$, where $y_i$ is an observation of the objective $f$ at $x_i$, and $z_i$ is an observation of the cost $c$ for evaluating $f$ at $x_i$.
+
+\subsection{MDP Formulation}
+\looseness-1 The state of our MDP at step $n$ is $\mathcal D_n$, defined as the set of observations so far. These sets are defined recursively by $\D_n = \D_{n-1}\cup {(x_n, y_n, z_n)}$ for $n\ge 1$, where $\D_0$ is a set of initial observations. The joint posterior distribution over $f$ and $c$ given $\D_n$ is denoted by $p(\cdot\mid \D_n)$. The \emph{utility} generated by a particular state $\D_n$ is defined as the maximum observed objective value $u(\D_n) = \textstyle \max_{(x,y,z) \in \D_n} y$. Note that this utility function encodes the fact that \emph{after evaluation}, a point with maximum objective value is desired regardless of its cost. We also let $s(\D_n) = \textstyle \sum_{(x,y,z) \in \D_n} z$ denote the \emph{total cost} of observed points in $\D_n$.
+%maximum objective value observed before the budget was exhausted, i.e., 
+% \begin{equation*}
+%     u(\D_n) = \max\biggl\{y_i : \sum_{j=1}^i z_j \leq B, \ 1\leq i \leq n\biggr\}.
+% \end{equation*}
+
+The sets of observations $\D_1, \D_2, \ldots$ are random due to the yet unobserved values of the objective and cost functions. A \emph{policy} $\pi = \{\pi_k\}_{k=1}^\infty$ is a sequence of functions, each mapping sets of observations to points in $\X$, so that $x_k = \pi_k(\D_{k-1})$. Given a set of observations $\D$ such that $s(\D) \le B$ (i.e., there is nonnegative remaining budget), the \emph{value function} of a policy $\pi$ is defined as $V^\pi(\D) = \E^{\pi}\bigl[u(\D_{N_B}) - u(\D_0) \, | \, \D_0 = \D\bigr]$, where the random stopping time $N_B = \sup\{k : s(\D_k) \leq B\}$ is the largest time step $k$ for which the budget constraint is still satisfied. The notation $\E^\pi[ \, \cdot \, ]$ indicates an expectation taken over sequences of observation sets $\D_1, \D_2, \ldots, \D_{N_B}$ selected by a policy $\pi$. For a set $\D$ where $s(\D) > B$ (i.e., budget is exhausted), we define $V^\pi(\D) = 0$. Our goal is to find a policy $\pi$ that maximizes the increase in expected utility:
+\begin{equation}
+\label{eq:opt_policy}
+   V^*(\D) = \sup_{\pi \in \Pi} V^\pi(\D),
+\end{equation}
+where $\Pi$ is the set of all possible policies. The above problem is well-defined provided that $N_B < \infty$ for all policies $\pi$. This is the case, for example, when $\ln c$ follows a Gaussian process (GP) prior, a modeling choice that we make in our numerical experiments. Since the horizon $N_B$ is random, the formulation (\ref{eq:opt_policy}) can be viewed as a stochastic shortest path problem, rather than a standard finite or discounted infinite horizon dynamic program \citep{bertsekas1991analysis}. Note that at time $k$, the set $\D_k$ contains all past observed costs and fully captures the remaining budget. 
+This formulation is capable of the following:
+\begin{enumerate}[itemsep=2pt,topsep=1pt,leftmargin=20pt]
+    \item Through multi-step planning, it can navigate the trade-off of how to sequence high-cost and low-cost evaluations in order to make the best use of the given budget.
+    \item It can reason about uncertainty when planning optimal cost-learning. For example, an exploratory evaluation may be worthwhile in a region with moderate estimated cost and high model uncertainty: the evaluation may reveal the cost is lower than estimated, allowing us to explore the region more fully for low cost.
+    % instead of evaluating a seemingly low-cost point with high model uncertainty has the {\it potential} to consume a significant amount of budget, potentially decreasing the value of measuring it.
+\end{enumerate}
+
+\subsection{Contrast with Value-to-Cost Ratio Methods}
+
+\looseness-1 It is not surprising that cost-agnostic methods, such as expected improvement (EI), can perform poorly when the evaluation cost is heterogeneous. 
+In particular, ignoring cost can lead to evaluating excessively high-cost points, depleting budget and limiting future evaluations. In an attempt to avoid this, past work has focused on using a value-to-cost ratio \citep{Snoek2012ML, swersky2013multi,kandasamy2016gaussian,kandasamy2017multi, poloczek2017multi, song2019general, wu2020practical, lee2020cost}. 
+
+We show here, however, that value-to-cost acquisition functions exhibit a complementary kind of undesirable behavior: they may repeatedly measure excessively low-cost points that are also low-value, leading to poor overall performance. In fact, the performance can be arbitrarily bad compared with an optimal policy. Theorem~\ref{thm:counterexample} demonstrates this formally for the most widely-used of these policies: measuring at the point that maximizes the expected improvement per unit of cost (EI-PUC), and also for cost-agnostic expected improvement (EI).
+
+\begin{theorem}
+\label{thm:counterexample}
+The approximation ratios provided by the $\mathrm{EI}$ and $\mathrm{EI\text{-}PUC}$ policies are unbounded. That is, for any arbitrarily large $\rho > 0$ and each policy $\pi\in\{\mathrm{EI}, \mathrm{EI\text{-}PUC}\}$, there exists a Bayesian optimization problem instance (a  prior probability distribution over objective and cost functions, a budget, and a set of initial observations $\D_0$) where 
+$V^*(\D_0) > \rho \, V^{\pi}(\D_0)$.
+\end{theorem}
+
+\vspace{-10pt}
+\begin{proof}[Sketch of Proof.] \looseness-1 To show that EI-PUC has an unbounded approximation ratio, the detailed proof of Theorem~\ref{thm:counterexample} (provided in Section~\ref{supp:thm1} of the supplementary material) constructs a problem instance with a prior that is independent across a discrete domain with a known cost function. There are two kinds of points: high-cost points with large prior variance; and low-cost points with low variance. To support analysis, all points have the same mean.
+
+The variance of the low-cost points is low enough that spending the entire budget on evaluating them earns only a fraction of the value, in expectation, earned by evaluating a single high cost point. The acquisition function EI-PUC, however, does not understand this. Its greedy nature leads it to overvalue these points. 
+Indeed, EI (the numerator of EI-PUC's acquisition function) greedily values improvement relative to the status quo, even though the status quo will likely be surpassed by other later evaluations. This overvalues small improvements like those that result from low-variance points.
+
+EI-PUC spends its entire budget on these low-cost low-variance points, earning almost no value. In contrast, the optimal policy spends its entire budget on a single evaluation of the high-cost point, obtaining substantially more value in expectation. 
+
+% It is instructive to understand why the greedy nature of EI-PUC leads it to overvalue low-cost points. Recall that the acquisition function for EI-PUC is $\EI(x)/c(x)$.  The EI value for evaluating at $x$, $\E[(f(x) - f^*)^+]$, assumes that $f^*$, the best previously observed function value, is the best value attainable without evaluating $f(x)$. But when we look multiple steps ahead, we may realize that we are likely to find other points substantially better than $f^*$ in future evaluations.  Thus, $\EI(x)$ is too large as a measure of the marginal value of measuring at $x$ in the broader non-greedy context that we will measure many other points later on.  This should lead us to value points that are likely to improve, not with respect to the {\it current} best known point, but with respect to values we are likely to discover in the future. As a result, non-myopic strategies place more weight on evaluations that will lead to improvements above and beyond this more ambitious bar.
+
+For the case of EI, we construct a similar example, with the change that the low-cost points now have variance \emph{only slightly smaller} than that of the high-cost points, while still being significantly cheaper. Here, EI performs a single evaluation of the high-cost point and runs out of budget. 
+On the other hand, repeatedly measuring low-cost points is far superior to EI in expectation.
+\end{proof}
+\vspace{-5pt}
+
+\begin{figure}
+\centering
+\subfloat[EI-PUC]{%
+\begin{tabular}[b]{c}%
+\includegraphics[width=0.33\textwidth]{figures/animation/obj0.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/obj1_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/obj2_eipuc.pdf}\\
+    \includegraphics[width=0.33\textwidth]{figures/animation/cost0.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/cost1_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/cost2_eipuc.pdf}\\
+   \includegraphics[width=0.33\textwidth]{figures/animation/acqf1_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf2_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf3_eipuc.pdf}
+ \end{tabular}
+}\\
+\subfloat[B-MS-EI]{%
+\begin{tabular}[b]{c}
+ \includegraphics[width=0.33\textwidth]{figures/animation/obj0.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/obj1_bmsei.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/obj2_bmsei.pdf}\\
+    \includegraphics[width=0.33\textwidth]{figures/animation/cost0.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/cost1_bmsei.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/cost2_bmsei.pdf}\\
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf1_bmsei.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf2_bmsei.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf3_bmsei.pdf}
+\end{tabular}
+}
+\caption{The top six panels show the EI-PUC strategy and the bottom six show our \BMSEI{} strategy. In each group, the top and middle rows show the posterior on the objective and cost, respectively, and the bottom row shows the implied acquisition function. Time moves from left to right, where the first column shows the initial posteriors, and the second and third columns show the posteriors after one and two evaluations. EI-PUC evaluates low-variance, low-mean points that are low-cost but unlikely to reveal values near the global optimum. In contrast, B-MS-EI discovers a point near this global optimum within budget after two evaluations. While the remaining budget of EI-PUC after two evaluations is still relatively large, we include additional plots in Section~\ref{supp:additional} of the supplementary material showing that indeed B-MS-EI achieves a better objective value within budget.
+\label{fig:animation}}
+\end{figure}
+
+
+%\sout{\looseness-1 
+
+
+
+Figure~\ref{fig:animation} illustrates this phenomenon in a continuous one-dimensional setting with a Gaussian process prior. Under the posterior in the first time slice, there is a lower-cost region on the left ($x < 0.5$) with low-variance and a mean that is significantly below the best point observed. There is a higher-cost region on the right ($x>0.5$) where the mean and variance are both larger. These means and variances are such that the global maximum of the function is likely to be in the right-hand region. In its first two measurements, the EI-PUC strategy measures at two low-cost points, which results in reduction of variance in this region but (as expected) no values that contend with the likely value of the global maximum on the right. In contrast, in its first two measurements, our multi-step B-MS-EI strategy evaluates on the right, finding values that are close to the global optimum.
+
+\looseness-1 In this example, EI-PUC encounters the same difficulty it faces in the proof of Theorem~\ref{thm:counterexample}:  It overvalues low-cost points that improve relative to the status quo but not relative to where we hope to be near the end of the budget. While some budget remains to evaluate on the right after these evaluations, the evaluations on the left are likely unproductive toward the goal of finding a global maximum. 
+
+\subsection{Decomposition and Truncation}
+We now discuss how we can additively decompose and then truncate the problem in (\ref{eq:opt_policy}) so that it is more amenable as a BO acquisition function. Let $r(\D_{n-1}, \D_{n}) = u(\D_{n}) - u(\D_{n-1})$ be the increase in utility between successive states. Using a telescoping sum and rewriting the summation as an infinite sum, we have
+\begin{align}
+   V^*(\D) &= 
+   %\sup_{\pi\in\Pi} \E^{\pi}\Biggl[ \sum_{n=1}^{N_B} r(\D_{n-1},\D_n) \Biggr] = 
+   \sup_{\pi\in\Pi} \E^{\pi}\Biggl[ \sum_{n=1}^{\infty} r(\D_{n-1},\D_n) \, \indicate{n \le N_B}  \, \Bigl | \, \D_0 = \D\Biggr].
+   \label{eq:opt_telescope}
+  %& = \sup_{\pi\in\Pi} \E^{\pi}\Biggl[ \sum_{n=1}^{N} r(\D_{n-1},\D_n) \, \indicate{n \le N_B} + V^*(\D_N) \Biggr].\nonumber
+\end{align}
+% Note that $\{n \le N_B\} = \{s(\D_n) \le B\}$. For any fixed $N$,
+% \begin{align*}
+%   V^*(\D) \nonumber 
+% \end{align*}
+A truncated version of (\ref{eq:opt_telescope}) that is useful within our scenario tree optimization approach described in Section \ref{subsec:max} is given by
+\begin{align}
+   V_N(\D) = \sup_{\pi\in\Pi} \E^{\pi}\Biggl[ \sum_{n=1}^{N} r(\D_{n-1},\D_n) \, \indicate{n \le N_B} \, \Bigl | \, \D_0 = \D\Biggr],
+   \label{eq:opt_policy_truncated_N}
+\end{align}
+where $N$ is a fixed number of ``look-ahead steps.'' When for each $c$ drawn from the prior, there exists a lower bound on $c(x)$ over $\mathbb X$ so that (\ref{eq:opt_policy}) is well-defined, it follows that the truncation becomes more accurate when $N$ becomes large: $\lim_{N \rightarrow \infty} V_N(\D) = V^*(\D)$. This serves as the motivation for our acquisition function described below.
+
+% \begin{proposition}
+% $N_B$ finite a.s., as $N$ goes to infinity $V_N$
+% \end{proposition}
+
+
+% The above problem is well defined provided that $N_B$ is finite for all policies. Below, we show that this is true under mild regularity conditions when $\ln c$ follows a GP distribution, which is a reasonable modeling assumption when costs are known to be strictly positive.
+
+
+% \begin{proposition}
+% \label{prop:finite_N}
+% Suppose that $\ln c$ is drawn from a GP prior distribution with almost surely continuous sample paths. Then, $N_B < \infty$ almost surely.
+% \end{proposition}
+% \begin{proof}
+% Since $\ln c$ is continuous almost surely and $\X$ is compact, then $\inf_{x\in\X} c$ is finite almost surely. The result follows since $N_B \leq B / \inf_{x\in\X} c$.
+% \end{proof}
+
+\section{Budgeted Multi-Step Expected Improvement}
+\label{sec:acqf}
+\looseness-1 We now derive the \emph{budgeted multi-step expected improvement} (\BMSEI{}) acquisition function, where
+%The main idea is to approximately solve the truncation (\ref{eq:opt_policy_truncated_N}) by optimizing a scenario tree, using the general technique developed by \cite{jiang2020efficient}. 
+the main idea is to solve the truncated problem given in (\ref{eq:opt_policy_truncated_N}). Accordingly, the acquisition function is parameterized by $N$, the maximum number of look-ahead steps. In Section~\ref{subsec:max}, we discuss how to approximately optimize this acquisition function using a scenario tree, leveraging the technique developed in \cite{jiang2020efficient}, and in Section~\ref{subsec:budget}, we discuss how to set the budget that defines our acquisition function when the actual remaining budget is too large to be meaningfully taken into account by a computationally feasible number of look-ahead steps. 
+
+%Finally, in Section~\ref{subsec:max}, we discuss how to efficiently maximize \BMSEI{} via one-shot multi-step trees \citep{jiang2020efficient}.
+
+
+
+
+% The main idea is to first truncate \eqref{eq:opt_policy} to a known maximum number of look-ahead steps independent of $B$, and applying Bellman's recursion to the resulting dynamic program. This is discussed in Sections~\ref{subsec:trunc_pol} and~\ref{subsec:bellman}.  In Section~\ref{subsec:budget}, we discuss how to set the budget that defines our acquisition function when the actual remaining budget is too large to be meaningfully taking into account by the number of look-ahead steps to be performed. Finally, in Section~\ref{subsec:max}, we discuss how to efficiently maximize \BMSEI{} via one-shot multi-step trees \citep{jiang2020efficient}.
+
+% \subsection{Truncation of Problem \eqref{eq:opt_policy}}
+% \label{subsec:trunc_pol}
+% While Lemma \ref{prop:finite_N} guarantees that, under mild regularity conditions, $N_B$ is finite, solving \eqref{eq:opt_policy} is still very challenging as in principle it requires us to solve an infinite dimensional dynamic program. Our first step to arrive at a tractable acquisition function is to consider a \textit{truncation} of \eqref{eq:opt_policy} in which we restrict our attention to sets of observations of a maximum known size. Formally, we consider
+% \begin{equation}
+% \label{eq:trunc_policy}
+%     \sup_{\pi\in\Pi} \E^{\pi}[u(\D_{N}) -  u(\D_0)],
+% \end{equation}
+% where $N$ is a user-specified positive integer.
+
+% While \eqref{eq:trunc_policy} is only an approximation of  \eqref{eq:opt_policy}, Proposition \ref{prop:convergence} below shows that this approximation becomes more accurate as $N$ increases to $\infty$. A formal statement and a proof of this result can be found in the supplementary material.
+% \begin{proposition}
+% \label{prop:convergence}
+% For any policy $\pi = (\pi_1, \pi_2, \ldots)$ define  $v(\pi) = \E^{\pi}[u(\D_{N_B}) - u(\D_0)]$ and  $v_{N}(\pi) = \E^{\pi}[u(\D_{N}) - u(\D_0)]$. Then, under mild regularity conditions, $v_{N}(\pi) \rightarrow v(\pi)$ as $N \rightarrow \infty$ for all $\pi$, and $\sup_\pi v_{N}(\pi) \rightarrow \sup_\pi v(\pi)$ as $N \rightarrow \infty$.
+% \end{proposition}
+
+\subsection{Dynamic Programming on the Truncated Problem}
+\label{subsec:bellman}
+Our derivation of \BMSEI{} starts with applying Bellman recursion to \eqref{eq:opt_policy_truncated_N}. To this end, we define the one-step marginal value of a measurement at point $x$ given an arbitrary set of observations $\D$ (i.e., a state-action value function, or $Q$-function) to be
+\begin{align*}
+    Q_1(x \mid \D) &= \E_{y,z}\left[ r(\D, \D \cup \{(x, y, z)\}) \indicate{s(\D) + z \leq B} \right]
+    %= \E_{y,z}\left[u\left(\D \cup \{(x, y, z)\}\right) - u(\D)\right]\\
+    = \E_{y,z}\left[(y - u(\D))^+\; \indicate{s(\D) + z \leq B}\right].
+\end{align*}
+%where $m_\D = \max_{y'\in\D}y'$, and $s_\D = \sum_{z'\in\D}z'$. 
+Proposition \ref{prop:bcei} below shows that, when $f$ and $\ln c$ are drawn from independent GPs, $Q_1$ admits an analytic expression similar to the one of constrained expected improvement \citep{schonlau1998global,gardner14}. The proof of this result can be found in Section~\ref{supp:prop1} of the supplementary material.
+
+
+\begin{proposition}
+\label{prop:bcei}
+Suppose that $f$ and $\ln c$ follow independent Gaussian process prior distributions and that $\D$ is an arbitrary set of observations. Define $\mu^f_\D(x) = \mathbb{E}[ f(x) \,|\, \D]$, $\mu^{\ln c}_\D(x) = \mathbb{E}[ \ln c(x) \,|\, \D]$, $\sigma^f_\D(x) = \textnormal{Var}[ f(x) \,|\, \D]^{1/2}$, and $\sigma^{\ln c}_\D(x) = \textnormal{Var}[ \ln c(x) \,|\, \D]^{1/2}$. Then,
+\begin{equation*}
+    Q_1(x\mid \D) = \mathrm{EI}^{f}(x\,|\,\D) \, \Phi(\zeta)\, \indicate{s(\D) \le B} 
+    %\, \Phi\left(\zeta \right), \textnormal{ if } s(\D) < B,
+    % v_1(x\mid \D) = \begin{cases} \textnormal{EI}^f(x) \, \Phi\left(\zeta \right), \textnormal{ if } s(\D) < B,\\
+%0, \textnormal{ otherwise,}
+\end{equation*}
+where $\textnormal{EI}^f$ is the classical expected improvement computed with respect to $f$, $\zeta = \bigl(\ln\left(B - s(\D)\right) - \mu^{\ln c}_{\D}(x)\bigr) / \sigma^{\ln c}_{\D}(x)$, 
+and $\Phi$ is the standard normal cdf.
+%$\sigma^{\ln c}_{\D}(x) = K^{\ln c}(x, x)^{1/2}$.
+\end{proposition}
+
+In contrast with homogeneous-cost non-myopic formulations, the indicator $\indicate{s(\D)\le B}$ truncates our reward sequence at the random time before the budget is first depleted. Analogously, we can define the $n$-step value function evaluated at $x$, $Q_n(x\mid \D)$, as the expected difference in utility after using the optimal policy to evaluate $n$ additional points, among which $x$ is the first of them. Using the Bellman recursion, one can write $Q_{n}(x\mid\D)$ as
+\begin{align*}
+    Q_{n}(x\mid\D) =  Q_1(x\mid \D) + \E_{y,z}\Bigl[\max_{x\in\X}Q_{n-1}\left(x\mid \D \cup \{(x, y, z)\}\right)\Bigr],
+\end{align*}
+which holds for all $n$. Our acquisition function \BMSEI{} is defined as $Q_N$, meaning that at every step our sampling policy evaluates $x_{n+1} \in \argmax_{x\in\X} Q_N(x \mid \D_n)$.
+
+\subsection{Optimizing B-MS-EI via Budgeted One-Shot Multi-Step Trees}
+\label{subsec:max}
+Maximizing our acquisition function is challenging as, in principle, this requires nested stochastic optimization over a continuous domain. We build upon the multi-step scenario tree approach of \cite{jiang2020efficient} and devise an optimization method based on a sample average approximation of $\max_{x\in\X} Q_N(x\mid \D_n)$.
+In our approach, each scenario is associated with its own decision variable, allowing the problem to be cast as a single deterministic optimization problem over a higher-dimensional domain instead of a sequence of nested stochastic optimization problems. We tackle the higher-dimensional problem using modern tools of automatic differentiation and batched linear algebra operations \citep{balandat2020botorch}. We begin by noting that, if we apply Bellman's recursion repeatedly, $Q_N$ can be rewritten as
+\begin{align*}
+    Q_{N}(x\mid\D) =  Q_1(x\mid \D) + \E_{y, z}\Bigl[\max_{x_2}\bigl\{Q_1\left(x_2\mid \D_1\right) +
+     \E_{y,z}\bigl[\max_{x_3}\bigl\{Q_1\bigl(x_3\mid \D_2 \bigr) + \cdots \bigl\} \bigl ] \bigl\} \Bigr].
+\end{align*}
+
+Now we consider the Monte Carlo approximation of $Q_{N}(x\mid\D)$ given by
+\begin{align*}
+\widehat{Q}_{N}&(x\!\mid\!\D)\\
+&= Q_1(x\!\mid\!\D) +  \frac{1}{m_1}\!\sum_{j_1}^{m_1}\!\bigg[\max_{x_2^{j_1}}\biggl\{Q_1(x_2^{j_1}\!\mid\! \D_1^{j_1}) +
+ \frac{1}{m_2}\sum_{j_2}^{m_2}\biggl[\max_{x_3^{j_1 j_2}}\Bigl\{Q_1(x_3^{j_1 j_2}\!\mid\!\D_2^{j_1 j_2})\!+ \!\cdots\Bigr\}\biggr]\biggr\}\biggr],
+\end{align*}
+where $m_i, \ i = 1, \ldots, N-1$, is the number of samples used in step $i$, and the sets of observations are defined recursively by the equations $\D_i^{j_1} = \D \cup \bigl\{\bigl(x, y_i^{j_1}, z_i^{j_1}\bigr)\bigr\}$ and
+% \begin{equation*}
+%   \D_i^{j_1} = \D \cup \bigl\{\bigl(x, y_i^{j_1}, z_i^{j_1}\bigr)\bigr\},
+% \end{equation*}
+\begin{equation*}
+   \D_i^{j_1 \ldots j_i} = \D_i^{j_1 \ldots j_{i-1}} \cup \bigl\{\bigl(x_i^{j_1 \ldots j_{i-1}}, y_i^{j_1 \ldots j_i}, z_i^{j_1 \ldots j_i}\bigr)\bigr\}, 
+\end{equation*}
+with \textit{fantasy samples} (i.e., samples drawn from the model) $(y_i^{j_1 \ldots j_i}, z_i^{j_1 \ldots j_i}) \sim   p(\cdot \mid x_i^{j_1 \ldots j_{i-1}},  \D_i^{j_1 \ldots j_{i-1}})$
+% \begin{equation*}
+% \bigl(y_i^{j_1 \ldots j_i}, z_i^{j_1 \ldots j_i}\bigr) \sim   p\bigl(\cdot \mid x_i^{j_1 \ldots j_i},  \D_i^{j_1 \ldots j_{i-1}} \bigr)
+% \end{equation*}
+obtained via the \textit{reparametrization trick}\footnote{Note that since we employ Monte Carlo sampling to approximate $Q_N(x\mid \D_n)$, the independence assumption between $f$ and $c$ in Proposition~\ref{prop:bcei} is not necessary for our approach, and one can jointly model $f$ and $c$ (e.g. with a multi-task GP) if there is reason to believe that these functions are correlated, as is often the case in practice. For instance, randomness in training jobs based on variations in test-train splits or weight initialization may interact with adaptive learning rate scheduling and thus affect both model performance and training time.} \citep{kingma2013auto,wilson2018maximizing}. 
+
+%Because of this, the inner maximums are defined over independent variables and thus can be taken outside the nested sums. This is formalized in Proposition \ref{prop:one_shot_tree} below, which is analogous to Proposition 1 in \cite{jiang2020efficient}.
+
+% \begin{proposition}
+% \label{prop:one_shot_tree}
+% \mb{Should probably just remove this and say it follows from the paper}
+% Suppose that $(x^*, \mathbf{x}_2^*, \ldots,  \mathbf{x}_N^*)$ is an element of
+% \begin{align*}
+%   &\argmax_{(x, \mathbf{x}_2, \ldots,  \mathbf{x}_N)} \biggl\{v_1(x\mid \D) +  \frac{1}{m_1}\sum_{j_1}^{m_1} v_1\bigl(x_2^{j_1}\mid \D_1^{j_1}\bigr) + \cdots + \\
+%   &  \frac{1}{\prod_{i=1}^{N-1}m_i} \sum_{j_1}^{m_1} \cdots \sum_{j_{N-1}}^{m_{N-1}} v_1\bigl(x_N^{j_1\cdots j_{N-1}}\mid \D_1^{j_1\cdots j_{N-1}}\bigr)\biggr\},
+% \end{align*}
+% where $\mathbf{x}_n = \{x_n^{j_1\cdots j_{n-1}}\}$ denotes all decision variables at stage $n$.
+% Then, $x^* \in \argmax_{x}\widehat{v}_{N}(x\mid\D)$.
+% \end{proposition}
+
+
+
+\begin{figure}
+\floatbox[{\capbeside\thisfloatsetup{capbesideposition={left,center},capbesidewidth=0.55\textwidth}}]{figure}[\FBwidth]
+{\caption{An illustration of the scenario tree representation of our acquisition function for $N=5$ stages, where $(m_1, m_2, m_3, m_4)=(4,2,2,1)$.
+%$m_1=4$, $m_2=2$, $m_3=2$, and $m_4=1$. 
+Some paths down the tree stop accumulating value earlier than others due to the budget being exhausted, i.e., when $s(\D_i^{j_1 \ldots j_i}) > B$ (ending in red circle nodes). Other paths may terminate due to the maximum look-ahead $N$ before the budget is exhausted (ending in black square nodes), representing some approximation error due to the truncation.}\label{fig:tree}}
+{\includegraphics[clip,width=0.4\textwidth]{figures/b-ms-ei.pdf}}
+\end{figure}
+
+\subsection{Budget Scheduling via Rollout of Base Sampling Policy}
+\label{subsec:budget}
+\looseness-1 Let $B_n = B - \sum_{i=1}^n z_i$ be the remaining budget at time $n$. Since the number of look-ahead steps, $N$, that can be performed in practice is relatively small due to computational limits, $B_n$  may be too large to be taken into account by our acquisition function in a meaningful way, especially during the first few evaluations (if the remaining budget is too large relative to the number of look-ahead steps, then the evaluation costs have little effect in our sampling decisions). Therefore, instead of  using the actual remaining budget at step $n$, our acquisition function uses a \textit{fantasy} budget set by a heuristic rule.
+
+We propose a heuristic budgeting rule based on the use of a \textit{base sampling policy} that can be computed quickly. We fantasize $N$ sequential evaluations under this base sampling policy. More specifically, for each of the $N$ steps, we draw fantasy objective and cost values at the point recommended by this policy using the (joint) posterior distribution, then we update the posterior distribution by incorporating these fantasy evaluations, and repeat. The sum of the resulting $N$ fantasy costs determines a cumulative cost incurred by the base sampling policy. Our acquisition function then sets the budget to be the minimum between this cumulative cost and the true remaining budget. This budget is used by our method as if it were the actual budget until depletion, and then the heuristic rule is used again to compute a new fantasy budget. The intuition behind this heuristic is that our acquisition function will try to find the best non-myopic decision using the same budget as the base sampling policy, and thus should perform evaluations that are better or at least as good as those of the base sampling policy. In our experiments, we use EI-PUC-CC as the base policy.
+
+\section{Experiments}
+\label{sec:experiments}
+We demonstrate the efficacy of \BMSEI{} on four synthetic and four real-world experiments. We report the performance of two variants of our acquisition function, the main variant that uses multiple fantasy samples per step, and the \textit{multi-step path} variant \citep{jiang2020efficient}, which is based on a degenerate tree with one fantasy sample per step. For each of these variants, we consider both $N=2$ and $N=4$ look-ahead steps. We denote the multi-step path variant with $N$ steps as $N$-B-MS-EI$_{\textnormal{p}}$ and the former simply as $N$-B-MS-EI.
+
+In addition, we report the performance of three baseline acquisition functions from the literature: expected improvement (EI), expected improvement per unit of cost (EI-PUC) \citep{Snoek2012ML, lee2020cost}, and  expected improvement per unit of cost with cost cooling (EI-PUC-CC) \citep{lee2020cost}. EI-PUC and EI-PUC-CC are currently the de-facto standard approach to cost-aware BO. Since \cite{lee2020cost} assumes that the cost is known (while our experiments are run in the setting of unknown costs), we also integrate with respect to the uncertainty on the cost when computing these acquisition functions. Closed form analytical expressions for these acquisition functions can be found in Section~\ref{supp:closed_form} of the supplementary material.
+
+
+\subsection{Description of Benchmark Problems}
+\label{sec:description_benchmark}
+
+\textbf{Synthetic Test Problems.} The first four problems use synthetic objective functions commonly found in the literature: Dropwave, Alpine1, Ackley, and Shekel5  (defined in Section~\ref{supp:synthetic} of the supplementary material). Each objective function is accompanied by a cost function of the form $c(x) = \exp\bigl[\frac{\alpha}{d} \sum_{i=1}^d \cos\bigl(\beta (x_i -x_i^* + \gamma)\bigr)\bigr]$,
+where $x^*$ is the objective function's maximizer. In each replication we use a different cost function, obtained by sampling $\alpha$, $\beta$, and $\gamma$ uniformly at random over appropriate intervals. Our results thus average over a variety of cost functions. As these parameters vary, cost functions with different characteristics arise. More concretely, $\alpha$ controls the magnitude of the difference between the minimum and maximum costs; $\beta$ controls the variability of the cost; and $\gamma$ controls the cost at the optimum. In particular, if $\gamma = 0$, then $x^*$ is the most expensive point, whereas if $\gamma = \pi$, then $x^*$ is the cheapest point. This family of cost functions emulates a wide range of possible scenarios. 
+%Results of these experiments are summarized in Figure \ref{fig:synth}.
+\begin{figure}
+  \centering
+ \includegraphics[width=0.24\textwidth]{figures/dropwave.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/alpine1.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/ackley.pdf}
+%\includegraphics[width=0.24\textwidth]{figures/reconstruction.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/shekel5.pdf}
+ \\
+ \includegraphics[width=0.235\textwidth]{figures/lda.pdf}
+ \includegraphics[width=0.245\textwidth]{figures/cnn.pdf}
+  \includegraphics[width=0.25\textwidth]{figures/rfboston.pdf}
+\includegraphics[width=0.245\textwidth]{figures/robotpush3d.pdf}
+  \caption{Log-regret of our non-myopic budget-aware BO method (4-B-MS-EI) compared with baseline acquisition functions on a range of problems. \label{fig:experiments}}
+\end{figure}
+
+
+%Following \cite{eggensperger2018efficient}, each function is evaluated in a dense grid, and the obtained objective values and training times are then used to build random forest regression models, which we treat as the underlying objective and cost functions.
+%The results of these problems are shown in Table \ref{sample-table}. 
+
+% \begin{figure*}[hbt!]
+%   \centering
+%   \includegraphics[width=0.33\textwidth]{figures/surrogate_cnn.pdf}
+%   \includegraphics[width=0.33\textwidth]{figures/surrogate_cnn.pdf}
+%   \includegraphics[width=0.33\textwidth]{figures/reconstruction.pdf}
+%   \caption{Average performance on realistic test problems. In both all cases, the variants of our algorithm perform competitively. In the SVM problem, 6-B-MS-EI achieves the lowest final average regret; in the CNN problem, 4-B-MS-EI achieves the lowest final average regret, followed closely by 6-B-MS-EI and EI-PUC-CC. In the 3d-reconstruction test problem, \todo{Update figures and describe reconstruction test result}  \label{fig:automl}}
+% \end{figure*}
+
+% \subsection{Reconstruction of 3D Objects}
+% \looseness-1 We also test the new budgeted BO algorithms in the setting of 3D reconstruction, where the goal is to optimize the parameters of a physics simulator so that the output matches a given input mesh (in this case, a 3D cylindrical object). We use BO to solve the meta-problem of tuning various hyperparameters of the inner optimization loop (learning rate, maximum inner iterations, history size, number of optimization steps), many of which affect the compute cost (directly or indirectly).   
+% %three hyperparameters of the L-BFGS optimizer, the learning rate, maximum inner iterations, and history size, along with the total number of optimization steps.
+% The objective is to minimize a weighted sum of the energy and force of the resulting model. 
+% While one could use information about the parameters to craft improved algorithms, this example is a rather typical incarnation of a complex workflow with multiple parameters that affect evaluation cost in unknown ways as it is often faced by Bayesian optimization algorithms. 
+
+%Results are given in Figure \ref{fig:experiments}.
+
+% \subsection{Non-stationary Bandit}
+% Motivated by the need to properly trade off exploration and exploitation in practical bandit settings, we consider a situation where an outer BO loop tunes the exploration bonus parameter of a UCB algorithm while it is running online; see, e.g., \cite{boutilier2020differentiable} and \cite{min2020policy} for similar formulations. We consider a \emph{non-stationary} bandit setting (see \cite{besbes2014stochastic}) with a fixed horizon $T$, motivating a need to tune the UCB parameter. The BO objective function is to minimize regret, defined with respect to a ``dynamic oracle,'' i.e., the best arm in a particular time period. The cost incurred in each BO iteration is the difference between the average amount that the reward is below a fixed threshold and a ``status-quo'' cost. 
+
+\textbf{AutoML Benchmarks.} We consider three AutoML benchmark problems: LDA, CNN, and RF-Boston. The LDA and CNN problems use publicly available data sets from the HPOLib \citep{hpolib} and HPOLib1.5 \citep{hpolib15} hyperparameter optimization libraries. Following \cite{eggensperger2018efficient}, we use  surrogates of the underlying objective and cost functions to emulate the computationally expensive process of training the corresponding models. Details on the construction of the surrogates can be found in Section~\ref{supp:automl} of the supplementary material. 
+
+The first data set, originally introduced by \cite{hoffman2010online}, was obtained by evaluating an online latent Dirichlet allocation algorithm for topic modeling with 3 hyperparameters: mini-batch size $S \in [1, 16384]$ (on a log2 scale), and learning rate parameters $\kappa \in [0.5, 1.0]$ (controls speed at which information is forgotten) and $\tau_0 \in [1, 1024]$ (on a log2 scale, downweights early iterations). These evaluations are expensive and heterogeneous, ranging from 2 to 10 hours each (see Figure~\ref{fig:lda_costs_hist}). 
+
+The second data set was obtained by training a 3-layer convolutional neural network on the CIFAR-10 dataset with 5 hyperparameters: ``initial learning rate'' $\in [10^{-6}, 1.0]$ (on a log10 scale), ``batch size'' $\in [32, 512]$, and ``number of units in layer $k$'' $\in [16, 256]$ (on a log2 scale), for $k=1,2,3$. T
+
+Finally, the RF-Boston problem considers optimization of the 5-fold cross validation error when using a random forest (RF) regressor
+%\footnote{We take the sklearn implementation: \url{https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html}.} 
+on the Boston dataset, both of which are from \texttt{sklearn} \citep{scikit-learn}.
+%\footnote{\url{https://scikit-learn.org/stable/modules/generated/sklearn.datasets.load_boston.html}}.
+We tune the following hyperparameters of the RF regressor: ``n\_estimators'' $\in [1, 256]$ (rounded to the nearest integer), ``max\_depth'' $\in [1, 64]$ (rounded to nearest integer), and ``max\_features'' $\in [0.1, 1]$ (on a log10 scale). The cost of each is evaluation is proportional to the training time of the model under the evaluated set of hyperparameters (we scale it by training time of a single initial evaluation). 
+
+%Our results average over 200 independent trials. The 4-step variants of our method significantly outperform existing BO methods. 
+
+
+\looseness-1 \textbf{Energy-Aware Robot Pushing.} We consider a version of the robot pushing problem  introduced by \cite{wang2017max}, where a robot pushes an object from its origin, $w_{\mathrm{init}}=(0,0)$, to a target $w_{\mathrm{target}}\in\R^2$. In the our version, we draw 20 different target locations uniformly at random over $\{(w_1,w_2)\in\R^2: 1< |w_1|,|w_2| < 5\}$, which are distributed equally across the replications performed. The parameters to be optimized are the location of the robot, $z\in[-5,5]^2$, and the duration of the push, $t\in[1,30]$. The objective to minimize is the distance from the object's location after being pushed, $w_{\mathrm{push}}(z,t)$, and the target location, i.e., $f(z,t) = \|w_{\mathrm{target}} - w_{\mathrm{push}}(z,t)\|_2 $. The cost function is given by $c(z,t)= \|w_{\mathrm{push}}(z,t)\| + \epsilon$, where $\epsilon$ is a constant, and represents the energy spent by the robot by pushing the object.
+%, which we assume is proportional to the distance that the object is pushed, plus a small constant.
+
+\subsection{Results and Discussion}
+
+Figure~\ref{fig:experiments}
+plots a 95\% confidence interval on mean log-regret versus the budget used thus far. We perform experiments using a single budget in each problem; the goal 
+%so our non-myopic budget-aware algorithm's goal 
+is to minimize regret at the point when the budget is fully exhausted at the right-hand edge of each plot. To focus attention on  these budgets, we plot results over the range from 20\% to 100\% of this overall budget.
+% MOVE TO SUPPLEMENT
+% In each experiment, an initial stage of evaluations is performed using $2(d+1)$ points chosen according to a quasi-random Sobol sampling design over $\X$. 
+% Experiments are replicated either 100 or 200 times and we report the average performance and 95\% confidence intervals in Figure~\ref{fig:experiments}. 
+The results %for the variants of our algorithm with 
+for $N=2$ look-ahead steps are deferred Section~\ref{supp:additional} to the supplementary material to improve readability and also because they are outperformed by the $N=4$ counterparts for most problems. 
+% Depending on the problem, the reported measure is either the best objective value found or the log-regret. 
+All implementations use BoTorch \citep{balandat2020botorch}. The objective and  log-cost functions are modeled using independent GPs. Additional details and runtimes can also be found in Section~\ref{supp:additional} of the supplementary material. An implementation of our algorithms and numerical experiments can be found at \url{https://github.com/RaulAstudillo06/BudgetedBO}.
+
+
+B-MS-EI (red and purple lines) performs favorably compared to existing methods. In some cases (Dropwave and CNN) EI performs worst, while in other cases (Alpine, Shekel, LDA), one of the value-to-cost ratio methods (EI-PUC or EI-PUC-CC) performs worst.
+% either providing a substantial improvement or at least a similar performance. Specifically, in the Dropwave, Shekel5, Ackley and 3D reconstruction benchmarks, the variants of B-MS-EI substantially outperform all other methods. In the SVM and Bandit problems, B-MS-EI performs similarly to EI-PUC. Finally, EI-PUC-CC slightly outperforms B-MS-EI in the CNN problem. We believe that the ability of our algorithm to reason about the benefit of future evaluations and their corresponding costs allows it to perform well in a wide range of scenarios, particularly in more challenging situations, where B-MS-EI can provide considerable value.
+\looseness-1 B-MS-EI is more computationally intensive to optimize than the standard approaches. The average walltime per acquisition of 4-B-MS-EI, the most expensive variant of our algorithm, ranges from 42 seconds to 7 minutes across the problems, whereas the average walltimes for EI, EI-PUC, and EI-PUC-CC, range from 1 to 30 seconds. However, optimization times on the order of minutes\footnote{These times are not unusual for advanced BO methods; see, e.g., Section 4 of \cite{wu2019practical}.} are acceptable when the acquisition function is applied to real-world problems where the function evaluation often takes much longer (e.g., in Figure~\ref{fig:lda_costs_hist}, LDA evaluations require up to 10 hours). 
+In such settings, 
+extra computational time spent optimizing the acquisition function more than pays for itself  
+with improved query efficiency and the savings in objective function evaluation time that results.
+Nevertheless, there are opportunities to reduce the computational requirements of B-MS-EI; possibilities include re-using the optimized tree for multiple steps or devising better initial conditions for optimization. We leave these for future work.
+
+
+
+
+
+%In some cases, existing techniques to cost-aware BO may be satisfactory, while 
+
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+We introduced the problem of budgeted BO under unknown and potentially heterogeneous evaluation costs. This arises in a wide range of practical settings where BO is applied. However, the most common paradigm for cost-aware BO, the value-to-cost ratio, fails to account for uncertainty in the cost function as well as the presence of the budget constraint as part of the exploration-exploitation trade-off in a principled way, as we show in Theorem~1. In this work, we provided a dynamic programming formulation of this problem, along with a non-myopic acquisition function that addresses the shortcomings of the existing methods. Our acquisition function is derived by truncating the aforementioned dynamic program, and is approximately maximized following a one-shot multi-step tree approach. Our experiments show that our acquisition function outperforms existing methods on a number of synthetic and real-world examples that exhibit heterogeneity in evaluation costs. In the future, we hope to extend our approach to the multi-fidelity setting, where evaluation costs play an even larger role.
+
+\section*{Acknowledgments}
+Authors RA and PF were partially supported by AFOSR FA9550-19-1-0283 and FA9550-20-1-0351.

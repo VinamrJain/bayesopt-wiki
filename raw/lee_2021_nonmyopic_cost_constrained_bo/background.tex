@@ -1,0 +1,89 @@
+\textbf{Gaussian process regression and BO:}
+The goal in BO is to find a global minimizer of a continuous function $f(\bx)$ over a compact set $\Omega \subseteq \R^d$.
+If $f(\bx)$ is expensive to evaluate, we want to rely on a sample-efficient optimization method.
+BO uses a Gaussian process (GP) to model $f(\bx)$ from the data $\D_t = \{ (\bx_i,y_i) \}_{i=1}^t$.
+We write this as $f(\bx) \sim \GP(\mu_t(\bx), \sigma^2_t(\bx))$, where $\mu_t(\bx), \sigma^2_t(\bx)$ are the GP mean and variance at $\bx$, respectively (see the supplementary materials for more details).
+The next evaluation location $\bx_{t+1}$ is determined by maximizing an acquisition function $\Lambda(\bx \mid \D_t)$: $\bx_{t+1} =\argmax_{\Omega} \Lambda(\bx \mid \D_t)$.
+
+
+\textbf{Cost-constrained BO:} BO's sample efficiency leads to fast convergence only if evaluations have similar costs, an assumption that is often not true in practice.
+Cost-constrained BO is an important problem, and we argue that many BO problems in machine learning are, in fact, cost-constrained.
+Figure~\ref{fig:variations} illustrates this by randomly evaluating $5000$ hyperparameter configurations for five common hyperparameter optimization problems (HPO).
+The resulting evaluation times vary, sometimes by more than two orders of magnitude.
+Moreover, the majority of evaluations are cheap, suggesting that significant cost savings may be achieved by \textit{using a cost-efficient instead of a sample-efficient optimizer}.
+
+The de-facto cost-constrained method in the black-box setting is to normalize the acquisition by cost model $c(\bx)$.
+This extends EI to \textit{EI per unit cost (EIpu)}:
+\[
+    \EIpu(\bx ) := \frac{\EI(\bx)}{c(\bx )},
+\]
+which is designed to balance the objective's cost and evaluation quality.
+\citet{snoek2012practical} showed that EIpu can boost performance on a variety of HPO problems.
+
+However, EIpu often demonstrates underwhelming performance.
+We examine why this may occur in Figure~\ref{fig:knn_histogram}, in which EIpu (green) is slower than EI (red) at HPO of a $k$-nearest-neighbor model.
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.48\textwidth]{Histogram.pdf}
+    \caption{We run EI and EIpu on KNN. \textit{Left:} EIpu evaluates many more cheap points than EI, which evaluates more expensive points. The optimum's cost, one of the most expensive points, is a black star. \textit{Right:} EIpu performs poorly as a result. }
+    \label{fig:knn_histogram}
+\end{figure}
+The empirical optimum, namely the best point over all trials (black star), has high cost ---thus, dividing by the cost penalizes EIpu \textit{away} from the optimum and diminishes its performance.
+This is evident from the evaluation time histograms: EIpu evaluates many cheap points while EI evaluates fewer but more expensive points.
+Due to its bias towards cheap points, EIpu is likely to only display strong results when optima are relatively cheap, which is problematic in the general black-box setting.
+Indeed, one can adversarially increase the cost at the optimum to make EIpu perform poorly.
+
+
+\textbf{Markov decision processes:} Nonmyopic BO frames the exploration-exploitation trade-off as a balance of immediate and future rewards in a finite horizon Markov decision process (MDP).
+We use standard notation from~\citep{puterman2014mdp}: an MDP is the collection $<T, \bbS, \A, P, R>$.
+Here, $T = \{0, 1, \ldots, h-1\}$, $h < \infty$ is the set of decision epochs, assumed finite for our problem.
+The state space $\bbS$ encapsulates the information needed to model the system from time $t \in T$.
+$\A$ is the action space.
+Given a state $s \in \bbS$ and an action $a \in \A$, $P(s'| s, a)$ is the transition probability of the next state being $s'$.
+$R(s, a, s')$ is the reward received for choosing action $a$ from state $s$, and ending in state $s'$.
+
+A decision rule, $\pi_t: \bbS \rightarrow \A$, maps states to actions at time $t$.
+A policy $\pi$ is a series of decision rules $\pi = (\pi_0, \pi_1, \ldots, \pi_{h-1})$, one at each decision epoch.
+Given a policy $\pi$, a starting state $s_0$, and horizon $h$, we can define the expected total reward $V_h^\pi(s_0)$ as:
+\[
+    V_h^\pi(s_0) =  \E \left[ \sum_{t=0}^{h-1} R(s_t, \pi_t(s_t), s_{t+1})\right].
+\]
+In phrasing a sequence of decisions as an MDP, our goal is to find the optimal policy $\pi^*$ that maximizes the expected total reward, i.e., $\sup_{\pi \in \Pi} V_h^\pi (s_0)$, where $\Pi$ is the space of all admissible policies.
+
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.88\textwidth]{figures/nonmyopic_example.pdf}
+    \caption{We illustrate the importance of nonmyopia on a carefully chosen toy problem. The top row depicts BO using a myopic acquisition; the middle row depicts nonmyopic, cost-constrained BO; the bottom row depicts feasible trajectories of length two. We run BO until the objective's minimum is infeasible. Myopic BO exhausts its budget before getting close to the global minimum. A nonmyopic approach accounts for the cost (and infeasibility) of future evaluations, and is able to sample the global minimum early. To save space, we only plot feasible trajectories for the myopic approach in the top row. The trajectory contour for nonmyopic BO is very similar.}
+    \label{fig:bo_example}
+\end{figure*}
+
+\textbf{Constrained Markov decision processes:} A constrained Markov decision process (CMDP) is an MDP with an additional set of cost constraints~\citep{altman1999constrained, piunovskiy2006dynamic, bertsekas2005rollout}.
+These costs, like MDP rewards, are accumulated through state by action until a certain horizon.
+A CMDP extends an MDP, and is the collection $<T, \bbS, \A, P, R, C, \tau>$.
+Here, $C(s, a, s') : \bbS \times \A \times  \bbS \rightarrow \R$ is a cost function measuring the cost of choosing action $a$ from state $s$, and ending in state $s'$.
+$\tau$ is the cost constraint, and we assume without loss of generality that it is a positive scalar.
+
+The cost function $C$ in a CMDP induces a cumulative cost function $C_h^\pi(s_0)$, which is analogous to a value function that replaces the reward with the cost:
+\[
+    C_h^\pi(s_0) =  \E \left[\sum_{t=0}^{h-1} C(s_t, \pi_t(s_t), s_{t+1}) \right].
+\]
+$C_h^\pi(s_0)$ measures total expected cost given a policy $\pi$, starting state $s_0$, and horizon $h$.
+The goal in a CMDP is to find the optimal policy, defined as:
+\begin{align*}
+    &\pi^* = \argmax_{\pi} V_h^\pi(s_0), \\
+    & \text{subject to } \; C_h^\pi(s_0) \leq \tau.
+\end{align*}
+In other words, we want to determine the policy that maximizes the expected reward subject to having cost less than $\tau$.
+We refer readers to the standard CMDP treatment~\citep{altman1999constrained} for more information.
+The notion of feasible trajectories is important when discussing both exact and approximate CMDP solutions.
+A CMDP trajectory is a sequence of states and actions:
+\[
+    (s_0, a_0), (s_1, a_1), \dots, (s_{h-1}, a_{h-1}).
+\]
+A CMDP trajectory is said to be \textit{feasible} if it doesn't violate its cost constraint $\tau$ for any non-negative integer $0 \leq \ell \leq h-1$ less than horizon $h$:
+\[
+    \sum_{t=0}^{\ell} C(s_t, a_t, s_{t+1}) < \tau.
+\]
+For consistency, we can extend all feasible trajectories to have length $h$ by introducing an intermediate state and action which produce zero reward and cost (the formal equivalent of ``standing still'').
+The set of all feasible trajectories is known as $G$.

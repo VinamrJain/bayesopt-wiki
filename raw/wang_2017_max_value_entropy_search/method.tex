@@ -1,0 +1,196 @@
+\section{Max-value Entropy Search}
+%
+Entropy search methods use an information-theoretic perspective to select where to evaluate. They
+%
+ find a query point that maximizes the information about the location $\vx_* = \argmax_{\vx \in \mathfrak X} f(x)$ whose value $y_* = f(\vx_*)$ achieves the global maximum of the function $f$. Using the negative differential entropy of $p(\vx_* | D_t)$ to characterize the uncertainty about $\vx_*$, ES and PES use the acquisition functions
+ %
+ \begin{align}
+   %
+&\alpha_t(x) = 
+I(\{\vx,y\}; \vx_*\mid D_t) \\
+&\;\;\;\;= H\left(p(\vx_*\mid D_t)\right)- \Ex\left[H(p(\vx_*\mid D_t\cup \{\vx, y\})) \right] \label{eq:es}\\
+%
+&\;\;\;\; = H(p(y\mid D_t,\vx))- \Ex\left[H(p(y\mid D_t, \vx, \vx_*)) \right] \label{eq:pes}.
+%
+\end{align}
+%
+ES uses formulation~\eqref{eq:es}, in which the expectation is over $p(y| D_t, \vx)$, while PES uses the equivalent, symmetric formulation~\eqref{eq:pes}, where the expectation is over $p(\vx_* | D_t)$. Unfortunately, both $p(\vx_* | D_t)$ and its entropy is analytically intractable and have to be approximated via expensive computations.
+Moreover, the optimum may not be unique, adding further complexity to this distribution.
+%
+%
+
+We follow the same information-theoretic idea but propose a much cheaper and more robust objective to compute. Instead of measuring the information about the argmax $\vx_*$, we use the information about the \emph{maximum value} $y_* = f(\vx_*)$. 
+Our acquisition function is the gain in mutual information between the maximum $y_*$ and the next point we query, which can be approximated analytically by evaluating the entropy of the predictive distribution:
+\begin{align}
+&\alpha_t(x) = 
+I(\{\vx,y\}; y_*\mid D_t) \\
+&= H(p(y\mid D_t, \vx)) - \Ex[H(p(y\mid D_t, \vx, y_*)) ] \label{eq:mes} \\
+& \approx \frac{1}{K}\sum_{y_*\in Y_*} \left[\frac{\gamma_{y_*}( \vx)\psi(\gamma_{y_*}( \vx))}{2\Psi(\gamma_{y_*}(\vx))} - \log(\Psi(\gamma_{y_*}( \vx))) \right] \label{eq:mesapprox}
+\end{align}
+%
+where $\psi$ is the probability density function and $\Psi$ the cumulative density function of a normal distribution, and $\gamma_{y_*}(\vx) = \frac{y_* - \mu_t(\vx)}{\sigma_t(\vx)}$. %
+The expectation in Eq.~\eqref{eq:mes} is over $p(y_*|D_n)$, which is approximated using Monte Carlo estimation by sampling a set of $K$ function maxima. %
+ Notice that the probability in the first term $p(y | D_t, \vx)$ is a Gaussian distribution with mean $\mu_t(\vx)$ and variance $k_t(\vx,\vx)$. The probability in the second term $p(y | D_n, \vx, y_*)$ is a truncated Gaussian distribution: given $y_*$, the distribution of $y$ needs to satisfy $y < y_*$.  Importantly, while ES and PES rely on the expensive, $d$-dimensional distribution $p(\vx_* | D_t)$, here, we use the one-dimensional $p(y_*|D_n)$, which is computationally much easier.
+
+It may not be immediately intuitive that the \emph{value} should bear sufficient information for a good search strategy. Yet, the empirical results in Section~\ref{sec:exp} will demonstrate that this strategy is typically at least as good as ES/PES. From a formal perspective,  \citet{wang2016est} showed how an estimate of the maximum value implies a good search strategy (EST). Indeed, Lemma~\ref{lem:equivalence} will make the relation between EST and a simpler, degenerate version of MES explicit.
+
+Hence, it remains to determine how to sample $y_*$. We propose two strategies: (1) sampling from an approximation via a Gumbel distribution; and (2) sampling functions from the posterior Gaussian distribution and maximizing the functions to obtain samples of $y_*$. We present the MES algorithm in Alg.~\ref{alg:mes}.%
+
+\begin{algorithm} %
+  \caption{Max-value Entropy Search (MES)%
+  }\label{alg:mes}
+  \begin{algorithmic}[1]
+  %
+  %
+  %
+    %
+    %
+    \FUNCTION{MES\,($f, D_0$)}
+      \FOR{$t = 1,\cdots, T $}
+      %
+      \STATE $\alpha_{t-1}(\cdot)\gets$\textsc{Approx-MI\,}($D_{t-1}$)%
+      \STATE $\vx_t\gets \argmax_{\vx\in\mathfrak X}{\alpha_{t-1}(\vx)}$ 
+      \STATE $y_t\gets f(\vx_t) + \epsilon_t, \epsilon_t\sim\mathcal N(0,\sigma^2)$
+      \STATE $\mathfrak D_t \gets D_{t-1}\cup \{\vx_t,y_t\}$
+      %
+      \ENDFOR
+      \ENDFUNCTION
+      \item[]
+    \FUNCTION{Approx-MI\,($D_t$)}%
+    \IF{Sample with Gumbel}
+    \STATE approximate $\Pr[\hat{y}_* < y]$ with $\mathcal G(a,b)$
+    \STATE sample a $K$-length vector $\vr\sim \text{Unif}([0,1])$
+    \STATE $\vy_* \gets a-b\log(-\log \vr)$
+    \ELSE
+    \FOR{$i=1,\cdots,K$}
+    \STATE sample $\tilde f \sim GP(\mu_t,k_t \mid D_t)$
+    \STATE $y_{*(i)} \gets \max_{\vx\in\mathfrak X}{\tilde f(\vx)}$
+    \ENDFOR 
+    \STATE $\vy_* \gets [y_{*(i)}]_{i=1}^K$
+    \ENDIF
+    \STATE \textbf{return} $\alpha_t(\cdot)$ in Eq.~\eqref{eq:mesapprox}
+    \ENDFUNCTION
+  \end{algorithmic}
+\end{algorithm}
+
+\subsection{Gumbel Sampling} %
+\label{spec:gumbel}
+The marginal distribution of $f(x)$ for any $x$ is a one-dimensional Gaussian, and hence the distribution of $y^*$ may be viewed as the maximum of an infinite collection of dependent Gaussian random variables.
+%
+Since this distribution is difficult to compute, we make two simplifications. First, we replace the continuous set $\mathfrak X$ by a discrete (finite), dense subset $\hat{\mathfrak X}$ of representative points. If we select $\hat{\mathfrak X}$ to be an $\epsilon$-cover of $\mathfrak X$ and the function $f$ is Lipschitz continuous with constant $L$, then we obtain a valid upper bound on $f(\mathfrak X)$ by adding $\epsilon L$ to any upper bound on $f(\hat{\mathfrak X})$.
+
+Second, we use a ``mean field'' approximation and treat the function values at the points in $\hat{\mathfrak X}$ as independent. This approximation tends to over-estimate the maximum; this follows from Slepian's lemma if $k(x,x') \geq 0$. Such upper bounds still lead to optimization strategies with vanishing regret, whereas lower bounds may not \citep{wang2016est}.
+
+%
+
+We sample from the approximation $\hat{p}(y^*|D_n)$ via its cumulative distribution function (CDF) $\widehat{\Pr}[y_* < z] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma_z(\vx))$. That means we sample $r$ uniformly from $[0,1]$ and find $z$ such that $\Pr[y_* < z] = r$. A binary search for $z$ to accuracy $\delta$ requires $O(\log\tfrac1\delta)$ queries to the CDF, and each query takes $O(|\hat{\mathfrak X}|)\approx O(n^d)$ time, so we obtain an overall time of $O(M|\hat{\mathfrak X}| \log \frac{1}{\delta})$ for drawing $M$ samples.
+
+\iffalse
+\sj{ clarify: Let $\tilde y_*$ be an upper bound on the function values of $\hat{\mathfrak X}$. We have $\Pr[\hat{y}_* < y] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma_y(\vx)))$. With the cumulative probability, we can sample $\hat{y}_*$ by sampling $r$ uniformly from $[0,1]$ and find $y$ such that $\Pr[\hat{y}_* < y] = r$.}
+We can find such a $y$ by binary search. Each query to $\Pr[\hat{y}_* < y]$ takes time $O(|\hat{\mathfrak X})|\approx O(n^d)$, where $d$ is the input dimension, so we obtain an overall time of $O(|\hat{\mathfrak X}| \log \frac{1}{\delta})$ for drawing $M$ samples with accuracy $\delta$ of the binary search.
+\fi
+%
+
+\iffalse
+In \cite{wang2016est}, the authors estimated an upper bound on the function $f$ by assuming independence among the Gaussian values of a discrete set of input candidates. Here we adopt a similar strategy by selecting a representative finite set of input candidates $\hat{\mathfrak X}$ from the continuous space $\mathfrak X$. Theoretically if we select $\hat{\mathfrak X}$ to be the $\epsilon$-covering of $\mathfrak X$ and the function $f$ is Lipschitz continuous, we can obtain an upper bound on $f(\mathfrak X)$ by adding $\epsilon L$ to the upper bound on $f(\hat{\mathfrak X})$.
+
+
+Let $\tilde y_*$ be an upper bound on the function values of $\hat{\mathfrak X}$. We have $\Pr[\hat{y}_* < y] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma_y(\vx)))$. With the cumulative probability, we can sample $\hat{y}_*$ by sampling $r$ uniformly from $[0,1]$ and find $y$ such that $\Pr[\hat{y}_* < y] = r$. However, each query of $\Pr[\hat{y}_* < y]$ takes $O(|\hat{\mathfrak X})|\approx O(n^d_x)$ where $d_x$ is the dimension of the input, and numerically solving $\Pr[\hat{y}_* < y] = r$ takes $O(|\hat{\mathfrak X}| \log \frac{1}{\delta})$ with a binary search strategy, where $\delta$ is the accuracy for the solution $y$. So a naive way of sampling $M$ number of $\hat y_*$ inevitably takes $O(M|\hat{\mathfrak X}|\log \frac{1}{\delta})$. 
+\fi
+
+
+To sample more efficiently, we propose a $O(M+|\hat{\mathfrak X}|\log \frac{1}{\delta})$-time strategy, by approximating the CDF by a Gumbel distribution: $\widehat{\Pr}[y_* < z]\approx \mathcal G(a,b) = e^{-e^{-\frac{z-a}{b}}}$. This choice is motivated by the Fisher-Tippett-Gnedenko theorem~\cite{fisher1930genetical}, which states that the maximum of a set of i.i.d. Gaussian variables is asymptotically described by a Gumbel distribution (see the appendix for further details). This does not in general extend to non-i.i.d. Gaussian variables, but we nevertheless observe that in practice, this approach yields a good and fast approximation.
+
+We sample from the Gumbel distribution via the Gumbel quantile function: we sample $r$ uniformly from $[0,1]$, and let the sample be $y = \mathcal G^{-1}(a,b) = a-b\log(-\log r)$. We set the appropriate Gumbel distribution parameters $a$ and $b$ by percentile matching and solve the two-variable linear equations $a-b\log(-\log r_1) = y_1$ and $a-b\log(-\log r_2) = y_2$, where $\Pr[{y}_* < y_1]=r_1$ and $\Pr[{y}_* < y_2]=r_2$. In practice, we use $r_1=0.25$ and $r_2=0.75$ so that the scale of the approximated Gumbel distribution
+is proportional to the interquartile range of the CDF $\hat{\Pr}[y_* < z]$. %
+
+
+\iffalse
+To sample more efficiently, we propose a $O(M+|\hat{\mathfrak X}|\log \frac{1}{\delta})$ strategy by approximating $\Pr[\hat{y}_* < y]$ with a Gumbel distribution $\Pr[\hat{y}_* < y]\approx \mathcal G(a,b) = e^{-e^{-\frac{y-a}{b}}}$. To generate samples from a Gumbel distribution, we use the Gumbel quantile function and set the sample to be $y = \mathcal G^{-1}(a,b) = a-b\log(-\log r)$ where $r$ is uniformly sampled from the interval $[0,1]$. To find the appropriate Gumbel distribution parameters $a$ and $b$, we use percentile matching and solve the two-variable linear equations $a-b\log(-\log r_1) = y_1$ and $a-b\log(-\log r_2) = y_2$, where $\Pr[\hat{y}_* < y_1]=r_1$ and $\Pr[\hat{y}_* < y_2]=r_2$. In practice we set $r_1=0.25$ and $r_2=0.75$ so that the interquartile range will determine the variance of the approximated Gumbel distribution.
+
+Notice that for the Gaussian process prior, using Gumbel distribution for the approximation of the maximum of i.i.d Gaussians is asymptotically accurate by the Fisher-Tippett-Gnedenko theorem~\cite{fisher1930genetical}. The Fisher-Tippett-Gnedenko theorem in general does not hold for independent and differently distributed Gaussians, but in practice we still find it useful in approximating $\Pr[\hat{y}_* < y]$\footnote{See the appendix for more details.}. 
+\fi
+
+\subsection{Sampling $y_*$ via Posterior Functions}
+For an alternative sampling strategy we follow~\cite{hernandez2014predictive}: we draw functions from the posterior GP and then maximize each of the sampled functions.
+%
+Given the observations $D_t = \{(\vx_\tau, y_\tau)_{\tau=1}^t\}$, we can approximate the posterior Gaussian process using a 1-hidden-layer neural network $\tilde f(\vx) = \va_t\T \vphi(\vx)$ where $\vphi(x)\in \R^D$ is a vector of feature functions~\cite{neal96,rahimi2007random}
+%
+and the Gaussian weight $\va_t\in\R^D$ is distributed according to a multivariate Gaussian $\mathcal N(\vnu_t, \mSigma_t)$.
+
+\textbf{Computing $\vphi(x)$.} By Bochner's theorem~\cite{rudin2011fourier}, the Fourier transform $\hat k$ of a continuous and translation-invariant kernel $k$ is guaranteed to be a probability distribution. Hence we can write the kernel of the GP to be $k(\vx,\vx') = \Ex_{\ww\sim\hat k(\ww)}[e^{i\ww\T (\vx-\vx')}] =\Ex_{c\sim U[0,2\pi]} \Ex_{\hat k} [2 \cos(\ww\T \vx + c)\cos(\ww\T \vx' + c)]$ and approximate the expectation by $k(\vx,\vx')\approx \vpp\T(\vx)\vpp(\vx')$ where $\phi_i(\vx) = \sqrt{\frac2D} \cos(\ww_i\T \vx + c_i)$, $\ww_i\sim \hat \kk(\ww)$, and $c_i \sim U[0,2\pi]$ for $i = 1,\dots, D$.
+
+\textbf{Computing $\vnu_t, \mSigma_t$.} By writing the GP as a random linear combination of feature functions $\va^T_t\vphi(\vx)$, we are defining the mean and covariance of the GP to be $\mu_t(\vx) = \vnu\T \vphi(\vx)$ and $k(\vx,\vx') = \vphi(\vx)\T\mSigma_t\vphi(\vx')$. Let $Z = [z_1, \cdots, z_t] \in \R^{D\times t}$, where $z_\tau \coloneqq \vpp (\vx_\tau) \in \R^D$. 
+The GP posterior mean and covariance in Section~\ref{ssec:gp} become
+$\mu_t(\vx) = z\T Z (Z\T Z + \sigma^2 \mI)^{-1} \vy_t$ and 
+$k_t (\vx, \vx')= z\T z' - z\T Z (Z\T Z + \sigma^2 \mI)^{-1} Z\T z'$. 
+Because $Z(Z\T Z + \sigma^2 \mI)^{-1} = (ZZ\T +\sigma^2 \mI)^{-1}Z$, we can simplify the above equations and obtain $\vnu_t = \sigma^{-2}\mSigma_t Z_t\vy_t $ and $\mSigma_t = (Z Z\T \sigma^{-2} +\mI)^{-1}$.
+%
+
+
+To sample a function from this random 1-hidden-layer neural network, we sample $\tilde \va$ from $\mathcal N(\vnu_t, \mSigma_t)$ and construct the sampled function $\tilde f = \tilde \va\T \vphi(\vx)$. Then we optimize $\tilde f$ with respect to its input to get a sample of the maximum of the function $\max_{\vx\in\mathfrak X} \tilde f(\vx)$. 
+
+
+
+\hide{
+We first review Mercer's theorem~\cite{mercer1909functions}, which builds the foundation of kernel methods.
+\begin{thm}[Mercer~\cite{mercer1909functions}]
+Any kernel $\kk:\mathfrak X \times \mathfrak X \rightarrow \R$ satisfying $\int \kk(x,x')f(x)f(x')\dif x \dif x' \geq 0$ for all $L_2(\mathfrak X)$ measurable functions $f$ can be expanded into 
+\begin{align}
+\kk(x,x') = \sum_j \lambda^{(j)} \phi_j(x)\phi_j(x'), 
+\end{align}
+ where $\lambda_j$ and $\phi_j$ are orthonormal on $L_2(\mathfrak X)$.
+ 
+
+\end{thm}
+Without loss of generality, we assume $\sum_j \lambda^{(j)} = 1, p(\lambda^{(j)}) = \lambda^{(j)}$. We can get a low variance approximation of $\kk(x,x')$ by sampling $\lambda\sim p(\lambda)$ and the corresponding random feature $\phi_\lambda$.
+\begin{align}
+\kk(x,x') = \Ex_{\lambda}[\phi_\lambda(x)\phi_{\lambda}(x')] \approx \frac{1}{D} \sum_{i=1}^D \phi_{\lambda_i}(x)\phi_{\lambda_i}(x') = \frac{1}{D}\vpp(x)\T\vpp(x'), 
+\end{align}
+
+where $\vpp(x)\in \R^D$ is the random feature vector for $x$. Let $z \coloneqq \frac{1}{\sqrt{D}} \vpp (x), z_\tau \coloneqq \frac{1}{\sqrt{D}} \vpp (x_\tau) \in \R^D$ and $Z = [z_1, \cdots, z_t] \in \R^{D\times t}$.
+
+The GP posterior mean and covariance become
+\begin{align}
+\mu_t(x) &= z\T Z (Z\T Z + \sigma^2 \mI)^{-1} \vy_t, \label{eq:gpprimal1}\\
+\kk_t (x)&= z\T z - z\T Z (Z\T Z + \sigma^2 \mI)^{-1} Z\T z. \label{eq:gpprimal2}
+\end{align}
+
+%
+Because $Z(Z\T Z + \sigma^2 \mI)^{-1} = (ZZ\T +\sigma^2 \mI)^{-1}Z$, Eq.~\eqref{eq:gpprimal1} and Eq.~\eqref{eq:gpprimal2} can be simplified to
+
+%
+\begin{align}
+\Sigma_t & = (Z Z\T \sigma^{-2} +\mI)^{-1}\\
+\mu_t(x) &= \sigma^{-2}z\T \Sigma_t Z \vy_t  \\
+\kk_t(x) &= z\T \Sigma_t z %
+\end{align}
+%
+}
+
+
+\subsection{Relation to Other BO Methods}
+As a side effect, our new acquisition function draws connections between ES/PES and other popular BO methods. The connection between MES and ES/PES follows from the information-theoretic viewpoint; the following lemma makes the connections to other methods explicit.
+%
+%
+\begin{lem}\label{lem:equivalence}
+  The following methods are equivalent:
+  \vspace{-5pt}
+\begin{enumerate}\setlength{\itemsep}{-1pt}
+\item MES, where we only use a single sample $y_*$ for $\alpha_t(x)$;
+\item EST with $m = y_*$;
+\item GP-UCB with $\beta^{\frac12} = \min_{\vx\in\mathfrak X} \frac{y_*-\mu_{t} (\vx)}{\sigma_{t} (\vx)}$;
+\item PI with $\theta=y_*$.
+\end{enumerate}
+\end{lem}
+This equivalence no longer holds if we use $M>1$ samples of $y_*$ in MES.
+\begin{proof}
+  The equivalence among 2,3,4 is stated in Lemma 2.1 in~\cite{wang2016est}. What remains to be shown is the equivalence between 1 and 2. When using a single $y_*$ in MES,
+  the next point to evaluate is chosen by maximizing $\alpha_t(\vx) =\gamma_{y_*}( \vx)\frac{\psi(\gamma_{y_*}( \vx))}{2\Psi(\gamma_{y_*}(\vx))} - \log(\Psi(\gamma_{y_*}( \vx)))$ and $\gamma_{y_*} = \frac{y_* - \mu_t(\vx)}{\sigma_t(\vx)}$. For EST with $m=y_*$, the next point to evaluate is chosen by minimizing $\gamma_{y_*}( \vx)$. Let us define a function $g(u) = u\frac{\psi(u)}{2\Psi(u)} - \log(\Psi(u))$. Clearly, $\alpha_t(\vx) = g(\gamma_{y_*}(\vx))$. Because $g(u)$ is a monotonically decreasing function, maximizing $g(\gamma_{y_*}(\vx))$ is equivalent to minimizing $\gamma_{y_*}(\vx)$. Hence 1 and 2 are equivalent.
+\end{proof}
+
+%
+
+%
+
+

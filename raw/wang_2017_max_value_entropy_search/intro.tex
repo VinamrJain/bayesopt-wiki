@@ -1,0 +1,33 @@
+\section{Introduction}
+
+Bayesian optimization (BO) has become a popular and effective way for black-box optimization of nonconvex, expensive functions in robotics, machine learning, computer vision, and many other areas of science and engineering \citep{brochu2009,calandra2014experimental,krause2011contextual,lizotte2007,snoek2012practical,thornton13,wang17icra}. In BO, a prior is posed on the (unknown) objective function, and the uncertainty given by the associated posterior is the basis for an acquisition function that guides the selection of the next point to query the function. The selection of queries and hence the acquisition function is critical for the success of the method.
+
+Different BO techniques differ in this acquisition function. Among the most popular ones range the Gaussian process upper confidence bound (GP-UCB)~\cite{auer2002b,srinivas2009gaussian}, probability of improvement (PI)~\cite{kushner1964}, and expected improvement (EI)~\cite{mockus1974}. Particularly successful recent additions are entropy search (ES)~\cite{hennig2012} and predictive entropy search (PES) \cite{hernandez2014predictive}, which aim to maximize the mutual information between the queried points and the location of the global optimum.
+
+ES and PES are effective in the sense that they are query-efficient and identify a good point within competitively few iterations, but determining the next query point involves very expensive computations. As a result, these methods are most useful if the black-box function requires a lot of effort to evaluate, and are relatively slow otherwise. Moreover, they rely on estimating the entropy of the $\argmax$ of the function. In high dimensions, this estimation demands a large number of samples from the input space, which can quickly become inefficient.
+
+We propose a twist to the viewpoint of ES and PES that retains the information-theoretic motivation and empirically successful query-efficiency of those methods, but at a much reduced computational cost. The key insight is to replace the uncertainty about the $\argmax$ with the uncertainty about the maximum function value. As a result, we refer to our new method as \emph{Max-value Entropy Search (MES)}. As opposed to the $\argmax$, the maximum function value lives in a one-dimensional space, which greatly facilitates the estimation of the mutual information via sampling. We explore two strategies to make the entropy estimation efficient: an approximation by a Gumbel distribution, and a Monte Carlo approach that uses random features. 
+
+Our contributions are as follows: (1) MES, a variant of the entropy search methods, which enjoys efficient computation and simple implementation; (2) an intuitive analysis which establishes the first connection between ES/PES and the previously proposed criteria GP-UCB, PI and EST~\cite{wang2016est}, where the bridge is formed by MES; (3) a regret bound for a variant of MES, which, to our knowledge, is the first regret bound established for any variant of the entropy search methods; (4) an extension of MES to the high dimensional settings via additive Gaussian processes; and (5) %
+empirical evaluations which demonstrate that MES identifies good points as quickly or better than ES/PES, but is much more efficient and robust in estimating the mutual information, and therefore much faster than its input-space counterparts.
+
+After acceptance of this work, we learned that \citet{hoffmanoutput} independently arrived at the acquisition function in Eq.~\eqref{eq:mes}. Yet, our approximation (Eq.~\eqref{eq:mesapprox}) is different, and hence the actual acquisition function we evaluate and analyze is different.
+
+%
+
+
+\iffalse
+Bayesian optimization has become an efficient way of optimizing noisy expensive black-box functions appearing in many areas such as robotics,  machine learning, and computer vision \citep{brochu2009,calandra2014experimental,krause2011contextual,lizotte2007,snoek2012practical,thornton13,wang17icra}. The function is usually multi-modal, and there is no derivative available unless it's calculated numerically. To optimize the function with limited function calls, it is important to balance between the computation of modeling the behavior of the function and the effort of finding the global optimum. 
+
+There are many successful Bayesian optimization techniques: Gaussian process upper confidence bound (GP-UCB), probability of improvement (PI)~\cite{kushner1964}, expected improvement (EI)~\cite{mockus1974}, entropy search (ES)~\cite{hennig2012,hernandez2014predictive}, and so on. Recently, it has been shown that GP-UCB and PI are equivalent under certain conditions of their parameters~\cite{wang2016est}. The original parameters proposed for GP-UCB and PI are in fact, different ways of tuning the belief on the maximum of the function. \cite{wang2016est} also proposed EST, which is a provably better way of adaptively tuning the parameter for GP-UCB and PI. ES methods treat the problem of global optimization in a fully probabilistic way, and try to maximize the information gain between the queried points and the global maximizer. The ideas behind EST and ES are similar, but the connection between them is still unknown.
+
+The current methods in the entropy search family are concerned with  the entropy of the $\argmax$ of the function. Estimating the probability density or the entropy related to the $\argmax$ requires sampling from the input space, which is data inefficient if the input space is high. We propose a natural extension to these entropy search methods, which instead use the idea of entropy search on the uncertainty of the $\max$ of the function. The $\max$ of the function only lies in a 1-dimensional space, which is much more data-efficient, and yields a closed-form approximation when it is applied to predictive entropy search. We reveal the connection between our new entropy search method and EST, GP-UCB, and PI. Based on this connection, we show that the simple regret of a variant of MES is bounded.
+
+To deal with high dimensional problems, we show an extension of MES to the add-GP setting, where we learn a decomposable additive structure of the black-box function, and optimize the lower dimensional functions using MES. We show that MES performed competitively comparing to the well tuned add-GP-UCB~\cite{kandasamy2015high}. 
+
+%
+
+\fi
+
+
+

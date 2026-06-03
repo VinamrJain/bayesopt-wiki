@@ -1,0 +1,21 @@
+
+\section{Analysis}
+\label{sec:analysis}
+
+\begin{definition}(Maximum Information Gain~\citep{srinivas10gpbandits})
+Let $f\sim \GP(\zero, \phix)$.
+Consider any $A\subset\RR^d$ and
+let $A' = \{x_1, \dots, x_n\} \subset A$ be a finite subset.
+Let $f_{A'}, \epsilon_{A'}\in\RR^n$ such that $(f_{A'})_i=f(x_i)$ and
+$(\epsilon_{A'})_i\sim\Ncal(0,\eta^2)$.
+Let $y_{A'} = f_{A'}+\epsilon_{A'}$.
+Denote the Shannon Mutual Information by $I$.
+The Maximum Information Gain of $A$ is
+\[
+\IG_n(A) = \max_{A'\subset A, |A'| = n} I(y_{A'}; f_{A'}).
+\]
+\label{def:infGain}
+\end{definition}
+\insertpostspacing
+
+

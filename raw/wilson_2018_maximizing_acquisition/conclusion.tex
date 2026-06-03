@@ -1,0 +1,17 @@
+%!TEX root=main.tex
+
+\section{Conclusion}
+\label{sect:conclusion}
+
+BO relies upon an array of powerful tools, such as surrogate models and acquisition functions, and all of these tools are sharpened by strong usage practices. 
+% 
+We extend these practices by demonstrating that Monte Carlo acquisition functions provide unbiased gradient estimates that can be exploited when optimizing them.
+% 
+% Furthermore, we show that many of the same acquisition functions are submodular when querying in parallel.
+Furthermore, we show that many of the same acquisition functions form a family of submodular set functions that can be efficiently optimized using greedy maximization.
+%
+These insights serve as cornerstones for easy-to-use, general-purpose techniques for practical BO.
+% 
+Comprehensive empirical evidence concludes that said techniques lead to substantial performance gains in real-world scenarios where queries must be chosen in finite time. 
+% 
+By tackling the inner optimization problem, these advances directly benefit the theory and practice of Bayesian optimization.

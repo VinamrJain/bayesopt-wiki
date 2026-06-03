@@ -1,0 +1,61 @@
+\subsection{Sampling from the posterior over global maxima}
+\label{sec:sampling}
+
+In this section we show how to approximately sample from the conditional
+distribution of the global maximizer $\xopt$ given the observed data $\D_n$,
+that is,
+\begin{align}
+    p(\xopt|\D_n) =
+    p\big(f(\xopt) = \max_{\x\in\X} f(\x)\big|\D_n\big)\,.
+\end{align}
+If the domain $\X$ is restricted to some finite set of $m$ points,
+the latent function $f$ takes the form of an $m$-dimensional vector $\mathbf{f}$.
+The probability that the $i$th element of $\mathbf{f}$ is optimal can then be written
+as $\int p(\mathbf{f}|\D_n) \prod_{j\leq m} \I[f_i \geq f_j] \,d\mathbf{f}$. This suggests the
+following generative process: i) draw a sample from the posterior distribution $p(\mathbf{f}|\D_n)$ and
+ii) return the index of the maximum element in the sampled vector. 
+This process is known as Thompson sampling or probability matching 
+when used as an arm-selection strategy in multi-armed bandits \cite{Li:2011}.
+This same approach could be used for sampling the maximizer over a continuous
+domain $\X$. At first glance this would require constructing an
+infinite-dimensional object representing the function $f$.
+To avoid this, one could sequentially construct $f$ while it is being optimized. However, evaluating
+such an $f$ would ultimately have cost $\calO(m^3)$ where $m$ is the
+number of function evaluations necessary to find the optimum.  
+Instead, we propose to sample and optimize an analytic approximation to $f$.
+We will briefly derive this approximation below, but more detail is given in Appendix~\ref{sec:samplingAppendix}.
+
+Given a shift-invariant kernel $k$, Bochner's theorem~\citep{Bochner:1959}
+asserts the existence of its Fourier dual $s(\vw)$, which is equal to the
+spectral density of $k$.  Letting $p(\vw)=s(\vw)/\alpha$ be the associated normalized
+density, we can write the kernel as the expectation
+\begin{equation}
+    k(\x,\x')
+    = \alpha \,\E_{p(\vw)}[e^{-i\vw\T(\x-\x')}]
+    = 2\alpha \,\E_{p(\vw,b)}[\cos(\vw\T\vx+b)\cos(\vw\T\vx' + b)]\,,
+    \label{eq:kernel_approx}
+\end{equation}
+where $b\sim\Uniform[0,2\pi]$. Let $\vphi(\vx)=\sqrt{2\alpha/m} \cos(\vW\x +
+\vb)$ denote an $m$-dimensional feature mapping where $\vW$ and $\vb$ consist
+of $m$ stacked samples from $p(\vw,b)$. The
+kernel $k$ can then be approximated by the inner product of these features,
+$k(\x,\x')\approx \vphi(\x)\T\vphi(\x')$. This approach was used
+by~\cite{Rahimi:2007} as an approximation method in the context of kernel
+methods.  The feature mapping $\vphi(\x)$ allows us to approximate the Gaussian
+process prior for $f$ with a linear model $f(\x)=\vphi(\vx)\T\vtheta$ where
+$\vtheta\sim\Normal(\zero, \vI)$ is a standard Gaussian.  By conditioning on
+$\D_n$, the posterior for $\vtheta$ is also multivariate Gaussian,
+$\vtheta|\D_n\sim\Normal(\vA^{-1}\vPhi\T \vy_n, \sigma^2\vA^{-1})$ where
+$\vA=\vPhi\T\vPhi+\sigma^2\vI$ and $\vPhi\T=[\vphi(\x_1)\dots\vphi(\x_n)]$.
+
+Let $\vphi\i$ and $\vtheta\i$ be a random set of
+features and the corresponding posterior weights sampled both according to the generative process given
+above. They can then be used to construct the function
+$f\i(\x)=\vphi\i(\vx)\T\vtheta\i$, which is an approximate posterior sample of
+$f$---albeit one with a finite parameterization. We can then maximize this
+function to obtain $\xopt\i=\argmax_{\x\in\X} f\i(\vx)$, which is 
+approximately distributed according to $p(\xopt|\D_n)$. Note that for early
+iterations when $n < m$, we can efficiently sample $\vtheta\i$ with cost
+$\calO(n^2m)$ using the method described in Appendix B.2 of \cite{Seeger:2008}.
+This allows us to use a large number of features in $\vphi\i(\x)$.
+

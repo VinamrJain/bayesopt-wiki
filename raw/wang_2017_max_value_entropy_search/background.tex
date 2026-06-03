@@ -1,0 +1,51 @@
+\section{Background}
+Our goal is to maximize a black-box function $f:\mathfrak X\rightarrow \R$ where $\mathfrak X \subset \R^{d}$ %
+and $\mathfrak X$ is compact. At time step $t$, we select point $\vx_t$ and observe a possibly noisy function evaluation $y_t=f(\vx_t)+\epsilon_t$, where $\epsilon_t \sim \mathcal N(0,\sigma^2)$ are i.i.d.\ Gaussian variables. %
+ We use Gaussian processes~\cite{rasmussen2006gaussian} to build a probabilistic model of the black-box function to be optimized. For high dimensional cases, we use a variant of the additive Gaussian process~\cite{duvenaud2011additive,kandasamy2015high}. For completeness, we here introduce some basics of GP and add-GP.  %
+
+\subsection{Gaussian Processes}
+\label{ssec:gp}
+Gaussian processes (GPs) are distributions over functions, and popular priors for Bayesian nonparametric regression.
+In a GP, any finite set of function values has a multivariate Gaussian distribution. A Gaussian process $GP(\mu,k)$ is fully specified by a mean function $\mu(\vx)$ and covariance (kernel) function $k(\vx,\vx')$. 
+%
+%
+\hide{
+Two frequently used examples of covariance kernel functions are the squared exponential and Mat\'ern kernels.
+Let $r=(\vx-\vx')^\top(\vx-\vx')$. Then the squared exponential kernel is 
+$$k(\vx,\vx') = \sigma_f^2 \mathrm e^{-\frac{1}{2\ell^2} r},$$ 
+with parameters $(\sigma_f,\ell)$. The Mat\'ern kernel is given by 
+$$k(\vx,\vx') = \sigma_m^2\frac{2^{1-\xi}}{\Gamma(\xi)} (\frac{\sqrt{2\xi r}}{h})^{\xi}B_\xi(\frac{\sqrt{2\xi r}}{h}),$$ 
+where $\Gamma$ is the gamma function, $B_\xi$ is a modified Bessel function, and we have the parameters $\sigma_m$, $h$, and the roughness parameter $\xi$.
+%
+}
+%
+%
+Let $f$ be a function sampled from $GP(\mu,k)$. %
+Given the observations $D_t=\{(\vx_\tau,y_\tau)\}_{\tau=1}^{t}$, we obtain the posterior mean 
+$\mu_{t}(\vx) = \vk_t(\vx)\T(\mK_t+\sigma^2\mI)^{-1}\vy_t$
+and posterior covariance 
+$k_{t}(\vx,\vx') = k(\vx,\vx') - \vk_t(\vx)\T(\mK_t+\sigma^2\mI)^{-1} \vk_t(\vx')$
+of the function via the kernel matrix $\mK_t =\left[k(\vx_i,\vx_j)\right]_{\vx_i,\vx_j\in D_t}$ and $\vk_t(\vx) = [k(\vx_i,\vx)]_{\vx_i\in D_t}$~\citep{rasmussen2006gaussian}.
+The posterior variance is $\sigma^2_{t}(\vx) = k_t(\vx,\vx)$. %
+%
+
+\subsection{Additive Gaussian Processes}
+\label{ssec:addgp}
+Additive Gaussian processes (add-GP) were proposed in~\cite{duvenaud2011additive}, and analyzed in the BO setting in~\cite{kandasamy2015high}.  Following the latter, %
+we assume that the function $f$ is a sum of independent functions sampled from Gaussian processes that are active on disjoint sets $A_m$ of input dimensions. Precisely,
+%
+$f(x) = \sum_{m=1}^M f^{(m)}(x^{A_m})$,
+with $A_{i} \cap A_{j} = \emptyset$ for all $i\neq j$, $|\cup_{i=1}^M A_i|=d$, and $f^{(m)}\sim GP(\mu^{(m)}, k^{(m)})$, for all $m \leq M$ ($M \leq d < \infty$). %
+As a result of this decomposition, the function $f$ is distributed according to $GP(\sum_{m=1}^M\mu^{(m)}, \sum_{m=1}^M k^{(m)})$. Given a set of noisy observations $D_t=\{(\vx_\tau,y_\tau)\}_{\tau=1}^{t}$ where $y_\tau \sim \mathcal N(f(x_\tau), \sigma^2)$, the posterior mean and covariance of the function component $f^{(m)}$ can be inferred as 
+$\mu_{t}^{(m)}(\vx)= \vk^{(m)}_t(\vx)\T(\mK_t+\sigma^2\mI)^{-1}\vy_t$ and 
+$k_{t}^{(m)}(\vx,\vx') = k^{(m)}(\vx,\vx') - \vk^{(m)}_t(\vx)\T(\mK_t+\sigma^2\mI)^{-1} \vk^{(m)}_t(\vx')$, where $\vk^{(m)}_t(\vx) = [k^{(m)}(\vx_i,\vx)]_{\vx_i\in D_t}$ and  $\mK_t =\left[ \sum_{m=1}^M k^{(m)}(\vx_i,\vx_j)\right]_{\vx_i,\vx_j\in D_t}$. For simplicity, we use the shorthand $k^{(m)}(\vx,\vx') = k^{(m)}(\vx^{A_m}, \vx'^{A_m})$.
+%
+
+\subsection{Evaluation Criteria}
+\label{ssec:eval}
+%
+We use two types of evaluation criteria for BO, \emph{simple regret} and \emph{inference regret}. In each iteration, we choose to evaluate one input $\vx_t$ to ``learn'' where the $\argmax$ of the function is. %
+The simple regret $r_T = \max_{\vx\in\mathfrak X} f(\vx) - \max_{t\in[1,T]} f(\vx_t)$ measures the value of the best queried point so far. %
+%
+%
+After all queries, we may infer an $\argmax$ of the function, which is usually chosen as $\tilde \vx_T = \argmax_{\vx\in\mathfrak X} \mu_{T}(\vx)$~\cite{hennig2012,hernandez2014predictive}. We denote the inference regret as $R_T = \max_{\vx\in\mathfrak X} f(\vx) - f(\tilde x_T)$ which characterizes how satisfying our inference of the $\argmax$ is. %

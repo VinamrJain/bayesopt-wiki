@@ -1,0 +1,36 @@
+\section{Introduction}
+\label{sec:intro}
+
+Bayesian optimization is a framework designed to efficiently find approximate solutions to optimization problems involving expensive-to-evaluate black-box functions, where derivatives are unavailable. Such problems arise in applications like hyperparameter tuning \citep{snoek2012practical}, robot control optimization \citep{martinez2017bayesian}, and material design \citep{zhang2020bayesian}. 
+It works by iteratively, (a)~forming a probabilistic model of the black-box objective function based on data collected thus far, then (b)~optimizing an acquisition function, which balances exploration-exploitation tradeoffs, to carefully choose a new point at which to observe the unknown function in the next iteration.
+
+In this work, we consider the \emph{cost-aware} setting, where one must pay a cost to collect each data point, and study \emph{adaptive stopping rules} that choose when to stop the optimization process.
+After stopping at some terminal time, we measure performance in terms of simple regret, which is the difference in value between the best solution found so far and the global optimum.
+Collecting a data point can reduce simple regret, but incurs cost in order to do so.
+
+As an example, consider using a cloud computing environment to tune the hyperparameters of a classifier in order to optimize a performance metric on a given test set.
+Training and evaluating test error takes some number of CPU or GPU hours, that may depend on the hyperparamaters used. 
+These come with a financial cost, billed by the cloud computing provider, which define our cost function.
+The objective value is the business value of deploying the trained model under the given hyperparameters---a given function of the model's accuracy.
+From this perspective, simple regret can be understood as the opportunity cost for deploying a suboptimal model instead of the optimal one. Motivated by the need to balance cost-performance tradeoff in examples such as above, we aim to design stopping rules that optimizes \emph{expected cost-adjusted simple regret}, defined as the sum of simple regret and the cumulative cost of data collection.
+
+Several stopping rules have been proposed for Bayesian optimization.
+Simple heuristics—such as fixing the number of iterations or stopping when the best value remains unchanged for a certain number of iterations—are widely used, but can either stop too early or lead to unnecessary evaluations.
+Other approaches include acquisition-function-based rules that stop when metrics such as probability of improvement \citep{lorenz2015stopping} fall below a preset threshold, or when expected improvement (EI) \citep{nguyen2017regret, zhou2024corrected} or knowledge gradient (KG) \citep{frazier2008knowledge} fall below the cost per sample. Regret-bound-based rules instead aim to optimize simple regret \citep{makarova2022automatic, ishibashi2023stopping, wilson2024stopping, li2023not}.
+These approaches are primarily developed for the classical uniform-cost setting and do not explicitly account for varying evaluation costs. Our work instead provides a principled stopping rule with theoretical guarantees that applies both to the uniform-cost setting and more generally to varying evaluation costs.
+
+In this work, we study how to design cost-aware stopping rules, motivated by two primary factors.
+First, state-of-the-art cost-aware acquisition functions such as the Pandora's Box Gittins Index (PBGI) \citep{xie2024cost} and log expected improvement per cost (LogEIPC) \citep{ament2023unexpected} have not yet been studied in the adaptive stopping setting.
+As our experiments in \cref{sec:experiment} show, introducing adaptive stopping can further improve the performance of these acquisition functions compared to fixed-budget evaluations.
+Second, while regret-based stopping rules such as UCB–LCB \citep{makarova2022automatic} guarantee low simple regret, they often incur excessive evaluation costs, resulting in high cost-adjusted regret, as reflected in our experiments.
+
+Our work builds upon the Bayesian-optimal Pandora’s Box decision principle underlying the PBGI acquisition function and extends it to the adaptive stopping setting in correlated Bayesian optimization.
+Furthermore, we show that an existing stopping rule proposed for the EI acquisition function in the classical cost-unaware setting \citep{nguyen2017regret,zhou2024corrected}, admits a principled choice of the stopping threshold as the evaluation cost per sample, rather than a heuristic tuning parameter. Under this choice, the resulting stopping condition is equivalent to the PBGI stopping rule, and naturally extends to the cost-aware setting.
+This stopping rule can therefore naturally be paired with acquisition functions derived from either the PBGI or the EI design principles. Acquisition functions such as KG or MES, which are derived from alternative principles such as value-of-information or entropy search, inherently require their own matched stopping rules.
+
+Our contributions are summarized as follows:
+\begin{enumerate}
+\item \emph{A Novel Cost-Aware Stopping Rule.} We present an adaptive stopping rule derived from Pandora's box theory, which also naturally extends to the expected improvement design principle, establishing a unified and principled framework applicable to both classic and cost-aware Bayesian optimization.
+\item \emph{Theoretical Guarantees.} We prove in \Cref{thm:non_neg_util} that our stopping rule, when paired with the PBGI or LogEIPC acquisition function, satisfies a theoretical upper bound on the expected cost-adjusted regret, which constitutes the first theoretical guarantee of this type for any adaptive stopping rule for Bayesian optimization.
+\item \emph{Empirical Validation.} We conduct a systematic empirical evaluation across multiple acquisition-function–-stopping-rule pairs in cost-aware Bayesian optimization. Our results on synthetic tasks and empirical benchmarks show that pairing our proposed stopping rule with the PBGI or LogEIPC acquisition function usually matches or outperforms other pairs.
+\end{enumerate}

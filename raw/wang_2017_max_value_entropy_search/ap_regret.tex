@@ -1,0 +1,60 @@
+\hide{
+\textbf{Speeding up posterior inference. } The random features not only enable easy sampling of a function from the posterior, but also speed up the process of updating the GP when a new observation is added: $\mSigma_t$ can be updated in $O(D^2)$ by the Sherman-Morrison formula: %
+$\mSigma_{t+1} = \mSigma_{t} - \frac{\mSigma_{t} z_{t+1} z_{t+1}\T \mSigma_{t}\sigma^{-2}}{1+ z_{t+1}\T \mSigma_{t} z_{t+1} \sigma^{-2}}$, which is cheaper than  
+%
+the inversion of a $t\times t$ matrix for every iteration $t$.
+Similarly, to update $k_t(\cdot, \cdot)$, we get 
+$
+k_{t+1}(\vx, \vx') = k_t(\vx, \vx') - \frac{k_t(\vx, \vx_{t+1}) k_t(\vx_{t+1}, \vx')}{\sigma^2 +k_t(\vx_{t+1}, \vx_{t+1})}.
+$
+%
+}
+\section{Regret bounds}
+Based on the connection of MES to EST, we show the bound on the learning regret for MES with a point estimate for $\alpha(x)$. 
+\regret*
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.85\textwidth]{figs/testfuncs}
+\caption{(a) 2-D eggholder function; (b) 10-D Shekel function; (c) 10-D Michalewicz function. PES achieves lower regret on the 2-d function while MES-G performed better than other methods on the two 10-d optimization test functions.}
+\label{fig:test}
+\end{figure*}
+
+Before we continue to the proof, notice that if the function upper bound $\hat y_*$ is sampled using the approach described in Section 3.1 and $k_t(\vx, \vx') \geq 0, \forall \vx,\vx'\in  \hat{\mathfrak X}$, we may still get the regret guarantee by setting $y_*=\hat{y}_*$ (or $y_* = \hat{y}_* +\epsilon L$ if $\mathfrak X$ is continuous) since $\Pr[\max_{\hat{\mathfrak X}} \leq y] \geq \Pr[\hat{y}_* < y]$. Moreover, Theorem~\ref{thm:regret} assumes $y_*$ is sampled from a universal maximum distribution of functions from $GP(\mu,k)$, but it is not hard to see that if we have a distribution of maximums adapted from $GP(\mu_t, k_t)$, we can still get the same regret bound by setting $T' = \sum_{i=1}^T\log_{w_i} \frac{\delta}{2\pi_i}$, where $w_i = F_i(f_*)$ and $F_i$ corresponds to the maximum distribution at an iteration where $y_*>f_*$. Next we introduce a few lemmas and then prove Theorem~\ref{thm:regret}.
+
+\begin{lem}[Lemma 3.2 in \cite{wang2016est}]
+\label{lem:pbound}
+Pick $\delta\in(0,1)$ and set $\zeta_{t} = (2\log(\frac{\pi_t}{2\delta}))^\frac12$, where $\sum_{t=1}^T \pi_t^{-1} \leq 1$, $\pi_t > 0$. Then, it holds that
+$ \Pr [  \mu_{t-1}(\vx_{t}) -f( \vx_{t})  \leq \zeta_{t}\sigma_{t-1}(\vx_{t}), \forall t\in [1,T]] \geq 1-\delta$.
+\end{lem}
+\begin{lem}[Lemma 3.3 in \cite{wang2016est}]
+\label{regretlem}
+%
+If $ \mu_{t-1}(\vx_{t}) -f(\vx_{t}) \leq \zeta_t\sigma_{t-1}(\vx_{t})$, the regret at time step $t$ is upper bounded as $\rt_t \leq (\bt_t  +\zeta_t )\sigma_{t-1}(\vx_{t})$ %
+, where $\bt_t  \triangleq \min_{\vx\in\mathfrak X} \frac{\hat m_t-\mu_{t-1}(\vx)}{\sigma_{t-1}(\vx)}$, and $\hat m_t\geq \max_{\vx\in \mathfrak X} f(\vx)$, $\forall t\in[1,T]$.
+\end{lem}
+\begin{lem}[Lemma 5.3 in \cite{srinivas2009gaussian}]
+\label{lem:info}
+The information gain for the points selected can be expressed in terms of the predictive variances. If $f_T = (f(\vx_t))\in \R^T$:
+$$I(\vy_T; \vf_T) = \frac12 \sum_{t=1}^T \log(1+\sigma^{-2}\sigma^2_{t-1}(\vx_t)).$$
+\end{lem}
+\begin{proof}(Theorem~\ref{thm:regret})
+By lemma~3.1 in our paper, we know that the theoretical results from EST~\cite{wang2016est} can be adapted to MES if $y_* \geq f_*$. The key question is when a sampled $y_*$ that can satisfy this condition. Because the cumulative density $w = F(f_*) \in (0,1)$ and $y^t_*$ are  independent samples from $F$, there exists at least one $y^t_*$ that satisfies $y^t_* > f_*$ with probability at least $1-w^{k_i}$ in $k_i$ iterations. 
+
+Let $T' = \sum_{i=1}^T k_i$ be the total number of iterations. We split these iterations to $T$ parts where each part have $k_i$ iterations, $i = 1,\cdots, T$. By union bound, with probability at least $1-\sum_{i=1}^T w^{k_i}$, in all the $T$ parts of iterations, we have at least one iteration $t_i$ which samples $y^{t_i}_*$ satisfying $y^{t_i}_*>f_*, \forall i = 1,\cdots, T$. 
+
+Let $\sum_{i=1}^T w^{k_i} = \frac{\delta}{2}$, we can set $k_i = \log_w \frac{\delta}{2\pi_i}$ for any $\sum_{i=1}^T(\pi_i)^{-1} = 1$. A convenient choice for $\pi_i$ is $\pi_i= \frac{\pi^2 i^2}{6}$. Hence with probability at least $1-\frac{\delta}{2}$, there exist a sampled $y^{t_i}_*$ satisfying $y^{t_i}_*>f_*, \forall i = 1,\cdots, T$.
+
+Now let $\zeta_{t_i} = (2\log\frac{\pi_{t_i}}{\delta})^{\frac12}$. By Lemma~\ref{lem:pbound} and Lemma~\ref{regretlem}, the immediate regret $r_{t_i} = f_* - f(\vx_{t_i})$ can be bounded as
+\begin{align*}
+r_{t_i} &\leq (\bt_{t_i}  +\zeta_{t_i} )\sigma_{t_i-1}(\vx_{t_i}).
+\end{align*}
+Note that by assumption $0\leq\sigma_{t_i-1}^2(\vx_{t_i}) \leq 1$, so we have $\sigma_{t_i-1}^2 \leq \frac{\log(1+\sigma^{-2} \sigma_{t_i-1}^2(\vx_{t_i}))}{\log(1+\sigma^{-2})}$.
+Then by Lemma~\ref{lem:info}, we have $\sum_{i=1}^T \sigma_{t_i-1}^2(\vx_{t_i}) \leq \frac{2}{\log(1+\sigma^{-2})} I(\vy_T;\vf_T)$ where $\vf_T = (f(\vx_{t_i}))_{i=1}^T \in \R^T, \vy_T = (y_{t_i})_{i=1}^T \in \R^T$. From assumptions, we have $I(\vy_T;\vf_T)\leq\rho_T $. By Cauchy-Schwarz inequality, $\sum_{i=1}^T \sigma_{t_i-1}(\vx_{t_i})\leq \sqrt{T\sum_{i=1}^T \sigma^2_{t_i-1}(\vx_{t_i})} \leq \sqrt{\frac{2T \rho_T}{\log(1+\sigma^{-2})}}$. It follows that with probability at least $1-\delta$,
+$$\sum_{i=1}^T r_{t_i} \leq  (\bt_{t^*}  +\zeta_{T} ) \sqrt{\frac{2T \rho_T}{\log(1+\sigma^{-2})}}.$$
+As a result, our learning regret is bounded as
+$$r_{T'}\leq\frac1T\sum_{i=1}^T r_{t_i} \leq  (\bt_{t^*}  +\zeta_{T} ) \sqrt{\frac{2 \rho_T}{T\log(1+\sigma^{-2})}},$$ where $T' = \sum_{i=1}^T k_i = \sum_{i=1}^T \log_{w}\frac{\delta}{2\pi_i}$ is the total number of iterations.
+\end{proof}
+At first sight, it might seem like MES with a point estimate does not have a converging rate as good as $EST$ or $GP-UCB$. However, notice that $\min_{\vx\in\mathfrak X}\gamma_{y_1}(\vx) < \min{\vx\in\mathfrak X} \gamma_{y_2}(\vx)$ if $y_1 < y_2$, which decides the rate of convergence in Eq.~\ref{eq:regret}. So if we use $y_*$ that is too large, the regret bound could be worse. If we use $y_*$ that is smaller than $f_*$, however, its value won't count towards the learning regret in our proof, so it is also bad for the regret upper bound. With no principled way of setting $y_*$ since $f_*$ is unknown. Our regret bound in Theorem~\ref{thm:regret} is a randomized trade-off between sampling large and small $y_*$.
+
+For the regret bound in add-GP-MES, it should follow add-GP-UCB. However, because of some technical problems in the proofs of the regret bound for add-GP-UCB, we haven't been able to show a regret bound for add-GP-MES either. Nevertheless, from the experiments on high dimensional functions, the methods worked well in practice.

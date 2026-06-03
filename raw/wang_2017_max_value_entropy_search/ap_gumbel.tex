@@ -1,0 +1,29 @@
+\section{Using the Gumbel distribution to sample $y_*$}
+To sample the function maximum $y_*$, our first approach is to approximate the distribution for $y^*$ and then sample from that distribution. We use independent Gaussians to approximate the correlated $f(\vx), \forall \vx\in \hat{\mathfrak X}$ where $\hat{\mathfrak X}$ is a discretization of the input search space $\mathfrak X$ (unless $\mathfrak X$ is discrete, in which case $\hat{\mathfrak X}=\mathfrak X$). A similar approach was adopted in~\cite{wang2016est}. We can show that by assuming $\{f(\vx)\}_{\vx\in \hat{\mathfrak X}}$, our approximated distribution gives a distribution for an upperbound on $f(\vx)$.
+
+\begin{lem}[Slepian's Comparison Lemma~\citep{slepian1962one,massart2007concentration}]
+\label{lem:splepian}
+Let $\vu, \vv\in \R^n$ be two multivariate Gaussian random vectors with the same mean and variance, such that
+ $$\mathbb E [\vv_i\vv_j]\leq \mathbb E [\vu_i\vu_j], \forall i,j.$$ 
+ Then for every $y$
+ $$\Pr[\sup_{i\in[1,n]}\vv_i \leq y] \leq \Pr[\sup_{i\in[1,n]}\vu_i \leq y].$$
+%
+%
+\end{lem}
+
+By the Slepian's lemma, if the covariance $k_t(\vx, \vx') \geq 0, \forall \vx,\vx'\in  \hat{\mathfrak X}$, using the independent assumption with give us a distribution on the upperbound $\hat{y}_*$ of $f(\vx)$, $\Pr[\hat{y}_* < y] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma_y(\vx)))$.
+
+
+We then use the  Gumbel distribution to approximate the distribution for the maximum of the function values for $\hat{\mathfrak X}$, $\Pr[\hat{y}_* < y] = \prod_{\vx\in\hat{\mathfrak X}} \Psi(\gamma_y(\vx)))$. If for all $\vx\in\hat{\mathfrak X}$, $f(\vx)$ have the same mean and variance, the Gumbel approximation is in fact asymptotically correct by the Fisher-Tippett-Gnedenko theorem~\cite{fisher1930genetical}. 
+\begin{thm}[The Fisher-Tippett-Gnedenko Theorem~\cite{fisher1930genetical}]
+Let $\{v_i\}_{i=1}^\infty$ be a sequence of independent and identically-distributed random variables, and $M_n = \max_{1\leq i\leq n}v_i$. If there exist constants $a_n>0,b_n \in \R$ and a non degenerate distribution function $F$ such that $\lim_{n\rightarrow \infty} \Pr(\frac{M_n-b_n}{a_n}\leq x) = F(x)$, then the limit distribution $F$ belongs to either the Gumbel, the Fr{\'e}chet or the Weibull family.
+\end{thm}
+In particular, for i.i.d. Gaussians, the limit distribution of the maximum of them belongs to the Gumbel distribution~\cite{von1936distribution}.
+ Though the Fisher-Tippett-Gnedenko theorem does not hold for independent and differently distributed Gaussians, in practice we still find it useful in approximating $\Pr[\hat{y}_* < y]$. In Figure~\ref{fig:gumbel}, we show an example of the result of the approximation for the distribution of the maximum of $f(\vx)\sim GP(\mu_t,k_t) \forall \vx\in\hat{\mathfrak X}$ given 50 observed data points randomly selected from a function sample from a GP with 0 mean and Gaussian kernel. 
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=.4\textwidth]{figs/gumbel_approx1}
+\caption{An example of approximating the cumulative probability of the maximum of independent differently distributed Gaussians $\Pr[\hat{y}_* < y]$ (Exact) with a Gumbel distribution $\mathcal G(a,b)$ (Approx) via percentile matching. }
+\label{fig:gumbel}
+\end{figure}

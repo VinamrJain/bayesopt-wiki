@@ -1,0 +1,67 @@
+
+\section{Experiments}
+\label{sec:experiments}
+
+We compare \bocas to the following four baselines: 
+\gpucb, the \gpeis criterion in \bayo~\citep{jones98expensive}, 
+\mfgpucbones from~\citet{kandasamy16mfbo} and
+\mfsko: the multi-fidelity sequential kriging optimisation method
+from~\citet{huang06mfKriging}.
+All methods are based on GPs.
+The first two are not multi-fidelity methods, while the last two are finite multi-fidelity
+methods\footnote{%
+To our knowledge, the only other work that applies to continuous approximations
+is~\citet{klein2015towards} which was developed specifically for hyper-parameter tuning.
+Further, their implementation is not made available and is not straightforward to
+implement.
+}.
+For the latter,
+
+In all our experiments we use the SE kernel for the GPs.
+We have described some implementation details for all these methods in
+Appendix~\ref{sec:appImplementation}.
+
+
+\subsection{Synthetic Experiments}
+\label{sec:synthetic}
+
+\insertToyResultsFigure
+
+The results for the first set of synthetic experiments are given in Fig.~\ref{fig:toy}.
+The title of each figure states the function used, and the dimensionalities $p,d$ of the
+fidelity space and domain.
+In all case, the fidelity space was taken to be $\Zcal=[0,1]^p$ with
+$\zhf = \one_p = [1,\dots,1]\in\RR^p$
+being the most expensive fidelity.
+For \mfgpucbones and \mfsko, we used $3$ fidelities ($2$ approximations) where the
+approximations were obtained at $z=0.333\one_p$ and $z=0.667\one_p$ points in the fidelity
+space.
+To reflect the setting in our experiments, we add Gaussian noise to the function value
+when observing $g$ at any $(z,x)$.
+This makes the problem more challenging than standard global optimisation problems
+where function evaluations are not noisy.
+The functions $g$, the cost functions $\cost$ and the noise variances $\eta^2$ are given
+in Appendix~\ref{sec:appExperiments}.
+
+The first two figures in Fig.~\ref{fig:toy} are simple sanity checks.
+In both cases, $\Zcal=[0,1]$ and $\Xcal=[0,1]$ and the functions were sampled from GPs. 
+The GP was made known to all methods which used them in picking the next point.
+In the first figure, we used an SE kernel for $\phix$ with bandwidth 
+
+In the remaining experiments, we use some standard benchmarks for global optimisation.
+We modify them to obtain the function $g$ and add noise to the observations.
+As the kernel and other GP hyper-parameters are unknown, we learn them by maximising
+the marginal likelihood every $25$ iterations.
+This is a common heuristic used in the \bayo{} literature.
+We outperform all methods on all problems
+except in the case of the Borehole function where \mfgpucbones does better.
+
+
+\subsection{Maximum Likelihood Estimation with Type Ia Supernovae}
+\label{sec:sn}
+
+\subsection{Support Vector Classification with $20$ news groups}
+\label{sec:sn}
+
+\insertRealResultsFigure
+

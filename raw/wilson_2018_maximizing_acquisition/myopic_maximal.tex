@@ -1,0 +1,313 @@
+%!TEX root=main.tex
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                 Myopic Maximal
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Maximizing myopic maximal acquisitions}
+\label{sect:myopic_maximal}
+
+% As seen in Table~\ref{table:reparameterizations}, this family plays a key role in \temp{BO}.{\note{jw: should probably list all four MM acquisitions for proper emphasis}} 
+
+This section focuses exclusively on the family of myopic maximal (\MM) acquisition functions: myopic acquisition functions defined as the expected max of a pointwise utility function \uacq{}, \ie{} \(\Acq(\X) = \E_{\Y}[\acq(\Y)] = \E_{\Y}[\max \uacq(\Y)]\). Of the acquisition functions included in Table~\ref{table:reparameterizations}, this family includes \EI{}, \PI, \SR{}, and \UCB{}. \temp{We show that} these functions have special properties that make them particularly amenable to greedy maximization.
+
+Greedy maximization is a popular approach for selecting near-optimal sets of queries \X{} to be evaluated in parallel \cite{azimi2010batch,chen2013near,contal2013parallel,desautels2014parallelizing,shah2015parallel,kathuria2016batched}. This iterative strategy is so named because it always ``greedily'' chooses the query \(\x\) that produces the largest immediate reward. At each step \(\roundIdx = 1, \ldots, \parallelism\), a greedy maximizer treats the \(\roundIdx{-}1\) preceding choices \(\OLD{1}{\X}\) as constants and grows the set by selecting an additional element \(\NEW{0}{\x} \in \argmax_{\x \in \xspace} \Acq(\OLD{1}{\X} \cup \{\x\}; \data)\) from the set of possible queries \xspace{}. \warn{Algorithm~2} in Figure~\ref{fig:overview_pt2} outlines this process's role in BO's outer-loop.
+
+% Prior to continuing, we define the first-order \MM{} growth function and its expectation, respectively, as
+% \begin{align}
+% \gain(\new{\x}; \X)
+%   &= \max \uacq(\Y \cup \{\new{\y}\}) - \max \uacq(\Y)
+%   \\
+% \Gain(\new{\x}; \X)
+%   &= 
+%     \Acq(\X \cup \{\new{\x}\}) - \Acq(\X)
+%   =
+%     \E_{\Y \cup \{\new{\y}\}}
+%     \left[
+%       \gain(\new{\y}; \Y)
+%     \right].
+% \label{eq:growth_function}
+% \end{align}
+% By convention, we set \(\Gain(\new{\x}; \emptyset) \triangleq \Acq(\new{\x})\) such that \(\Acq(\X) = \sum_{k=1}^{q}\Gain(\x_{k}, \X_{1:k-1})\).
+
+% \begin{align}
+% \Gain(\new{\x}; \X)
+%   = 
+%     \Acq(\X \cup \{\new{\x}\}) - \Acq(\X)
+%   =
+%     \E_{\Y \cup \{\new{\y}\}}
+%     \left[
+%       \gain(\new{\y}; \Y)
+%     \right],
+% \label{eq:growth_function}
+% \end{align}
+% where \(\gain(\new{\y}; \Y) = \max \acq(\Y \cup \{\new{\y}\}) - \max \acq(\Y)\). By convention, we set \(\Gain(\new{\x}; \emptyset) \triangleq \Acq(\new{\x})\) such that \(\Acq(\X) = \sum_{k=1}^{q}\Gain(\x_{k}, \X_{1:k-1})\).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                  Submodularity
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Submodularity}
+Greedy maximization is often linked to the concept of \emph{submodularity} (\SM). Roughly speaking, a set function \(\Acq\) is \SM{} if its increase in value when adding any new point \NEW{1}{\x} to an existing collection \OLD{1}{\X} is non-increasing in cardinality \(k\) (for a technical overview, see~\cite{bach2013learning}). Greedily maximizing \SM{} functions is guaranteed to produce near-optimal results~\cite{minoux1978accelerated,nemhauser78,krause14}. Specifically, if \Acq{} is a normalized \SM{} function with maximum \(\opt{\Acq}\), then a greedy maximizer will incur no more than \(\tfrac{1}{e}\opt{\Acq}\) regret when attempting to solve for \(\opt{\X} \in \argmax_{\X \in \xspace^{\parallelism}} \Acq(\X)\).
+
+In the context of BO, \SM{} has previously been appealed to when establishing outer-loop regret bounds \cite{srinivas10,contal2013parallel,desautels2014parallelizing}. Such applications of \SM{} utilize this property by relating an idealized BO strategy to greedy maximization of a \SM{} objective (\eg{}, the mutual information between \blackbox{} function \(f\) and observations \data{}). In contrast, we show that the family of \MM{} acquisition functions are inherently \SM, thereby guaranteeing that greedy maximization thereof produces near-optimal choices \X{} at each step of BO's outer-loop.\footnote{An additional technical requirement for \SM{} is that the ground set \xspace{} be finite. Under similar conditions, \SM-based guarantees have been extended to infinite ground sets \cite{srinivas10}, but we have not yet taken these steps.} We begin by removing some unnecessary complexity:
+
+% As additional notation, let \(\sample{f} \sim p(f | \data)\) denote the \(\sampleIdx\)-th possible explanation for \temp{unknown function} \(f\) given observations \data. Similarly, let \(\sample{\uacq}(\cdot) = \uacq\left(\sample{f}(\cdot)\right)\) denote pointwise utility defined over \sample{f}.
+\begin{enumerate}[label=\arabic*.,leftmargin=16pt,rightmargin=8pt]
+% ----------------
+\item Let \(\sample{f} \sim p(f | \data)\) denote the \(\sampleIdx\)-th possible explanation of \blackbox{} \(f\) given observations \data. By marginalizing out nuisance variables \(f(\xspace \setminus \X)\), \Acq{} can be expressed as an expectation over functions \(\sample{f}\) themselves rather than over potential outcomes \(\sample{\Y} \sim p(\Y|\X, \data)\).
+% \(\Y = f(\X)\).
+
+% In the language of the preceding section, this paradigm shift amounts to redefining the Gaussian reparameterization as \(\reparam(\X; \Z, \rparams) = \{\means_{j} + \Chol_{j}\Z\}_{\x_{j} \in \X}\), where moments \(\rparams = (\means, \Cov)\) are assessed over \xspace{} instead of \X{}, which now acts as an index set.
+% ----------------
+\item 
+Belief \(p(f | \data)\) and sample paths \sample{f} depend solely on \data{}. Hence, expected utility \(\Acq(\X; \data) = \E_{f}\left[\acq(f(\X))\right]\) is a weighted sum over a fixed set of functions whose weights are constant.
+% 
+Since non-negative linear combinations of \SM{} functions are \SM{} \cite{krause14}, \(\Acq(\argdot)\) is \SM{} so long as the same can be said of all functions \(\acq(\sample{f}(\argdot)) = \max \uacq\left(\sample{f}(\argdot)\right)\).
+% ----------------
+\item
+As pointwise functions, \sample{f} and \uacq{} specify the set of values mapped to by \xspace{}. They therefore influences whether we can normalize the utility function such that \(\acq(\emptyset) = 0\), but do not impact \SM{}.   
+% Both \sample{f} and \uacq{} are pointwise functions and only impact whether we can normalize to obtain \(\acq(\emptyset) = 0\). 
+% % \ask{FH: I don't understand what you mean with: `` and only impact whether we can normalize to obtain \(\acq(\emptyset) = 0\) ''}\reply{JW: I'll clarify this point. What I'm saying is that they simply specify the set of values that the set function operates over. In turn, they only influence our ability to lower bound utility values.}
+Appendix \ref{appendix:normalizing_utility} discusses the technical condition of normalization in greater detail. In general however, we require that \(\lboundAcq = \min_{\x \in \xspace}\uacq(\sample{f}(\x))\) is guaranteed to be bounded from below for all functions under the support of \(p(f|\data)\).
+\end{enumerate}
+
+
+% First, let \(\sample{f} \sim p(f | \data)\) denote the \(\sampleIdx\)-th possible explanation of \blackbox{} \(f\) given observations \data. By marginalizing out excluded terms \(f(\xspace \setminus \X)\), \Acq{} can be expressed an expectation over \(f\) itself rather than over unknown outcomes \(\Y = f(\X)\).
+% % 
+% In the language of the preceding section, this paradigm shift amounts to redefining the Gaussian reparameterization as \(\reparam(\X; \Z, \rparams) = \{\means_{j} + \Chol_{j}\Z\}_{\x_{j} \in \X}\), where moments \(\rparams = (\means, \Cov)\) are assessed over \xspace{} instead of \X{}, which now acts as an index set.
+
+% % Second, because the individual functions \(\sample{f}\) and corresponding probabilities \(\pi_{\sampleIdx} = p(\sample{f} | \data)\)\flag{jw: this isn't technically correct. it should reference the density instead.} that make up expected utility \(\Acq(\X) = \sum_{\sampleIdx=1}^{\infty} \pi_{\sampleIdx} \acq(\sample{f}(\X))\) depend solely on observations \data{}, both are fixed when maximizing \Acq{}.
+% % 
+% Second, both belief \(p(f | \data)\) and sample paths \sample{f} depend solely on \data{}. Hence, expected utility \(\Acq(\X; \data) = \E_{\sample{f}}\left[\acq(\sample{f}(\X))\right]\) is a weighted sum over a fixed set of functions using constant weights.
+% % 
+% Since non-negative linear combinations of \SM{} functions are \SM{} \cite{krause14}, \(\Acq(\argdot)\) is \SM{} so long as the same can be said of all functions \(\acq(\sample{f}(\argdot)) = \max \uacq\left(\sample{f}(\argdot)\right)\).
+
+% Third, \sample{f} and \uacq{} are both pointwise functions and only impact whether we can normalize to obtain \(\acq(\emptyset) = 0\). Appendix \ref{appendix:normalizing_utility} discusses this technical condition in greater detail. In general however, we require that \(\lboundAcq = \min_{\x \in \xspace}\uacq(\sample{f}(\x))\) is guaranteed to be bounded from below.
+
+% \temp{spurious machinery}
+Having now eliminated confounding factors, the remaining question is whether \(\max(\cdot)\) is \SM{}.
+% 
+Let \(\mathcal{V}\) be the set of possible utility values and define \(\max(\emptyset) = \lboundAcq\). 
+% 
+Then, given sets \(\setA \subseteq \setB \subseteq \mathcal{V}\) and \(\forall v \in \mathcal{V}\), it holds that
+\begin{align}
+\max(\setA \cup \{v\}) - \max(\setA) \ge \max(\setB \cup \{v\}) - \max(\setB).
+\label{eq:max_submodularity}
+\end{align}
+\temp{\emph{Proof:}} 
+We prove the equivalent definition \(\max(\setA) + \max(\setB) \ge \max(\setA~\cup~\setB) + \max(\setA~\cap~\setB)\). Without loss of generality, assume \(\max(\setA~\cup~\setB) = \max(\setA)\). Then, \(\max(\setB) \ge \max(\setA~\cap~\setB)\) since, for any \(\setC \subseteq \setB\), \(\max(\setB) \ge \max(\setC)\).
+
+This result establishes the \MM{} family as a class of \SM{} set functions, providing strong theoretical justification for greedy approaches to solving BO's inner-optimization problem.
+% \flag[inline]{jw: probably needs a closing statement or so}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                               Incremental Form
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{\warn{Incremental} form}
+So far, we have discussed greedy maximizers that select a \roundIdx-th new point \(\NEW{0}{\x}\) by optimizing the joint acquisition
+\(
+    % \Acq(\OLD{0}{\X} \cup \{\NEW{0}{\x}\}; \data) = \E_{\OLD{0}{\Y} \cup \{\NEW{0}{\y}\}|\data}\left[\acq(\OLD{0}{\Y} \cup \{\NEW{0}{\y}\})\right]
+    \Acq(\BOTH{0}{\X}; \data) = \E_{\BOTH{0}{\Y}|\data}\left[\acq(\BOTH{0}{\Y})\right]
+\) originally defined in \eqref{eq:expected_utility}. 
+% 
+A closely related strategy~\cite{ginsbourger2011dealing,snoek-nips12a,contal2013parallel,desautels2014parallelizing} is to formulate the greedy maximizer's objective as (the expectation of) a marginal acquisition function \(\iAcq\). We refer to this category of acquisition functions, which explicitly represent the value of 
+% \(\OLD{0}{\X} \cup \{\NEW{0}{\x}\}\) 
+\BOTH{0}{\X}
+as that of \(\OLD{0}{\X}\) incremented by a marginal quantity, as \emph{\mmform{}}. The most common example of an \mmform{} acquisition function is the iterated expectation
+\(
+    \E_{\OLD{1}{\Y}|\data}
+    \left[
+    \iAcq(\NEW{1}{\x}; \data_{\roundIdx})
+    \right]
+\), where \(\data_{\roundIdx} = \data \cup \{(\x_{i},\y_{i})\}_{i<\roundIdx}\) denotes a fantasy state. Because these integrals are generally intractable, \MC{} integration (Section~\ref{sect:differentiability}) is typically used to estimate their values by averaging over fantasies formed by sampling from \(p(\OLD{1}{\Y}| \OLD{1}{\X}, \data)\).
+% a set of fantasies.
+% \(\sample{\data}_{\roundIdx}\).
+% over samples from \(p(\OLD{1}{\Y}| \OLD{1}{\X}, \data)\).
+% over sampled outcomes \(\OLD{1}{\Y} \sim p(\OLD{1}{\Y}| \OLD{1}{\X}, \data)\).
+
+
+In practice, approaches based on \mmform{} acquisition functions (such as the mentioned \MC estimator) have several distinct advantages over joint ones. Marginal (myopic) acquisition functions usually admit differentiable, closed-form solutions. The latter property makes them cheap to evaluate, while the former reduces the sample variance of \MC estimators. Moreover, these approaches can better utilize caching since many computationally expensive terms (such as a Cholesky used to generate fantasies) only change between rounds of greedy maximization.
+
+A joint acquisition function \Acq{} can always be expressed as an incremental one by defining \iAcq{} as the expectation of the corresponding utility function \acq's discrete derivative%marginal gain
+\begin{align}
+\Gain(\NEW{0}{\x}; \OLD{0}{\X}, \data)
+  =
+    % \E_{\OLD{0}{\Y} \cup \{\NEW{0}{\y}\}}
+    \E_{\BOTH{0}{\Y}|\data}
+    \left[
+      \gain(\NEW{0}{\y}; \OLD{0}{\Y})
+    \right]
+  = 
+    \Acq(\BOTH{0}{\X}; \data) - \Acq(\OLD{0}{\X}; \data),
+    % \Acq(\OLD{0}{\X} \cup \{\NEW{0}{\x}\}) - \Acq(\OLD{0}{\X}),
+\label{eq:growth_expected}
+\end{align}
+with \(\gain(\NEW{1}{\y}; \OLD{0}{\Y}) = \acq(\BOTH{0}{\Y}) - \acq(\OLD{1}{\Y})\) and \(\Acq(\emptyset; \data) = 0\) so that \(\Acq(\X_{1:q}; , \data) = \sum_{\roundIdx=1}^{\parallelism}\Gain(\NEW{1}{\x}; \OLD{1}{\X}, \data)\). To show why this representation is especially useful for \MM{} acquisition functions, we reuse the notation of \eqref{eq:max_submodularity} to introduce the following straightforward identity
+% For \MM{} acquisition functions, this representation is particularly useful due to the following identity, which we introduce reusing the notation of \eqref{eq:max_submodularity}}
+% we reuse the notation of \eqref{eq:max_submodularity}} to introduce the following identity
+\begin{align}
+\max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right).
+\label{eq:max_growth}
+\end{align}
+\emph{Proof:} Since \(\lboundAcq\) is defined as the smallest possible element of either set, the \relu's argument is negative if and only if \setB's maximum is a member of \setA{} (in which case both sides equate to zero). In all other cases, the \relu{} can be eliminated and \(\max(\setB) = \max(\setB \setminus \setA)\) by definition.
+
+Reformulating the \MM{} marginal gain function as \(\gain(\NEW{0}{\y}; \OLD{0}{\Y}) = \relu(\acq(\NEW{0}{\y}) - \acq(\OLD{0}{\Y}))\) now gives the desired result: that the \MM{} family's discrete derivative is the ``improvement'' function. Accordingly, the conditional expectation of \eqref{eq:growth_expected} given fantasy state \(\data_{\roundIdx}\) is the expected improvement of \acq, \ie
+\begin{align}
+\E_{\NEW{0}{\y}|\data_{\roundIdx}}
+    \left[
+      \gain(\NEW{0}{\y}; \OLD{0}{\Y})
+    \right]
+    = \EI_{\acq}\left(\NEW{0}{\x}; \data_{\roundIdx}\right)
+    = \int_{\NEW{0}{\Gamma}} \left[\acq(\NEW{0}{\y}) - \acq(\OLD{0}{\Y})\right] p(\NEW{0}{\y}| \NEW{0}{\x}, \data_{\roundIdx}) d\NEW{0}{\y},
+\label{eq:growth_expected_ei}
+\end{align}
+where \(\NEW{1}{\Gamma} \triangleq \{\NEW{1}{\y} : \acq(\NEW{1}{\y}) > \acq(\OLD{1}{\Y})\}\).
+% 
+Since marginal gain function \(\gain\) primarily acts to lower bound a univariate integral over \NEW{0}{\y}, \eqref{eq:growth_expected_ei} often admits closed-form solutions. This statement is true of all \MM{} acquisition functions considered here, making their \mmform{} forms particularly efficient.
+% As is the case of for all \MM{} acquisition functions considered here, \eqref{eq:growth_expected_ei} readily affords closed-form solutions.
+% For all \MM{} acquisition functions considered here, \eqref{eq:growth_expected_ei} is closed-form, making their \mmform{} forms particularly efficient.
+
+Putting everything together, an \MM{} acquisition function's joint and \mmform{} forms equate as
+\(
+\Acq(\X_{1:\parallelism}; \data)
+  =
+  \sum_{\roundIdx=1}^{q} 
+    \E_{\OLD{1}{\Y}|\data}
+    \left[
+        \EI_{\acq}\left(\NEW{0}{\x}; \data_{\roundIdx})\right)
+    \right]
+% \label{eq:iterated_form}
+\). For the special case of Expected Improvement per se (denoted here as \(\Acq_{\acqSubscript{\EI}}\) to avoid confusion), this expression further simplifies to reveal an exact equivalence whereby
+\(
+\Acq_{\acqSubscript{\EI}}(\X_{1:\parallelism}; \data)
+  = \sum_{\roundIdx=1}^{q}\E_{\OLD{1}{\Y}|\data}
+  \left[
+    \Acq_{\acqSubscript{\EI}}(\NEW{1}{\x}; \data_{\roundIdx})
+  \right]
+\). 
+Appending~\ref{appendix:results_extended} compares performance when using joint and \mmform{} forms, demonstrating how the latter becomes increasingly beneficial as the dimensionality of the (joint) acquisition function \(\parallelism \times d\) grows.
+
+% As shown in Appending~\ref{appendix:results_extended}, using these forms becomes increasingly beneficial as the dimensionality of the (joint) acquisition function \(\parallelism \times d\) grows.
+
+% \(\Gain(\NEW{\x}; \X) = \EI_{\acq}\left(\x_{k+1}; \data_{k}, \acq(\Y_{1:k})\right) \triangleq \int_{\acq(\Y)}^{\infty} \acq(\NEW{\y}) p(\NEW{\y}| \NEW{\x}, \data_{k}) d\NEW{\y}\), w
+
+% \gain's conditional expectation is the expected improvement of \(\jAcq(\X \cup \{\NEW{\x}\})\) over \(\jAcq(\X)\) given \(\Y\). 
+%
+% This gain function simply lower bounds the corresponding expectation, allowing us to rewrite  \eqref{eq:growth_expected} as \(\Gain(\NEW{\x}; \X) = \int_{\acq(\Y)}^{\infty} \acq(\NEW{\y}) p(\NEW{\y}| \NEW{\x}, \data_{k}) d\NEW{\y}\), which is 
+
+% Assuming \(p(f|\data)\) is Gaussian, this expected improvement has a closed-form solution provided that, \eg{}, \acq{} is a linear function.
+% Assuming \(p(f|\data)\) is Gaussian, this expected improvement has a closed-form solution provided that, \eg{}, \acq{} is a linear function.
+% \footnote{Probability of Improvement's \mmform{} form also has  closed-form conditional expectationsdespite \(\acq_{\acqSubscript{\PI}}\)'s nonlinearity.}
+
+% Putting everything together, an \MM{} acquisition function's joint and \mmform{} forms equate as
+% \begin{align}
+% \Acq(\X; \data)
+%   =
+%   \sum_{k=0}^{q-1} 
+%     \E_{\Y_{1:k}}
+%     \left[
+%         \EI_{\acq}\left(\x_{k+1}; \data_{k}, \acq(\Y_{1:k})\right)
+%     \right],
+% \label{eq:iterated_form}
+% \end{align}
+% where conditional expectation \(\EI_{\acq}\left(\x_{k+1}; \data_{k}, \acq(\Y_{1:k})\right)\) reads as the expected improvement of \(\acq(\y_{k+1})\) over \(\acq(\Y_{l:k})\) given fantasy state \(\data_{k}\). For the special case of the Expected Improvement acquisition function (denoted here as \(\Acq_{\acqSubscript{\EI}}\) to avoid confusion), this expression further simplifies to reveal an exact equivalence whereby
+% \(
+% \Acq_{\acqSubscript{\EI}}(\X; \data)
+%   = \sum_{k=0}^{q-1}\E_{\Y_{1:k}}
+%   \left[
+%     \Acq_{\acqSubscript{\EI}}(\x_{k+1}; \data_{k})
+%   \right].
+% \)
+
+% Since, for all \MM{} acquisition functions considered here, \(\EI_{\acq}\) can be calculated exactly, the \mmform{} forms are especially efficient. As shown in Appending~\ref{appendix:results_extended}, using these forms becomes increasingly beneficial as the dimensionality of the (joint) acquisition function \(\parallelism \times d\) grows.
+
+% acquisition function's \mmform{} form as acquisition dimensionality \(\parallelism \times d\) increases.
+
+% displayed in extended results (Figure~\ref{fig:results_synthetic_ei_\mmform{}} of Appending~\ref{appendix:results_extended}). S
+
+% The practical ramifications of this connection are displayed in extended results (Figure~\ref{fig:results_synthetic_ei_\mmform{}} of Appending~\ref{appendix:results_extended}). Said results clearly demonstrate the advantages of utilizing an \MM{} acquisition function's \mmform{} form as acquisition dimensionality \(\parallelism \times d\) increases.
+
+% In cases where the acquisition function's dimensionality \(\parallelism \times d\) was low to modest, greedy maximizers using \mmform{} forms were slightly inferior to joint ones; however, they significantly outperformed their respective counterparts in higher dimensional cases.
+
+
+% The most way of doing so is by fantasizing potential states \(\data_{\parallelism} \sim \data \cup \{(\x_{i}, Y_{i})\}_{i=1}^{\parallelism}\) and computing the conditional expected utility \(\Acq(\NEW{\x}; \data_{\parallelism})\). New points \NEW{\x}{} are then chosen by maximizing the Monte Carlo integral (Section~\ref{sect:differentiability}) formed by averaging over fantasized states. We refer to this latter category of acquisitions functions, which represent utility as the expectation of a (conditional) marginal expression, as \emph{\mmform{}}.
+
+% maximize the marginal acquisition for \NEW{\x}{} conditioned on previously chosen points \X{}. The most common way of doing so is by fantasizing potential states \(\data_{\parallelism} \sim \data \cup \{(\x_{i}, Y_{i})\}_{i=1}^{\parallelism}\) and computing the conditional expected utility \(\Acq(\NEW{\x}; \data_{\parallelism})\). New points \NEW{\x}{} are then chosen by maximizing the Monte Carlo integral (Section~\ref{sect:differentiability}) formed by averaging over fantasized states. We refer to this latter category of acquisitions functions, which represent utility as the expectation of a (conditional) marginal expression, as \emph{\mmform{}}.
+
+
+
+% The \MM{} family's characteristic growth function is defined as  \(\gain(\new{\x}; \X) = \max \uacq(\Y \cup \{\new{\y}\}) - \max \uacq(\Y)\). 
+
+% where \(\Acq(\emptyset) = 0\), this representation has the convenient property \(\Acq(\X) = \sum_{k=1}^{\parallelism}\Gain(\x_{k}; \X_{1:k-1})\).
+
+% where, for \MM{} acquisition functions, \(\gain(\new{\x}; \X) = \max \uacq(\Y \cup \{\new{\y}\}) - \max \uacq(\Y)\). Defining \(\Acq(\emptyset) = 0\), this representation has the convenient property \(\Acq(\X) = \sum_{k=1}^{\parallelism}\Gain(\x_{k}; \X_{1:k-1})\). 
+
+% where \(\Acq(\emptyset) = 0\), such that \(\Acq(\X) = \sum_{k=1}^{\parallelism}\Gain(\x_{k}; \X_{1:k-1})\). 
+
+
+% So far, we have discussed greedy strategies which select new points \new{\x} by maximizing the joint acquisition \(\Acq(\X \cup \{\NEW{\x}\}; \data)\). An alternative greedy approach \temp{[cite]} is to maximize the marginal acquisition for \NEW{\x}{} conditioned on previously chosen points \X{}. The most common way of doing so is by fantasizing potential states \(\data_{\parallelism} \sim \data \cup \{(\x_{i}, Y_{i})\}_{i=1}^{\parallelism}\) and computing the conditional expected utility \(\Acq(\NEW{\x}; \data_{\parallelism})\). New points \NEW{\x}{} are then chosen by maximizing the Monte Carlo integral (Section~\ref{sect:differentiability}) formed by averaging over fantasized states. We refer to this latter category of acquisitions functions, which represent utility as the expectation of a (conditional) marginal expression, as \emph{\mmform{}}.
+
+% To avoid confusion, we refer to this latter category of acquisitions functions as \emph{\mmform{}}.
+
+% Reusing the notation of \eqref{eq:max_submodularity}, we introduce the simple identity
+% \begin{align}
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right).
+% \label{eq:max_growth}
+% \end{align}
+% \emph{Proof:} Since \(\lboundAcq\) is defined as the smallest possible element of either set, the \relu's argument is negative if and only if \setB's maximum is a member of \setA{} (in which case both sides equate to zero). In all other cases, the \relu{} can be eliminated and \(\max(\setB) = \max(\setB \setminus \setA)\) by definition.
+
+
+% \begin{align}
+% \Gain(\new{\x}; \X)
+%   =
+%   \E_{\Y}
+%   \left[
+%     \E_{\new{\y}}
+%     \left[
+%        \relu\left(\acq(\new{\y}) - \max \acq(\Y)\right)
+%     \right]
+%   \right].
+% \label{eq:iterated_growth}
+% \end{align}
+
+% Rewriting \gain{} according to \eqref{eq:max_growth} and applying the law of iterated expectation, we arrive at
+% \begin{align}
+% \Acq(\X)
+%   =
+%   \sum_{k=1}^{q} 
+%     \E_{\Y_{1:k-1}}
+%     \left[
+%       \E_{\y_{k}}
+%       \left[
+%          \relu\left(\acq(\y_k) - \max \acq(\Y_{1:k-1})\right)
+%       \right]
+%     \right].
+% \label{eq:iterated_form}
+% \end{align}
+% Because the right-hand side of \eqref{eq:max_growth} amounts to the improvement of \setB's max over that of \setA, the special case of parallel \EI{} further simplifies as
+% % \begin{align}
+% \(
+% \Acq_{\acqSubscript{\EI}}(\X; \data)
+%   = \sum_{k=1}^{q}\E_{\Y_{1:k-1}}
+%   \left[
+%     \Acq_{\acqSubscript{\EI}}(\x_{k}; \data \cup \{(\x_i,\y_i)\}_{i=1}^{k-1})
+%   \right]
+% \).
+% % \label{eq:iterated_form_ei}
+% % \end{align}
+
+% The greedy strategy outlined above is closely related to parallel asynchronous acquisition functions \cite{ginsbourger2011dealing,snoek-nips12a}. We differentiate between these \temp{types} of acquisition functions according to their treatment of \temp{integrands' arguments}. Given pending inputs \X, the synchronous form posits additional query \x's value as the expectation of \(\Acq(\X \cup \{\x\}; \data)\). In contrast, the asynchronous form integrates \x's marginal value \(\Acq(\x; \new{\data})\) against possible states \(\new{\data} \gets \data \cup  \{(\x_{i},\y_{i})\}_{i=1}^{q}\). We refer to the former as the \emph{joint} form, since it conveys the utility for \x{} and \X simultaneously, and to the latter as the \emph{iterated} form, since it communicates \x's utility subsequent to \X. 
+
+
+% By applying the identity
+% \(
+% \max(\setB) - \max(\setA) = \relu\left(\max(\setB \setminus \setA) - \max(\setA)\right)
+% \) with terms defined as in \eqref{eq:max_submodularity}, the joint form of a myopic maximal acquisition function can be directly translated into an iterated one (see Appendix \temp{XYZ}). For the special case of parallel \EI{}, the joint and iterated forms are equivalent, \ie{},
+% \(
+% \Acq_{\acqSubscript{\EI}}(\X; \data)
+%     = \sum_{k=1}^{q}\E_{\Y_{<k}}
+%     \left[
+%         \Acq_{\acqSubscript{\EI}}(\x_{k}; \data \cup \{(\x_i,\y_i)\}_{i<k})
+%     \right]
+% \).

@@ -1,0 +1,14 @@
+\subsection{High Dimensional BO with Add-MES}
+
+In this section, we test our add-MES algorithm on high dimensional black-box function optimization problems. First we compare add-MES and add-GP-UCB~\cite{kandasamy2015high} on a set of synthetic additive functions with known additive structure and GP hyper-parameters. Each function component of the synthetic additive function is active on at most three input dimensions, and is sampled from a GP with zero mean and Gaussian kernel (bandwidth = $0.1$ and scale = $5$). For the parameter of add-GP-UCB, we follow~\cite{kandasamy2015high} and set $\beta^{(m)}_t = |A_m|\log 2t/5$. We set the number of $y^{(m)}_*$ sampled for each function component in add-MES-R and add-MES-G to be 1. 
+We repeat each experiment for 50 times for each dimension setting. The results for simple regret are shown in Fig.~\ref{fig:highsynth}. Add-MES methods perform much better than add-GP-UCB in terms of simple regret. Interestingly, add-MES-G works better in lower dimensional cases where $d=10,20,30$, while add-MES-R outperforms both add-MES-G and add-GP-UCB for higher dimensions where $d=50,100$. In general, MES-G tends to overestimate the maximum of thefunction because of the independence assumption, and MES-R tends to underestimate the maximum of the function because of the imperfect global optimization of the posterior function samples. We conjecture that MES-R is better for settings where exploitation is preferred over exploration (e.g., not too many local optima), and MES-G works better if exploration is preferred. 
+
+To further verify the performance of add-MES in high dimensional problems, we test on two real-world high dimensional experiments. One is a function that returns the distance between a goal location and two objects being pushed by a robot which has 14 parameters\footnote{We implemented the function in~\cite{box2d}.}. The other function returns the walking speed of a planar bipedal robot, with 25 parameters to tune~\cite{westervelt2007feedback}. In Fig.~\ref{fig:highreal}, we show the simple regrets achieved by add-GP-UCB and add-MES. Add-MES methods performed competitively compared to add-GP-UCB on both tasks.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{figs/highreal}
+\caption{Simple regrets for add-GP-UCB and add-MES methods on (a) a robot pushing task with 14 parameters and (b) a planar bipedal walker optimization task with 25 parameters. Both MES methods perform competitively comparing to add-GP-UCB.}
+\label{fig:highreal}
+\end{figure}
+

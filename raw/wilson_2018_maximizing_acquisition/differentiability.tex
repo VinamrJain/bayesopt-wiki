@@ -1,0 +1,144 @@
+%!TEX root=main.tex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                              Differentiability
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Differentiating Monte Carlo acquisitions}
+\label{sect:differentiability}
+Gradients are one of the most valuable sources of information for optimizing functions. In this section, we detail both the reasons and conditions whereby \MC acquisition functions are differentiable and further show that most well-known examples readily satisfy these criteria (see Table~\ref{table:reparameterizations}).
+
+
+We assume that \Acq{} is an expectation over a multivariate normal belief \(p(\Y|\X, \data) = \gaussian(\Y; \means, \Cov)\) specified by a GP surrogate such that \((\means, \Cov) \gets \model(\X)\).
+% \ask{FH: should this be $\model(\X; \hypers)$?}\reply{JW: Yes, but we omit reference to \hypers{} throughout the paper (aside from in the small subsection on surrogates)}\reply{FH: but then we should state somewhere that we omit it; I actually checked in that small subsection whether we said we omit it, and since we didn't I wrote the comment.}\reply{JW: It used to say that we omit it in the background section's intro, but I removed that bit because it became to cluttered. I'll fix this issue.} 
+More generally, we assume that samples can be generated as \(\sample{\Y} \sim p(\Y|\X, \data)\) to form an unbiased \MC estimator of an acquisition function
+\(
+\Acq(\X)
+	\approx \AcqMC{}(\X)
+	\triangleq \tfrac{1}{\nSamples}\sum\nolimits^{\nSamples}_{\sampleIdx=1} \acq(\sample{\Y})
+\). 
+Given such an estimator, we are interested in verifying whether
+\begin{align}
+\nabla\Acq(\X)
+	\approx \nabla\AcqMC{}(\X)
+    \triangleq
+    	\tfrac{1}{\nSamples}\sum\nolimits^{\nSamples}_{\sampleIdx=1}
+	\nabla\acq(\sample{\Y}),
+\label{eq:gradient_mc}
+\end{align}
+where \(\nabla\acq\) denotes the gradient of utility function \acq{} taken with respect to \X{}. 
+The validity of \MC gradient estimator \eqref{eq:gradient_mc} is obscured by the fact that \sample{\Y} depends on \X{} through generative distribution \belief{} and that \(\nabla\AcqMC{}\) is the expectation of \acq's derivative rather than the derivative of its expectation.
+% \acq's expected derivative rather than the derivative of its expectation. 
+% is no longer the derivative of \acq's expectation.
+% expectation of \acq's derivative rather than the derivative of its expectation. 
+
+
+Originally referred to as \emph{infinitesimal perturbation analysis}~\cite{cao1985convergence,glasserman1988performance}, the \emph{reparameterization trick}~\cite{kingma2013vae,JimenezRezende2014a} is the process of differentiating through an \MC estimate to its generative distribution \belief's parameters and consists of two components: 
+% 
+i) reparameterizing samples from \belief{} as draws from a simpler base distribution \(\hat{\belief}\), and 
+% 
+ ii) interchanging differentiation and integration by taking the expectation over sample path derivatives.
+% 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             Reparameterization
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Reparameterization}
+Reparameterization is a way of interpreting samples that makes their differentiability \wrt{} a generative distribution's parameters transparent. Often, samples \(\sample{\Y} \sim p(\Y; \rparams)\) can be re-expressed as a deterministic mapping \(\reparam : \zspace \times \rParams \to \yspace\) of simpler random variates \(\sample{\Z} \sim \hat{p}(\Z)\)~\cite{kingma2013vae, JimenezRezende2014a}. This change of variables helps clarify that, if \acq{} is a differentiable function of \(\Y = \reparam(\Z;\rparams)\), then \(\small{\frac{d\acq}{d\rparams}} = \small{\frac{d\acq}{d\reparam}\frac{d\reparam}{d\rparams}}\) by the chain rule of (functional) derivatives. 
+% \ask[inline]{FH: shouldn't this be \(\small{\frac{d\acq}{d\rparams}} = \small{\frac{d\acq}{d\Y}\frac{d\Y}{d\rparams}}\)?}
+% \reply[inline]{JW: No. The point of the "reparametizing" is to express \Y{} as a function that we can differentiate through (rather than to differentiate through \Y{} as a sample}
+% \reply[inline]{FH: I did not mean differentiating through \Y{} as a sample, but I can see how you could read it like this. I don't love the notation $\frac{d\acq}{d\reparam}$ since $\reparam$ is a function and you're not stating its inputs, but since $\frac{d\acq}{d\Y}$ can be misunderstood as you mention (which would be a worse misunderstanding) I'm OK with leaving it as is.}
+% \reply[inline]{JW: I would love to simply rephrase the right-hand side to use something like \(\frac{d\reparam(\cdot; \rparams)}{d\rparams}\) but it becomes very tricky to do that consistently for all of the terms.}
+
+If generative distribution \belief{} is multivariate normal with parameters \(\rparams = (\means, \Cov)\), the corresponding mapping is then \(\reparam(\Z; \rparams) \triangleq \means + \Chol\Z\), where \(\Z \sim \gaussian(\zeros, \identity)\) and \Chol{} is \Cov's Cholesky factor such that \(\Chol\T{\Chol} = \Cov\). Rewriting~\eqref{eq:expected_utility} as a Gaussian integral and reparameterizing, we have
+\begin{align}
+\Acq(\X) 
+	=\int_{\lbounds}^{\ubounds}
+		\acq(\Y)
+		\gaussian(\Y; \means, \Cov)
+		d\Y
+	= \int_{\alt{\lbounds}}^{\alt{\ubounds}}
+		\acq(\means + \Chol\Z)
+		\gaussian(\Z; \zeros, \identity)
+		d\Z\,,
+\label{eq:expected_utility_mvn}
+\end{align}
+where each of the \parallelism{} terms \(\alt{c}_i\) in both \(\alt{\lbounds}\) and \(\alt{\ubounds}\) is transformed as \(\alt{c}_{i} = (c_i - \mean_{i} - \sum_{j<i}\chol_{i j}\z_{j})/\chol_{ii}\). The third column of Table~\ref{table:reparameterizations} grounds \eqref{eq:expected_utility_mvn} with several prominent examples. For a given draw \(\sample{\Y} \sim \gaussian(\means, \Cov)\), the sample path derivative of \acq{} \wrt{} \X{} is then
+\begin{align}
+\nabla\acq(\sample{\Y}) = 
+	\frac{d\acq(\sample{\Y})}{d\sample{\Y}}
+    \frac{d\sample{\Y}}{d\model(\X)}
+    \frac{d\model(\X)}{d\X},
+\end{align}
+where, by minor abuse of notation, we have substituted in \(\sample{\Y} = \reparam\left(\sample{\Z}; \model(\X)\right)\). 
+% 
+Reinterpreting \(\Y\) as a function of \(\Z\) therefore sheds light on individual \MC sample's differentiability.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                             Interchangeability
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Interchangeability}
+Since \AcqMC{} is an unbiased \MC estimator consisting of differentiable terms, it is natural to wonder whether the average sample gradient \(\nabla\AcqMC{}\) \eqref{eq:gradient_mc} \temp{follows suit}, \ie{} whether
+\begin{align}
+\nabla\Acq(\X)
+	= 
+    	\nabla\E_{\Y}
+        \left[\acq(\Y)\right]
+    \qeq\E_{\Y}
+    	\left[\nabla\acq(\Y)\right]
+    \approx 
+		\nabla\Acq_{\nSamples}(\X)
+\label{eq:gradient_interchange}\,,
+\end{align}
+where \qeq{} denotes a potential equivalence when interchanging differentiation and expectation. 
+% 
+\marc{Necessary and sufficient conditions for this interchange are that, as defined under \belief, integrand \acq{} must be continuous and its first derivative \(\acq^\prime\) must a.s.\ exist and be integrable~\citep{cao1985convergence,glasserman1988performance}.}
+% 
+\citet{wang2016parallel} demonstrated that these conditions are met for a GP with a twice differentiable kernel, provided that the elements in query set \X{} are unique. The authors then use these results to prove that~\eqref{eq:gradient_mc} is an unbiased gradient estimator for the parallel Expected Improvement (\qEI) acquisition function \cite{ginsbourger2010kriging,snoek-nips12a,chevalier2013fast}. In later works, these findings were extended to include parallel versions of the Knowledge Gradient (KG) acquisition function \cite{wu2016parallel,wu2017bayesian}. Figure~\ref{fig:overview_pt2}d (bottom right) visualizes gradient-based optimization of \MC \qEI{} for parallelism \(\parallelism=2\).
+
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/overview_part2.pdf}
+\vspace{-20pt}
+\caption{(a) Pseudo-code for BO outer-loop with greedy parallelism, the inner optimization problem is boxed in red. (b--c) Successive iterations of greedy maximization, starting from the posterior shown in Figure~1b. (d) On the left, greedily selected query `\legendStar'; on the right and from `\legendX' to `\legendStar', trajectory when jointly optimizing parallel queries $\x_{1}$ and $\x_{2}$ via stochastic gradient ascent. Darker colors correspond with larger acquisitions.}
+\label{fig:overview_pt2}
+\end{center}
+\end{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                     Extensions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subheading{Extensions}
+Rather than focusing on individual examples, our goal is to show differentiability for a broad class of \MC acquisition functions. 
+% 
+In addition to its conceptual simplicity, one of \MC integration's primary strengths is its generality. This versatility is evident in Table~\ref{table:reparameterizations}, which catalogs (differentiable) reparameterizations for six of the most popular acquisition functions. While some of these forms were previously known (\EI{} and \KG) or follow freely from the above (\SR), others require additional steps. We summarize these steps below and provide full details in Appendix~\ref{appendix:methods}.
+
+
+In many cases of interest, utility is measured in terms of discrete events. For example, Probability of Improvement \cite{kushner1964new,viana2010surrogate} is the expectation of a binary event \(\event_{\acqSubscript{\PI}}\): ``will a new set of results improve upon a level \level?''
+% 
+Similarly, Entropy Search \cite{hennig-jmlr12a} contains expectations of categorical events \(\event_{\acqSubscript{\ES}}\): ``which of a set of random variables will be the largest?'' 
+% 
+Unfortunately, mappings from continuous variables \Y{} to discrete events \event{} are typically discontinuous and, therefore, violate the conditions for \eqref{eq:gradient_interchange}. To overcome this issue, we utilize \emph{concrete} (\underline{con}tinuous to dis\underline{crete}) approximations in place of the original, discontinuous mappings \cite{jang2016categorical,maddison2016concrete}. 
+
+Still within the context of the reparameterization trick, \cite{jang2016categorical,maddison2016concrete} studied the closely related problem of optimizing an expectation \wrt{} a discrete generative distribution's parameters. To do so, the authors propose relaxing the mapping from, \eg{}, uniform to categorical random variables with a continuous approximation so that the (now differentiable) transformed variables closely resemble their discrete counterparts in distribution. Here, we first map from uniform to Gaussian (rather than Gumbel) random variables, but the process is otherwise identical. Concretely, we can approximate \PI's binary event as
+\begin{align}
+\tilde{\event}_{\acqSubscript{\PI}}(\X; \level, \temperature)
+   	= \max\left(\sigmoid\left(\nicefrac{\Y - \alpha}{\temperature}\right)\right)
+    \approx \max\left(\heaviside^{-}(\Y - \level)\right),
+\end{align}
+where \(\heaviside^{-}\) denotes the left-continuous Heaviside step function, \sigmoid{} the sigmoid nonlinearity, and \(\temperature \in [0,\infty]\) acts as a temperature parameter such that the approximation becomes exact as \(\temperature \to 0\). Appendix~\ref{appendix:concrete} further discusses concrete approximations for both \PI{} and \ES{}.
+
+Lastly, the Upper Confidence Bound (\UCB) acquisition function \cite{srinivas10} is typically not portrayed as an expectation, seemingly barring the use of \MC methods. At the same time, the standard definition \(\UCB(\x; \beta) \triangleq \mean + \beta^{\half}\stddev\) bares a striking resemblance to the reparameterization for normal random variables \(\reparam(\z; \mean, \stddev) = \mean + \stddev\z\). By exploiting this insight, it is possible to rewrite this closed-form expression as \(\UCB(\x; \beta) = \int_{\mean}^{\infty} \y\gaussian(\y; \mean, 2\pi\beta\var)d\y\). Formulating \UCB{} as an expectation allows us to naturally parallelize this acquisition function as 
+\begin{align}
+	\UCB(\X;\beta)
+    = \E_{\Y}
+    \big[
+    	\max(\means + \sqrt{\nicefrac{\beta\pi}{2}}\abs{\resids})
+	\big],
+\label{eq:parallel_ucb_short}
+\end{align}
+where \(\abs{\resids} = \abs{\Y - \means}\) denotes the absolute value of \Y{}'s residuals. In contrast with existing parallelizations of \UCB{} \cite{contal2013parallel,desautels2014parallelizing}, Equation~\eqref{eq:parallel_ucb_short} directly generalizes its marginal form and can be efficiently estimated via \MC integration (see Appendix~\ref{appendix:parallel_ucb} for the full derivation).
+
+These extensions further demonstrate how many of the apparent barriers to gradient-based optimization of \MC{} acquisition functions can be overcome by borrowing ideas from new (and old) techniques.

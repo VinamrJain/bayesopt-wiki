@@ -1,0 +1,152 @@
+\subsection{Approximating the predictive entropy}\label{sec:predictiveEntropy}
+
+We now show how to approximate $\H[p(y|\D_n,\x,\xopt)]$ in
+(\ref{eq:newObjective}). Note that we can write the argument to $\H$ in this expression as
+$p(y|\D_n,\x,\xopt) = \int p(y|f(\x)) p(f(\x)|\D_n,\xopt)\,df(\x)$.  
+Here $p(f(\x)|\D_n,\xopt)$ is the posterior distribution on $f(\x)$ given 
+$\D_n$ and the location $\xopt$ of the global maximizer of $f$.
+When the likelihood $p(y|f(\x))$ is Gaussian, we have that
+$p(f(\x)|\D_n)$ is analytically tractable since it is the predictive distribution
+of a Gaussian process.  However, by further conditioning on the location $\xopt$
+of the global maximizer we are introducing additional constraints, namely that $f(\vz)\leq f(\xopt)$ for all $\vz\in\X$.
+These constraints make $p(f(\x)|\D_n,\xopt)$ intractable.  To circumvent this
+difficulty, we instead use the following simplified constraints:
+\begin{enumerate}
+    \item[C1.] \textbf{$\xopt$ is a local maximum.} This is achieved by letting $\nabla
+    f(\xopt)=\zero$ and ensuring that $\nabla^{2}f(\xopt)$ is negative
+    definite. We further assume that the non-diagonal elements of
+    $\nabla^{2}f(\xopt)$, denoted by $\upper[\nabla^{2}f(\xopt)]$, are known,
+    for example they could all be zero. This simplifies the negative-definite constraint.
+    We denote by C1.1 the constraint given by $\nabla f(\xopt)=\zero$ and $\upper[\nabla^2 f(\xopt)] = \zero$.
+    We denote by C1.2 the constraint that forces the elements of $\diag[\nabla^2 f(\xopt)]$ to be negative.
+
+    \item[C2.] \textbf{$f(\xopt)$ is larger than past observations.} 
+    We also assume that $f(\xopt)\geq f(\x_i)$ for all $i\leq n$.
+    However, we only observe $f(\x_i)$ noisily via $y_i$.
+    To avoid making inference on these latent function values, we approximate the above hard constraints
+    with the soft constraint $f(\xopt) > y_\mathrm{max} + \epsilon$, where
+    $\epsilon\sim\Normal(0,\sigma^2)$ and $y_\mathrm{max}$ is the largest $y_i$ seen so far.
+    
+    \item[C3.] \textbf{$f(\x)$ is smaller than $f(\xopt)$.} This simplified
+    constraint only conditions on the given $\x$ rather than requiring
+    $f(\xopt)\leq f(\vz)$ for all $\vz\in\X$.
+\end{enumerate}
+We incorporate these simplified constraints into $p(f(\x)|\D_n)$ to 
+approximate $p(f(\x)|\D_n,\xopt)$.  This is achieved by multiplying
+$p(f(\x)|\D_n)$ with specific factors that encode the above constraints. In what
+follows we briefly show how to construct these factors; more detail is given in
+Appendix~\ref{sec:predictiveEntropyAppendix}.
+
+\newcommand\C[1]{\mathrm{C#1}}
+
+% MATT: we don't really need to state the following bits here as we don't make
+% use of these facts.
+
+%Let the prior distribution for $f$ be a zero-mean Gaussian process with
+%covariance function given by $k[\x_{i},\x_{j}] = \gamma \exp\left\{
+%-0.5(\x_{i}-\x_{j})^{\text{T}}\vL(\x_{i}-\x_{j})\right\}$, where $\vL$ is a
+%diagonal matrix with the lengthscale of the covariance function.
+
+%These variables are concatenated in the observed vector $\vo$ of dimension $n +
+%d + d(d-1)/2$.
+
+%the latent vector $\vl$ of dimension $1 + d$. 
+
+Consider the latent variable 
+    $\vz = [f(\xopt);\, \diag[\nabla^2f(\xopt)]]$.
+To incorporate constraint C1.1 we can condition on the data and on the
+``observations'' given by the constraints $\nabla f(\xopt)=\zero$ and
+$\upper[\nabla^2 f(\xopt)]=\zero$.  Since $f$ is distributed according to a GP,
+the joint distribution between $\vz$ and these observations is multivariate
+Gaussian. The covariance between the noisy observations $\vy_n$ and the extra
+noise-free derivative observations can easily be computed \cite{Solak:2003}. The
+resulting conditional distribution is also multivariate Gaussian with mean
+$\vm_0$ and covariance $\vV_0$. These computations are similar to those
+performed in (\ref{eq:gpvar}). Constraints C1.2 and C2 can then be incorporated
+by writing
+\begin{equation}
+    \textstyle
+    p(\vz|\D_n,\C1,\C2) \propto
+    \Phi_{\sigma^2}(f(\xopt) - y_\text{max})
+    \Big[ \prod_{i=1}^{d} \I\big([\nabla^2 f(\xopt)]_{ii} \leq 0\big) \Big]
+    \Normal(\vz|\vm_0,\vV_0)\,,\label{eq:conditional}
+\end{equation}
+where $\Phi_{\sigma^2}$ is the cdf of a zero-mean Gaussian distribution with
+variance $\sigma^2$.  The first new factor in this expression guarantees that
+$f(\xopt) > y_\text{max} + \epsilon$, where we have marginalized $\epsilon$ out,
+and the second set of factors guarantees that the entries in $\diag[\nabla^2
+f(\xopt)]$ are negative.
+
+Later integrals that make use of $p(\vz|\D_n,\C1,\C2)$, however, will not admit
+a closed-form expression. As a result we compute a Gaussian approximation
+$q(\vz)$ to this distribution using Expectation Propagation (EP)
+\cite{Minka:2001}.  The resulting algorithm is similar to the implementation of
+EP for binary classification with Gaussian processes \cite{Rasmussen:2006}. EP
+approximates each non-Gaussian factor in (\ref{eq:conditional}) with a Gaussian
+factor whose mean and variance are $\widetilde{m}_i$ and $\widetilde{v}_i$,
+respectively. The EP approximation can then be written as
+    $q(\vz)
+    \propto [ \prod_{i=1}^{d+1} \Normal(z_i|\widetilde m_i, \widetilde v_i)
+    ] \Normal(\vz|\vm_0,\vV_0)$.
+Note that these computations have so far not depended on $\x$, so we can compute
+$\{\vm_0,\vV_0, \widetilde\vm, \widetilde\vv\}$ once and store them for later
+use, where $\widetilde\vm = (\tilde{m}_1,\ldots,\tilde{m}_{d+1})$ and
+$\widetilde\vv = (\tilde{v}_1,\ldots,\tilde{v}_{d+1})$.
+
+We will now describe how to compute the predictive variance of some latent
+function value $f(\x)$ given these constraints. Let $\vf=[f(\vx); f(\xopt)]$ be a
+vector given by the concatenation of the values of the latent function at $\x$ and $\xopt$.
+The joint distribution between $\vf$,  $\vz$, the evaluations $\vy_n$ collected so far and
+the derivative ``observations'' $\nabla f(\xopt)=\zero$ and
+$\upper[\nabla^2 f(\xopt)]=\zero$ is multivariate Gaussian.
+Using $q(\vz)$, we then obtain the following approximation:
+\begin{equation}
+    \textstyle
+    p(\vf|\D_n,\C1,\C2) \approx
+    \int p(\vf|\vz,\D_n,\C{1.1}) \,q(\vz)\,d \vz =
+    \Normal(\vf|\vm_\vf,\vV_\vf)\,.
+\end{equation}
+Implicitly we are assuming above that $\vf$ depends on our observations and
+constraint C1.1, but is independent of C1.2 and C2 given $\vz$.  The
+computations necessary to obtain $\vm_\vf$ and $\vV_\vf$ are similar to those used
+above and in (\ref{eq:gpvar}).
+The required quantities are similar to the ones used by EP to make predictions in the
+Gaussian process binary classifier~\cite{Rasmussen:2006}.  We can then
+incorporate C3 by multiplying $\Normal(\vf|\vm_\vf,\vV_\vf)$ with a factor that
+guarantees $f(\x) < f(\xopt)$.  The predictive distribution for $f(\x)$ given
+$\D_n$ and all the constraints can be approximated as
+\begin{align}
+    \textstyle
+    p(f(\x)|\D_n,\C1,\C2,\C3) 
+    \approx
+    Z^{-1} \int \I( f_1 < f_2) \,\Normal(\vf|\vm_\vf,\vV_\vf) \,df_2\,,
+    \label{eq:finalPredictive}
+\end{align}
+where $Z$ is a normalization constant.  The variance of the right hand size of
+(\ref{eq:finalPredictive}) is given by
+\begin{equation}
+    v_n(\x|\xopt)
+    = [\vV_\vf]_{1,1} -
+    s^{-1}\beta(\beta + \alpha)
+    \{  [\vV_\vf]_{1,1} - [\vV_\vf]_{1,2} \}^2\,,
+\label{eq:predictiveVariance}
+\end{equation}
+where $s = [-1, 1]\T \vV_\vf [-1, 1]$, $\alpha = \mu / \sqrt{s}$, $\mu = [-1, 1]\T
+\vm_\vf$, $\beta = \phi(\alpha) / \Phi(\alpha)$, and $\phi(\cdot)$ and $\Phi(\cdot)$
+are the standard Gaussian density function and cdf, respectively.  By further
+approximating (\ref{eq:finalPredictive}) by a Gaussian distribution with the
+same mean and variance we can write the entropy as
+$\H[p(y|\D_n,\x,\xopt)] \approx 0.5 \log [2 \pi e (v_n(\x|\xopt) +
+\sigma^2)  ]$.
+
+The computation of (\ref{eq:predictiveVariance}) can be numerically unstable
+when $s$ is very close to zero.  This occurs when $[\vV_\vf]_{1,1}$ is very similar
+to $[\vV_\vf]_{1,2}$.  To avoid these numerical problems, we multiply $[\vV_\vf]_{1,2}$
+by the largest $0\leq \kappa \leq 1$ that guarantees that $s > 10^{-10}$. This
+can be understood as slightly reducing the amount of dependence between $f(\x)$
+and $f(\xopt)$ when $\x$ is very close to $\xopt$.  Finally, fixing
+$\upper[\nabla^2 f(\xopt)]$ to be zero can also produce poor predictions when
+the actual $f$ does not satisfy this constraint.  To avoid this, we instead fix this quantity to
+$\upper[\nabla^2 f\i(\xopt)]$, where $f\i$ is the $i$th
+sample function optimized in Section \ref{sec:sampling} to sample $\xopt\i$.
+

@@ -1,0 +1,116 @@
+\documentclass[accepted]{uai2021} % for initial submission
+
+\usepackage[american]{babel}
+
+\usepackage{natbib} % has a nice set of citation styles and commands
+\bibliographystyle{plainnat}
+\renewcommand{\bibsection}{\subsubsection*{References}}
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}     % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{subfigure}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{accents}
+\usepackage{epstopdf}
+\usepackage{hyperref}
+\graphicspath{{figures/}}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{definition}{Definition}
+
+
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\R}{{\mathbb R}}
+\newcommand{\bbS}{{\mathbb S}}
+\newcommand{\E}{{\mathbb E}}
+\newcommand{\p}{{\mathbb P}}
+\newcommand{\N}{{\mathcal N}}
+\newcommand{\HH}{{\mathcal H}}
+\newcommand{\A}{{\mathbb A}}
+\newcommand{\I}{{\mathcal I}}
+\DeclareMathOperator{\di}{d\!}
+\DeclareMathOperator{\GP}{\mathcal{GP}}
+\newcommand{\EIh}{\text{EI}h}
+\newcommand{\bcdot}{{\boldsymbol{\cdot}}}
+\newcommand{\by}{{\mathbf{y}}}
+\newcommand{\bx}{{\mathbf{x}}}
+\newcommand{\bk}{{\mathbf{k}}}
+\newcommand{\X}{{\mathcal{X}}}
+\newcommand{\calO}{{\mathcal{O}}}
+\newcommand{\D}{{\mathcal{D}}}
+\newcommand{\mI}{\mathsf{I}}
+\newcommand{\mK}{\mathsf{K}}
+\newcommand{\algoref}[1]{{Algorithm~\ref{#1}}}
+\newcommand{\figref}[2][]{{Figure~\ref{#2}#1}}
+\newcommand{\tabref}[1]{{Table~\ref{#1}}}
+\newcommand{\secref}[1]{{Section~\ref{#1}}}
+\newcommand{\Var}{\text{Var}}
+\newcommand{\Cov}{\text{Cov}}
+\newcommand{\EIpu}{{\text{EIpu}}}
+\newcommand{\EI}{{\text{EI}}}
+
+\title{A Nonmyopic Approach to Cost-Constrained Bayesian Optimization}
+
+\author[1]{Eric Hans Lee}
+\author[2]{David Eriksson}
+\author[3]{Valerio Perrone}
+\author[3]{Matthias Seeger}
+\affil[1]{SigOpt: An Intel Company; \texttt{eric.lee@intel.com}}
+\affil[2]{Facebook; \texttt{deriksson@fb.com}}
+\affil[3]{Amazon; \texttt{[vperrone, matthis]@amazon.de}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\input{abstract.tex}
+\end{abstract}
+
+\section{INTRODUCTION}
+\label{sec:introduction}
+\input{introduction.tex}
+
+\section{RELATED WORK}
+\label{sec:related_work}
+\input{related_work.tex}
+
+\section{BACKGROUND AND MOTIVATION}
+\label{sec:background}
+\input{background.tex}
+
+\section{COST-CONSTRAINED BO}
+\label{sec:cmdp}
+\input{cmdp.tex}
+
+\section{METHODS}
+\label{sec:methods}
+\input{methods.tex}
+
+\section{EXPERIMENTS}
+\label{sec:experiments}
+\input{experiments.tex}
+
+\section{CONCLUSION}
+\label{sec:conclusion}
+\input{conclusion.tex}
+
+\section*{Acknowledgements}
+We want to thank Daniel Jiang for providing valuable feedback on the camera ready version of the paper.
+
+\newpage
+\bibliography{references}
+
+\clearpage
+\appendix
+\label{sec:supplementary}
+\input{supplement.tex}
+
+\end{document}

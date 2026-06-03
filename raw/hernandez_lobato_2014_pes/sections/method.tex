@@ -1,0 +1,65 @@
+\section{Predictive entropy search}
+\label{sec:method}
+
+We propose to follow the information-theoretic method for active
+data collection described in \cite{MacKay:1992}. We are interested in maximizing
+information about the location $\xopt$ of the global maximum, whose posterior distribution
+is $p(\xopt|\D_n)$. Our current information about $\xopt$ can
+be measured in terms of the negative differential entropy of $p(\xopt|\D_n)$.
+Therefore, our strategy is to select $\x_{n+1}$ which maximizes the expected
+reduction in this quantity. The corresponding acquisition function is
+\begin{equation}
+    \textstyle
+    \alpha_n(\x)
+    = 
+    \H[p(\xopt |\D_n)] -
+    \E_{p(y|\D_n,\x)} [
+        \H[p(\xopt|\D_n\cup\{(\x,y)\})]
+    ]
+    \,,
+    \label{eq:originalObjective}
+\end{equation}
+where $\H[p(\x)] = -\int p(\x) \log p(\x) d\x$ represents the differential
+entropy of its argument and the expectation above is taken with respect to
+the posterior predictive distribution of $y$ given $\x$. 
+The exact evaluation of (\ref{eq:originalObjective}) is infeasible in practice. The
+main difficulties are i) $p(\xopt|\D_n\cup\{(\x,y)\})$ must be computed for
+many different values of $\x$ and $y$ during the optimization of (\ref{eq:originalObjective}) and ii) the
+entropy computations themselves are not analytical.  In practice, a direct
+evaluation of (\ref{eq:originalObjective}) is only possible after performing
+many approximations \cite{HennigSchuler:2012}.  To avoid this, we follow
+the approach described in \cite{Houlsby:2012} by noting that
+(\ref{eq:originalObjective}) can be equivalently written as the mutual
+information between $\xopt$ and $y$ given $\D_n$. Since the mutual
+information is a symmetric function, $\alpha_n(\x)$ can be rewritten as
+\begin{equation}
+    \textstyle
+    \alpha_n(\x)
+    = 
+    \H[p(y|\D_n,\x)] -
+    \E_{p(\xopt|\D_n)} [
+        \H[p(y|\D_n,\x,\xopt)]
+    ]
+    \,,
+    \label{eq:newObjective}
+\end{equation}
+where $p(y|\D_n,\x,\xopt)$ is the posterior predictive distribution for $y$
+given the observed data $\D_n$ and the location of the global maximizer of $f$.
+Intuitively, conditioning on the location $\xopt$ pushes the posterior predictions up in
+locations around $\xopt$ and down in regions away from $\xopt$.
+Note that, unlike the previous formulation, this objective is based on the
+entropies of predictive distributions, which are analytic or can be easily
+approximated, rather than on the entropies of distributions on $\xopt$ whose
+approximation is more challenging.
+
+The first term in (\ref{eq:newObjective}) can be computed
+analytically using the posterior marginals for $f(\x)$ in (\ref{eq:gpvar}), that is,
+$\H[p(y|\D_n,\x)]=0.5\log[2\pi e\,(v_n(\x)+\sigma^2)]$,
+where we add $\sigma^2$ to $v_n(\x)$ because 
+$y$ is obtained by adding Gaussian noise with variance $\sigma^2$ to $f(\mathbf{x})$.
+The second term, on the other hand, must be approximated.
+We first approximate the expectation in (\ref{eq:newObjective}) 
+by averaging over samples $\xopt^{(i)}$ drawn approximately from $p(\xopt|\D_n)$.
+For each of these samples, we then approximate the corresponding entropy function $\H[p(y|\D_n,\x,\xopt^{(i)})]$
+using expectation propagation \cite{Minka:2001}. The code for all these operations is
+publicly available at \url{http://tobediscloseduponacceptance.org}.

@@ -1,0 +1,161 @@
+\section{Details on approximating the predictive variance}
+\label{sec:predictiveEntropyAppendix}
+
+We now provide further details on approximating the predictive variance
+$v_n(\x|\xopt)$ of inputs $\x$ given the position of the global optimizer
+$\xopt$. In particular we include all steps omitted in the presentation of
+Section~\ref{sec:predictiveEntropy}.
+
+\subsection{Incorporating the analytic latent constraints (C1.1)}
+
+We first turn to the random variables
+\begin{align*}
+    \vz &= [f(\xopt);\, \diag[\nabla^2f(\xopt)]], \\
+    \vc &= [\vy_n; \nabla f(\xopt); \upper[\nabla^2 f(\xopt)]]
+         = [\vy_n; \zero; \zero].
+\end{align*}
+Here $\vc$ contains the random variables that we will condition on in order to
+enforce constraint C1.1. Given the input locations $\x$ and $\xopt$ we can
+construct a kernel matrix $\vK$ containing the covariance evaluated on the
+stacked vector $[\vz; \vc]$. We again refer to \cite{Solak:2003} in constructing
+this matrix which includes derivative observations, the computations of which
+are tedious but not overly complicated. Note also that the portions of $\vK$
+which correspond to $y_i$ will have an additional $\sigma^2$ due to the
+observation noise. Next let $\vK_\vz$, $\vK_\vc$, and $\vK_{\vz\vc}$ denote the
+corresponding diagonal and off-diagonal blocks of the kernel matrix.
+We can now condition on the observed values of $\vc$ to write
+\begin{equation*}
+    p(\vz|\D_n,\C{1.1})
+    = p(\vz|\vc) = \Normal(\vz|\vm_0,\vV_0)
+\end{equation*}
+where $\vm_0=\vK_{\vz\vc} \vK^{-1}_\vc\vc$ and $\vV_0= \vK_\vz -
+\vK_{\vz\vc}\vK^{-1}_\vc \vK_{\vz\vc}\T$.
+
+\subsection{Incorporating the non-analytic latent constraints (C1.2 and C2)}
+
+The additional constraints C1.2 and C2 can be introduced explicitly as in
+(\ref{eq:conditional}), which takes the form of a single Gaussian factor and
+$d+1$ non-Gaussian factors
+\begin{equation*}
+    p(\vz|\D_n,\C1,\C2)
+    \propto
+    \Normal(\vz|\vm_0,\vV_0)
+    \Big[ \prod_{i=1}^{d+1} t_i(z_i) \Big].
+\end{equation*}
+We approximate this distribution using a single multivariate Gaussian $q(\vz)$
+where each non-Gaussian factor is replaced by a Gaussian approximation
+$\widetilde t_i(z_i)=\Normal(z_i;\widetilde m_i, \widetilde v_i)$ such that
+\begin{equation*}
+    q(\vz)
+    = \Normal(\vz|\vm,\vV)
+    \propto \Normal(\vz|\vm_0,\vV_0)
+    \Big[ \prod_{i=1}^{d+1} \Normal(z_i;\widetilde m_i, \widetilde v_i) \Big]
+\end{equation*}
+where this approximation is parameterized by
+$\vm=\vV[\widetilde\vV^{-1}\widetilde\vm+\vV_0^{-1}\vm_0]$ and
+$\vV=(\widetilde\vV^{-1}+\vV_0^{-1})^{-1}$. The parameters of the approximate
+factors are combined to form the vector $[\widetilde\vm]_i=\widetilde m_i$ and
+the diagonal matrix $[\widetilde\vV]_{ii}=\widetilde v_i$. 
+
+\def\oldm{\bar m_{i}}
+\def\oldv{\bar v_{i}}
+\def\norm{\bar Z_{i}}
+
+To compute the approximate factors we use expectation propagation (EP). EP is a
+procedure that starts from some initial values for the approximate factors
+$(\widetilde m_i, \widetilde v_i)$ and iteratively refines these quantities;
+here we initialize $\widetilde m_i=0$ and $\widetilde v_i=\infty$ which
+corresponds to $\vm=\vm_0$ and $\vV=\vV_0$.  At each iteration, for every factor
+$i$, we remove the contribution of the $i$th approximate factor to form the
+\emph{cavity} distribution $q_{\setminus i}(\vz)\propto q(\vz)/\widetilde
+t_i(z_i)$. Given the independent factors we consider here we can focus on each
+individual component $q_{\setminus i}(z_i)$ separately with mean and variance
+\begin{align*}
+    \oldm &= \oldv(m_i/v_{ii} - \widetilde m_i/\widetilde v_i), \\
+    \oldv &= (v_{ii}^{-1} - \widetilde v_i^{-1})^{-1}.
+\end{align*}
+Let $\hat q(z_i)\propto q_{\setminus i}(z_i) t_i(z_i)$ denote the \emph{tilted}
+distribution where the $i$th approximate factor has been replaced by the
+corresponding real factor. EP proceeds by finding the approximation $q_i$ that
+minimizes the KL-divergence $\mathrm{D}[\hat q_i||q_i]$ where $q_i$ is
+restricted to be Gaussian. This amounts to matching the first two moments.
+Finally, by removing the influence of the cavity distribution and setting
+$\widetilde t_i(z_i)\propto q_i(z_i)/q_{\setminus i}(z_i)$ we can update the
+approximate factors. This can be performed using the same procedure which forms
+the cavity distribution.
+
+For both sets of constraints used in this work the moments can easily be
+obtained by computing the normalizing constant $\norm = \int
+\Normal(z_i|\oldm,\oldv) \,t_i(z_i) \,dz_i$ and using the following identities:
+\begin{align*}
+    \E_{\hat q}(z_i)
+    &= \oldm + \oldv \frac{\partial\norm}{\partial\oldm},
+    &
+    \textrm{Var}_{\hat q}(z_i)
+    &= \oldv - \oldv^2
+    \left(
+    \frac{\partial\norm}{\partial\oldm} 
+    - 2\frac{\partial\norm}{\partial\oldv}\right).
+\end{align*}
+For the factors corresponding to constraints on the diagonal Hessian, i.e.\
+where $t_i(z_i)=\I[z_i<0]$, the distribution is also simply a truncated
+Gaussian.  Given these moments we can remove the contribution of the cavity
+distribution as above and write
+\begin{align*}
+    \widetilde m_i &\gets \oldm - \kappa^{-1},
+    &\text{where } 
+      \alpha &= -\frac{\oldm}{\sqrt{\oldv}}, \\
+    \widetilde v_i &\gets \beta^{-1} - \oldv,
+    & \beta &=
+      \frac{\phi(\alpha)}{\Phi(\alpha)}\left[\frac{\phi(\alpha)}{\Phi(\alpha)} +
+      \alpha\right] \frac1{\oldv}, \\
+    &&
+    \kappa &= \left[\frac{\phi(\alpha)}{\Phi(\alpha)}-\alpha\right]\frac1{\sqrt{\oldv}}.
+\end{align*}
+For the final soft-maximum constraint,
+$\Phi\big((z_i-y_\mathrm{max})/\sigma\big)$, the moments can be calculated in a
+similar fashion. Using the same procedure as above we arrive at very similar
+updates:
+\begin{align*}
+    \widetilde m_i &\gets \oldm + \kappa^{-1},
+    &\text{where } 
+      \alpha &= \frac{\oldm-y_\mathrm{max}}{\sqrt{\oldv+\sigma^2}}, \\
+    \widetilde v_i &\gets \beta^{-1} - \oldv,
+    & \beta &=
+      \frac{\phi(\alpha)}{\Phi(\alpha)}\left[\frac{\phi(\alpha)}{\Phi(\alpha)} +
+      \alpha\right] \frac1{\oldv+\sigma^2}, \\
+    &&
+    \kappa &= \left[\frac{\phi(\alpha)}{\Phi(\alpha)}+\alpha\right]\frac1{\sqrt{\oldv+\sigma^2}}.
+\end{align*}
+
+\subsection{Incorporating the prediction constraint (C3)}
+
+Given some test input $\x$ we now turn to the problem of making predictions
+about $f(\x)$. We again note that both the ``prior'' terms $\vm_0$, $\vV_0$ and
+the EP factors, $\widetilde\vm$ and $\widetilde\vV$, are independent
+of $\x$ and can be precomputed once for later use at prediction time. 
+
+Let $\vf=[f(\vx); f(\xopt)]$ be a vector given by the concatenation of the
+latent function at $\x$ and $\xopt$. The distribution for $\vf$ given the first
+two constraints can be written as 
+\begin{equation}
+    p(\vf|\D_n,\C1,\C2)
+    \approx
+    \int p(\vf|\vz,\vc) \,q(\vz) \,d\vz = \Normal(\vf|\vm_\vf,\vV_\vf)\,.
+\end{equation}
+By writing $p(\vf|\vz,\vc)$ above we are assuming that $\vf$ is independent of
+C1.2 and C2 given $\vz$ and as a result the above is simply an integral over the
+product of two Gaussians. Let $\vK_\dagger$ be the cross-covariance matrix
+evaluated between $\vf$ and $[\vz;\vc]$ and $\vK_\vf$ the covariance matrix
+associated with $\vf$.  The posterior above will then be Gaussian with mean and
+variance
+\begin{align*}
+    \vm_\vf &= \vK_\dagger [ \vK + \widetilde\vW]^{-1} [\vc; \widetilde\vm] \\
+    \vV_\vf &= \vK_\vf - \vK_\dagger [\vK + \widetilde\vW]^{-1}\vK_\dagger\T,
+\end{align*}
+where $\widetilde\vW$ is a block-diagonal matrix where the first block is zero
+and the second is $\widetilde\vV$ (note this matrix is also diagonal since
+$\widetilde\vV$ is diagonal). Finally, these values can be plugged into
+(\ref{eq:finalPredictive}--\ref{eq:predictiveVariance}) in order to arrive at
+$v_n(\x|\xopt)$.
+

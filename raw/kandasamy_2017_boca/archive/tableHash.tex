@@ -1,0 +1,36 @@
+
+\newcommand{\insertAlgoMFGPUCBTwo}{
+% \vspace{-0.05in}
+\begin{algorithm}
+\textbf{Input: } kernel $\kernel$.
+\vspace{-0.07in}
+\begin{itemize}[leftmargin=0.23in]
+\item Set $\;\;\nutt{0}(\cdot)\leftarrow\zero$,
+          $\;\;\tautt{0}(\cdot)\leftarrow\kernel(\cdot,\cdot)^{1/2}$, 
+          $\;\;\Dcal_0\leftarrow\emptyset$. 
+\vspace{-0.05in}
+\item for $t = 1, 2,\dots$
+\vspace{-0.05in}
+  \begin{enumerate}[leftmargin=0.23in]
+  \item $\xt \leftarrow \argmax_{x\in\Xcal} \,\utilt(x)$. 
+  \hfill See~\eqref{eqn:mfucb}
+  \item $\zt \leftarrow \argmin_{z\in\,\candfidelst(\xt)\cup\{\zhf\}} \,\cost(z)$. 
+  \hfill See~\eqref{eqn:candfidelst}
+  \item $\yt \leftarrow$ Query $\gunc$ at $(\zt,\xt)$.
+  \item $\Dcal_t\leftarrow\Dcal_{t-1}\cup\{(\zt,\xt,\yt)\}$.
+        Update posterior mean $\nutt{t}$, and standard deviation $\tautt{t}$ conditioned on $\Dcal_t$.
+%   \item \textbf{for} $m=1,\dots,M$:  \\
+%     \vphantom{T} \hspace{0.1in} 
+%       \textbf{if} $\betath\sigmamtmo(\xt) > \gamma$, \textbf{break}; \\
+%     $\mt = m$.
+%   \item $\Dcalmtt \leftarrow \Dcalmmtt{\mt}{t-1}\cup\{(\xt,\yt)\}$.
+%   \item $\Dcalmt \leftarrow \Dcalmmtt{m}{t-1}$ for all $m\neq \mt$.
+%   \item Obtain $\mumtt,\sigmamtt$ conditioned on $\Dcalmtt$.
+  \end{enumerate}
+% \vspace{-0.1in}
+\end{itemize}
+\vspace{-0.1in}
+\caption{\hspace{0.05in}\mfgpucbtwo \label{alg:mfgpucbtwo}}
+\end{algorithm}
+% \vspace{-0.05in}
+}

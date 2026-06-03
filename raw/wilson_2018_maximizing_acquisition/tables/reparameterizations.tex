@@ -1,0 +1,79 @@
+%!TEX root=main.tex
+\newcommand{\YES}{\text{\scriptsize{\textsc{Y}}}}
+\newcommand{\NO}{\text{\scriptsize{\textsc{N}}}}
+
+
+\centering
+\setlength\extrarowheight{4pt}
+% \scalebox{0.975}{
+\resizebox{\linewidth}{!}{%
+\(\begin{array}{*{5}{c}}
+\toprule
+	%%%% Headers
+	\ {\text{\bfseries Abbr.}}
+    & {\text{\bfseries Acquisition Function}\; \Acq{}}
+    & {\text{\bfseries Reparameterization}}
+    % & {\nabla\AcqMC{}}
+    & {\text{\bfseries \MM}}
+    \\ \midrule
+    
+    %%%% Expected Improvement
+    \small{\EI}
+        & \E_{\Y}[\max(\relu(\Y - \alpha))]
+        & \E_{\Z}[\max(\relu(\means + \Chol\Z - \alpha))]
+        % & \YES/\YES
+        & \YES
+    \\
+    
+    %%%% Probability of Improvement
+    \small{\PI}
+        & \E_{\Y}[\max(\heaviside^{-}(\Y - \alpha))]
+        & \E_{\Z}[\max(\sigmoid(\tfrac{\means + \Chol\Z - \alpha}{\temperature}))]
+        % & \NO/\YES
+        & \YES
+    \\
+    
+    %%%% Simple Regret
+    \small{\SR}
+        & \E_{\Y}[\max(\Y)]
+        & \E_{\Z}[\max(\means + \Chol\Z)]
+        % & \YES/\YES
+        & \YES
+    \\
+    
+    %%%% Upper Confidence Bound
+    \small{\UCB}
+%         & \E_{\Y}[\max(\means + \beta^{\half}\abs{\resids})]
+%         & \E_{\Z}[\max(\means + \beta^{\half}\abs{\Chol\Z})]
+        & \E_{\Y}[\max(\means + \sqrt{\nicefrac{\beta\pi}{2}}\abs{\resids})]
+        & \E_{\Z}[\max(\means + \sqrt{\nicefrac{\beta\pi}{2}}\abs{\Chol\Z})]
+        % & \YES/\YES
+        & \YES
+    \\
+    
+    %%%% Entropy Search
+    \small{\ES}
+        & -\E_{\Y_{a}}
+        [\entropy(
+            \E_{\Y_{b}|\Y_{a}}[\heaviside^{+}(\Y_{b} - \max(\Y_{b}))]
+        )]
+        & -\E_{\Z_{a}}
+        [\entropy(
+            \E_{\Z_{b}}[
+            \softmax(\tfrac{\means_{b|a}+\Chol_{b|a}\Z_{b}}{\temperature})
+            ]
+        )]
+        % & \NO/\YES
+        & \NO
+    \\
+	
+    %%%% Knowledge Gradient
+    \small{\KG}
+        & \E_{\Y_{a}}[\max(\means_{b} + \Cov_{b,a}\Cov_{a,a}^{-1}(\Y_{a} - \means_{a}))]
+        & \E_{\Z_{a}}[\max(\means_{b} + \Cov_{b,a}\Cov_{a,a}^{-1}\Chol_{a}\Z_{a})]
+        % & \YES/\YES
+        & \NO
+    \\
+\bottomrule
+\end{array}\)
+}

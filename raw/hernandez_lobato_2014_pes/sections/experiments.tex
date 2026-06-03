@@ -1,0 +1,64 @@
+\section{Experiments}
+\label{sec:experiments}
+
+In our experiments, we use Gaussian process priors for $f$ with squared-exponential
+kernels $k(\x,\x')=\gamma^2\exp\{-0.5 \sum_i (x_i-x_i')^2/\ell_i^2\}$.
+The corresponding spectral density is zero-mean
+Gaussian with covariance given by $\diag([\ell_i^{-2}])$ and normalizing constant $\alpha=\gamma^2$.
+The model hyperparameters are $\{\gamma,\ell_1,\dots,\ell_d,\sigma^2\}$. 
+We use broad, uninformative Gamma hyperpriors. 
+
+First, we analyze the accuracy of PES in the task of approximating the differential entropy
+(\ref{eq:originalObjective}).  We compare the PES approximation
+(\ref{eq:marginalizedObjective}),
+with the approximation used by the entropy
+search (ES) method \cite{HennigSchuler:2012}.  We also compare with the ground
+truth for (\ref{eq:originalObjective}) obtained using a rejection sampling (RS)
+algorithm based on (\ref{eq:newObjective}).  For this experiment we generate the
+data $\D_n$ using an objective function $f$ sampled from the Gaussian
+process prior. The domain $\X$ of $f$ is fixed to be $[0,1]^2$
+and data are generated using $\gamma^2=1$, $\sigma^2=10^{-6}$, and
+$\ell_i^2=0.1$. To compute (\ref{eq:marginalizedObjective}) we avoid
+sampling the hyperparameters and use the known values directly.
+We further fix $M=200$ and $m = 1000$.
+
+The ground truth rejection sampling scheme works as follows.  First, $\X$ is discretized
+using a uniform grid. The expectation with respect to $p(\xopt|\D_{n})$ in
+(\ref{eq:newObjective}) is then approximated using sampling. For this, we sample
+$\xopt$ by evaluating a random sample from $p(f|\D_n)$ on each grid cell and
+then selecting the cell with highest value.  Given $\xopt$, we then approximate
+$\H[p(y|\D_{n},\x,\xopt)]$ by rejection sampling. We draw samples from
+$p(f|\D_n)$ and reject those whose corresponding grid cell with highest value is
+not $\xopt$.  Finally, we approximate $\H[p(y|\D_{n},\x,\xopt)]$ by first,
+adding zero-mean Gaussian noise with variance $\sigma^2$ to the the evaluations
+at $\x$ of the functions not rejected during the previous step and
+second, we estimate the differential entropy of the resulting samples using
+kernels \cite{Ahmad:1976}.
+
+Figure~\ref{fig:costFunctions} shows the objective functions produced by RS, ES
+and PES for a particular $\D_n$ with 10 measurements whose locations are
+selected uniformly at random in $[0,1]^2$.  The locations of the collected
+measurements are displayed with an ``x'' in the plots.  The particular objective function
+used to generate the measurements in $\D_n$ is displayed in the left part of
+Figure \ref{fig:resultsSyntheticFunctions}.  The plots in Figure
+\ref{fig:costFunctions} show that the PES approximation to
+(\ref{eq:originalObjective}) is more similar to the ground truth given by RS
+than the approximation produced by ES.  In this figure we also see a
+discrepancy between RS and PES at locations near $\x= (0.572, 0.687)$. This
+difference is an artifact of the discretization used in RS. By
+zooming in and drawing many more samples we would see the same behavior in both
+plots.
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=0.9\linewidth]{figures/testAccuracyApproximations/figure.pdf}
+\end{center}
+\vspace{-0.5em}
+\caption{\small Comparison of different estimates of the objective function $\alpha_n(\x)$
+given by (\ref{eq:originalObjective}). Left, ground truth
+obtained by the rejection sampling method RS.
+Middle, approximation produced by the ES method. Right, approximation produced
+by the proposed PES method. These plots show that the PES objective is much more
+similar to the RS ground truth than the ES objective.}\label{fig:costFunctions}
+\vspace{-0.5em}
+\end{figure}

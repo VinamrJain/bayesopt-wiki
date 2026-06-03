@@ -1,0 +1,397 @@
+\section{Additional Experiment Results}
+\label{apdx:experiment_results}
+In this section, we present additional experimental results to further evaluate the performance of different acquisition-function--stopping-rule pairs across various settings. We also include alternative visualizations to aid interpretation of the results. 
+
+\subsection{Runtime Comparison}
+First, we compare the runtime between our PBGI/LogEIPC stopping rule with several baselines. We measure the CPU time
+(in seconds) of the computation of the stopping rule, excluding the acquisition function computation and optimization.
+
+From results in Figure \ref{fig:runtime} we can see that our PBGI/LogEIPC stopping rule is roughly as efficient as SRGap-med and UCB–LCB. In contrast, PRB is significantly more time-consuming, as it involves optimizing over up to 1000 samples.
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/Synthetic_RunTime.pdf}
+    \caption{Evolution of per-iteration computation time (in log scale) for different stopping stopping rules when paired with six acquisition policies on the 8-dimensional Bayesian regret benchmark. Each subplot shows the average runtime (in seconds) over 50 iterations under one acquisition function—LCB, TS, LogEIPC, PBGI ($\lambda=10^{-1}$), PBGI ($\lambda=10^{-2}$), and PBGI ($\lambda=10^{-3}$). Curves correspond to four stopping criteria: our PBGI/LogEIPC stopping rule, SRGap-med, UCB–LCB, and PRB. Convergence and GSS can be applied using only the best observed value and thus require no additional computation time, thus they are omitted here. LogEIPC-med relies on the same underlying statistical computations as the LogEIPC rule, and therefore its runtime is not measured separately. The results should that PRB incurs significant computational overhead compared to other stopping rules.}
+    \label{fig:runtime}
+\end{figure}
+
+
+\subsection{Order of Stopping and Posterior Updates} \label{apdx:sec:order_posterior_update}
+
+Following the discussions in \Cref{sec:method}, we always compute our proposed stopping rule with respect to the optimal acquisition function value of the \emph{next round}---namely, the one which is obtained after posterior updates have been performed.
+One could alternatively consider checking the stopping criteria \emph{before} posterior updates, which is backward-looking rather than forward-looking.
+\Cref{fig:pbgi_stopping_discussion} provides an empirical comparison between the two choices, showing that stopping \emph{after} the posterior update leads to stronger empirical performance.
+
+This suggests that the theoretical guarantee for the Gittins index policy in the correlated Pandora's Box setting by \citet{gergatsouli2023weitzman}, which is based on the \emph{before-posterior-update} stopping, could potentially be improved by adopting the \emph{after-posterior-update} stopping.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/PBGI_this_round_vs_next_round.pdf}
+    \caption{Illustration of a single draw from a Mat\'ern-$5/2$ Gaussian process on $[0,1]$ with lengthscale $0.1$, optimized using PBGI acquisition function under uniform cost and cost-scaling factor $\lambda=0.01$. We compare two variants of PBGI stopping rules: the \textit{before-posterior-update} (this-round) stopping rule and the \textit{after-posterior-update} (next-round) stopping rule.  \textbf{Left:} The latent objective function (solid gray) and evaluation sequences for \textit{before-posterior-update} stopping (blue circles) and \textit{after-posterior-update} stopping (orange crosses). The dotted blue line and the dashed orange line mark the best observed value under each respective rule. \textbf{Right:} Cost‐adjusted regret for each stopping rule. In this example, \emph{after-posterior-update} stopping achieves strictly lower cost-adjusted regret despite performing more evaluations.}
+    \label{fig:pbgi_stopping_discussion}
+\end{figure}
+
+
+
+\subsection{Additional Experiment Results: Empirical}
+\label{apdx:sec:empirical_results}
+This subsection presents additional results for hyperparameter optimization on the LCBench datasets and neural architecture–size search on the three NATS-Bench datasets. For LCBench, we provide results for the first three datasets from the six-dataset lite version of the benchmark: Fashion-MNIST, adult, and higgs under alternative settings (fixed budget, actual runtime, and unknown cost), along with an alternative visualization. We also include per-dataset results under the proxy-runtime setting for the full set of 35 datasets.
+
+\subsubsection{Simple regret under the fixed-budget setting.} To isolate the effect of the acquisition function on cost-adjusted regret, we report the simple regret of several acquisition functions in the fixed-budget setting. We compare PBGI, LogEIPC, LCB, and TS, and additionally include PBGI-D with our recommended choice $\lambda_0 = U/(B-C)$ from \Cref{subsubsec:budget-constrained}, where $U=50$ (reflecting the [0,100] range of classification accuracy) and $B-C=10{,}000$ (corresponding to a budget after initial evaluation of 10,000 seconds, or roughly 3 hours). Cost-aware methods (the PBGI variants and LogEIPC) outperform cost-unaware ones (UCB and TS), with PBGI at smaller $\lambda$ consistently better than LogEIPC. This mirrors the findings of \citet{xie2024cost} and helps explain the strong performance of the matched PBGI combination in our main experiments.
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/BarPlot_budgeted.pdf}
+    \caption{Comparison of simple regret of seven acquisition functions:  PBGI ($\lambda=10^{-3}$), PBGI ($\lambda=10^{-4}$), PBGI ($\lambda=10^{-4}$), LogEIPC, LCB, TS, and PBGI-D on LCBench datasets, using scaled proxy runtime as evaluation cost. We can see that indeed the cost-aware PBGI and LogEIPC outperform the cost-unaware UCB and TS. PBGI-D with our recommended $\lambda_0 = U/(B-C) = 50 / 10000 = 0.005$ is also competitive.}
+    \label{fig:budgeted}
+\end{figure}
+
+
+\subsubsection{Number of trials where stopping fails.}
+We count the number of trials in which a stopping rule fails to trigger within our iteration cap of 200 and present the results in \Cref{tab:nonstops}. From the table, we observe that on datasets from the NATS benchmark, regret-based and acquisition-based stopping rules—except for ours—often fail to stop early. On LCBench datasets, some regret-based stopping rules such as SRGap-med and UCB–LCB also frequently exceed the cap. In contrast, our stopping rule consistently stops early, which aligns with our theoretical result in \Cref{thm:lambda_for_budget}.
+
+\begin{table}[t]
+\centering
+\caption{Number of trials (out of 50) where each stopping rule failed to trigger within 200 iterations, for each dataset in the LCBench (first three) and NATS (last three) benchmarks and each acquisition function. Results are identical across acquisition functions.}
+\label{tab:nonstops}
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+\textbf{Dataset} &
+% \textbf{Acq} &
+\textbf{PBGI} & \textbf{LogEIPC-med} & \textbf{SRGap-med} & \textbf{UCB–LCB} & \textbf{GSS} & \textbf{Convergence} & \textbf{PRB} \\
+\midrule
+Fashion-MNIST & 0 & 0 & 0 & 50 & 0 & 0 & 0 \\
+% \midrule
+adult & 5 & 0 & 7 & 38 & 0 & 0 & 6 \\
+% \midrule
+higgs & 0 & 0 & 31 & 50 & 0 & 0 & 0 \\
+\midrule
+Cifar10 & 0 & 32 & 50 & 50 & 0 & 0 & 26 \\
+% \midrule
+Cifar100 & 3 & 17 & 50 & 50 & 0 & 0 & 2 \\
+% \midrule
+ImageNet & 0 & 23 & 50 & 50 & 0 & 0 & 0    \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\subsubsection{Alternative visualization: cost-adjusted simple regret vs iteration.}
+We provide an alternative visualization of cost-adjusted simple regret by plotting its mean and error bars at fixed iterations, along with the mean and error bars of the stopping iterations for each rule. This allows us to compare the performance of adaptive stopping rules not only against the hindsight-optimal adaptive stopping but also against the hindsight-optimal fixed-iteration stopping.
+
+As shown in the empirical setting in \Cref{fig:Fashion-MNIST,fig:adult,fig:higgs,fig:cifar10-valid,fig:cifar100,fig:ImageNet16-120}, cost-adjusted regret generally decreases in the early iterations and then increases. The turning point is exactly the hindsight-optimal fixed-iteration stopping point, and our PBGI/LogEIPC stopping rule consistently performs close to this optimum, particularly when paired with the PBGI acquisition function.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5.5em}]{plots/Fashion-MNIST.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{Fashion-MNIST} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-3}, 10^{-4}, 10^{-5}$. We can see that the PBGI/LogEIPC stopping rule consistently achieves cost-adjusted regret close to the hindsight optimal adaptive stopping (shown by the red marker) as well as the hindsight optimal fixed-iteration stopping (given by the minimum point along the fixed-budget curve) when paired with the PBGI acquisition function, though not always the best.}
+    \label{fig:Fashion-MNIST}
+\end{figure}
+
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5.5em}]{plots/adult.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{adult} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-3}, 10^{-4}, 10^{-5}$. We can see that the PBGI/LogEIPC stopping rule consistently achieves the cost-adjusted regret close to hindsight optimal adaptive stopping (shown by the red marker) as well as the hindsight optimal fixed-iteration stopping (given by the minimum point along the fixed-budget curve) when paired with the PBGI or TS acquisition function, particularly with PBGI.}
+    \label{fig:adult}
+\end{figure}
+
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5.5em}]{plots/higgs.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{higgs} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-3}, 10^{-4}, 10^{-5}$. We can see that the PBGI/LogEIPC stopping rule consistently achieves the best cost-adjusted regret when paired with the PBGI, LogEIPC, or TS acquisition function, particularly with PBGI. These pairs not only approach the hindsight optimal adaptive stopping (shown by the red marker) but also perform comparably to the hindsight optimal fixed-iteration stopping (the minimum point along the fixed-budget curve).}
+    \label{fig:higgs}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5em}]{plots/cifar10-valid.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{cifar10-valid} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-4}, 10^{-5}, 10^{-6}$. We can see that the PBGI/LogEIPC stopping rule consistently achieves the best cost-adjusted regret when paired with the PBGI, LogEIPC, or TS acquisition function, particularly with PBGI. These pairs not only approach the hindsight optimal adaptive stopping but also perform comparably to the hindsight optimal fixed-iteration stopping.}
+    \label{fig:cifar10-valid}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5.5em}]{plots/cifar100.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{cifar100} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-4}, 10^{-5}, 10^{-6}$. The PBGI/LogEIPC stopping rule remains competitive at $\lambda = 10^{-4}$ and $10^{-6}$, though not always the best. At $\lambda = 10^{-5}$, unlike in most experiments, it stops noticeably late (though still outperforming several other rules), even when paired with its matching acquisition function. By \Cref{lem:EI_lower_bound}, under model match, the PBGI/LogEIPC rule with the corresponding acquisition function should never incur negative expected cost-adjusted regret before stopping. The suboptimal behavior observed here points to significant model misspecification on the \emph{cifar100} dataset.
+    %We can see that the PBGI/LogEIPC stopping rule remains competitive against other stopping rules when $\lambda = 10^{-4},10^{-6}$, though not always the best. When $10^{-5}$, unlike in majority of our experiments, PBGI/LogEIPC stopping rule stops suboptimally late (though still beats a number of other stopping rules), even when paired with PBGI/LogEIPC acquisition function. By \Cref{lem:EI_lower_bound}, under model match, PBGI/LogEIPC stopping rule with matching acquisition function should never incur negative expected  cost-adjusted regret before stopping. This indicates significant model misspecification for the \emph{cifar100} dataset. 
+    }
+    \label{fig:cifar100}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth, clip, trim={0pt 0pt 0pt 5.5em}]{plots/ImageNet16-120.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs on the \emph{ImageNet16-120} dataset. The objective function is the validation error, and the evaluation cost is the proxy runtime, scaled by three different cost-scaling factors $\lambda = 10^{-4}, 10^{-5}, 10^{-6}$. The PBGI/LogEIPC stopping rule remains competitive at $\lambda = 10^{-4}$ and $10^{-6}$, though not always the best. At $\lambda = 10^{-5}$, unlike in most experiments, it stops noticeably late (though still outperforming several other rules), even when paired with its matching acquisition function. By \Cref{lem:EI_lower_bound}, under model match, the PBGI/LogEIPC rule with the corresponding acquisition function should never incur negative expected cost-adjusted regret before stopping. The suboptimal behavior observed here points to significant model misspecification on the \emph{ImageNet16-120} dataset.}
+    \label{fig:ImageNet16-120}
+\end{figure}
+
+\subsubsection{Cost model misspecification: proxy runtime vs actual runtime.}
+In the known-cost setting of hyperparameter tuning, a practical approach is to use a proxy for runtime as the evaluation cost during the Bayesian optimization procedure. In our case, we use the number of model parameters scaled by a constant factor, which can be known in advance and has been shown to correlate well with the actual runtime. However, for reporting performance, one may prefer to use the actual runtime to better reflect real-world cost. To assess the impact of this cost model misspecification, we compare the cost-adjusted simple regret obtained when evaluation costs are computed using either the proxy runtime or the actual runtime. As shown in Figure~\ref{fig:cost_misspecification_lcbench}, our PBGI/LogEIPC stopping rule remains close to the hindsight optimal even when there is a misspecification, although its ranking may shift slightly (e.g., from best to second-best on the \emph{higgs} dataset).
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/BarPlot_empirical_cost_misspecification.pdf}
+    \caption{Comparison of cost-adjusted simple regret on three LCBench datasets with $\lambda = 10^{-4}$, using scaled proxy runtime vs. scaled actual runtime as evaluation cost. While our PBGI/LogEIPC stopping rule performs slightly worse under actual runtime (e.g., dropping from best to second-best on the \emph{higgs} dataset), likely due to cost model misspecification, it remains close to the hindsight optimal in all cases.}
+    \label{fig:cost_misspecification_lcbench}
+\end{figure}
+% \begin{figure}[t!]
+%     \centering
+%     \includegraphics[width=\textwidth]{plots/BarPlot_NATS_cost_misspecification.pdf}
+%     \caption{Comparison of cost-adjusted simple regret on NATS-Bench with $\lambda = 10^{-5}$, using scaled proxy runtime vs. scaled actual runtime as evaluation cost. Results are nearly identical to the cost-model-match setting.}
+%     \label{fig:cost_misspecification_nats}
+% \end{figure}
+
+\paragraph{Unknown-cost.}
+\citet[Proposition~2]{astudillo2021multi} proposed modeling unknown cost $c(x)$ via
+\begin{equation}
+\label{eqn:-lnE[1/c]}
+    \mathbb{E}[1/c(x)]^{-1}= \exp(\mu_{\ln c}(x)-(\sigma_{\ln c}(x))^2 / 2).
+\end{equation}
+An alternative is
+% Alternatively, one could also replace it with
+\begin{equation}
+\label{eqn:lnEc}
+\mathbb{E}[c(x)]= \exp(\mu_{\ln c}(x)+(\sigma_{\ln c}(x))^2 / 2 ).
+\end{equation}
+The difference in sign before the variance term reflects how each formulation handles predictive uncertainty: \eqref{eqn:-lnE[1/c]} encourages more exploration than \eqref{eqn:lnEc}. For PBGI under the unknown-cost setting, it is more natural to replace $c(x)$ in \eqref{eqn:PBGI} with $\mathbb{E}[c(x)]$ using \eqref{eqn:lnEc}, as this aligns with how costs enter the root-finding problem. For LogEIPC, both variants are possible—we refer to the \eqref{eqn:-lnE[1/c]} version as \emph{LogEIPC-inv} and the \eqref{eqn:lnEc} version as \emph{LogEIPC-exp}. However, equivalence between PBGI and LogEIPC stopping rules and our theoretical guarantees hold only with \eqref{eqn:lnEc} but not with \eqref{eqn:-lnE[1/c]}. Accordingly, we use \eqref{eqn:lnEc} for both methods in our experiments to maintain consistency and preserve this equivalence. \Cref{fig:unknown_cost} shows performance of acquisition function and stopping rule pairs under the unknown-cost setting, which are qualitatively similar to the known-cost setting.
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{plots/BarPlot_empirical_unknown_cost.pdf}
+    \caption{Cost-adjusted simple regret across acquisition function and stopping rule pairs under the unknown-cost setting on LCBench with $\lambda=10^{-4}$. Our PBGI/LogEIPC stopping rule remains close to the hindsight optimal when paired with the PBGI or LogEIPC-exp acquisition function, sometimes slightly worse than heuristics such as GSS and Convergence. It is also slightly worse than Immediate on \emph{Adult}, likely due to a cost-model misspecification in the unknown-cost setting.}
+    \label{fig:unknown_cost}
+\end{figure}
+
+
+\subsubsection{Cost-adjusted simple regret of all LCBench datasets.} Due to space constraints, for LCBench, \Cref{fig:empirical} in the main text reports min–max normalized cost-adjusted simple regret, defined as 
+\[\frac{r-r_{\min}}{r_{\max}-r_{\min}},\]
+where $r$ denotes cost-adjusted regret of a given acquisition function--stopping rule pair, and $r_{\min}$ and $r_{\max}$ are the minimum (including the hindsight optimal) and maximum cost-adjusted regret across all pairs. This normalization enables aggregation across datasets with different regret scales.
+
+Here we present the \emph{unnormalized} bar-plot results for each LCBench dataset (OpenML dataset size in parentheses) under all three cost-scaling parameters in \Cref{fig:lcbench_all_1e-3,fig:lcbench_all_1e-4,fig:lcbench_all_1e-5}. As discussed in the main text, our PBGI/LogEIPC stopping rule—when paired with either PBGI or LogEIPC—achieves competitive performance on roughly 75\% of the 35 datasets. However, the matched PBGI pair consistently underperforms across all three $\lambda$ values on the following datasets (see subplots with light grey background in \Cref{fig:lcbench_all_1e-3,fig:lcbench_all_1e-4,fig:lcbench_all_1e-5}): Amazon\_employee\_access (32769), Australian (690), KDDCup09\_appetency (50000), cnae-9 (1080), credit-g (1000), fabert (8237), and vehicle (846). Three additional datasets, jasmine (2984), mfeat-factors (2000) and sylvine (5124), show acceptable performance only when $\lambda = 10^{-5}$. 
+
+With the exception of Amazon\_employee\_access (32769) and KDDCup09\_appetency (50000), all datasets on which the matched PBGI pair underperforms have fewer than 10,000 instances. This suggests that relatively small dataset size may contribute to model misspecification and degraded performance.
+
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/BarPlot_LCBench_1e-3_all_datasets.pdf}
+    \caption{Cost-adjusted simple regret of all 35 LCBench datasets when $\lambda=10^{-3}$. Datasets where the matched PBGI pair underperforms, meaning that it does not rank among the top three acquisition function--stopping rule pairs by cost-adjusted simple regret, are highlighted in light grey.}
+    \label{fig:lcbench_all_1e-3}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/BarPlot_LCBench_1e-4_all_datasets.pdf}
+    \caption{Cost-adjusted simple regret of all 35 LCBench datasets when $\lambda=10^{-4}$. Datasets where the matched PBGI pair underperforms, meaning that it does not rank among the top three acquisition function--stopping rule pairs by cost-adjusted simple regret, are highlighted in light grey.}
+    \label{fig:lcbench_all_1e-4}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=\textwidth]{plots/BarPlot_LCBench_1e-5_all_datasets.pdf}
+    \caption{Cost-adjusted simple regret of all 35 LCBench datasets when $\lambda=10^{-5}$. Datasets where the matched PBGI pair underperforms, meaning that it does not rank among the top three acquisition function--stopping rule pairs by cost-adjusted simple regret, are highlighted in light grey.}
+    \label{fig:lcbench_all_1e-5}
+\end{figure}
+
+\subsubsection{Diagnosing Underperforming LCBench Datasets via Validation--Test Rank Preservation.} \label{sec:val_test_diagnostic}
+We show that the degraded performance of our stopping rule on smaller LCBench datasets is likely caused by a benchmark-intrinsic val/test mismatch rather than a deficiency of the rule itself. We classify a dataset as ``underperforming'' if the cost-adjusted simple regret (at $\lambda = 10^{-4}$) of the matched PBGI pair does not rank among the top three PBGI-based acquisition function--stopping rule pairs formed by the seven non-trivial stopping rules we study. Formally, let
+$\mathcal{S} = \{\text{PBGI/LogEIPC}, \text{LogEIPC-med}, \text{SRGap-med}, \text{UCB--LCB}, \text{PRB}, \text{GSS}, \text{Convergence}\}$
+(excluding the Immediate and Hindsight baselines), and let
+$r_d(s) := \mathcal{R}_c^{(\lambda=10^{-4})}(\text{PBGI}, s; d)$
+denote the mean cost-adjusted regret of PBGI paired with rule $s$ on dataset $d$. With
+$\rho_d := \big|\{s \in \mathcal{S} : r_d(s) \le r_d(\text{PBGI/LogEIPC})\}\big|$
+the within-dataset rank of the matched rule (rank $1$ best), we set
+\begin{equation}
+    d \in
+    \begin{cases}
+        \mathcal{D}_{\mathrm{top}} & \text{if } \rho_d \le 3, \\
+        \mathcal{D}_{\mathrm{under}} & \text{if } \rho_d \ge 4.
+    \end{cases}
+\end{equation}
+
+The LCBench experiments optimize validation error but report test error. We quantify how faithfully validation ranks transfer to test ranks via the top-$k$ overlap fraction. For dataset $d$ with $n_d$ configurations, let $\pi^{\mathrm{val}}_d, \pi^{\mathrm{test}}_d \in S_{n_d}$ be the rankings of configurations by validation and test error (ascending, best first); then
+\begin{equation}
+    \mathrm{Top}\text{-}k(d) := \frac{1}{k}\,\big|\{\pi^{\mathrm{val}}_d(1), \dots, \pi^{\mathrm{val}}_d(k)\} \cap \{\pi^{\mathrm{test}}_d(1), \dots, \pi^{\mathrm{test}}_d(k)\}\big|.
+\end{equation}
+We take $k = 20$, comparable to the $200$-iteration cap in our experiments and to the top tail of configurations any adaptive method realistically considers as stopping candidates.
+
+Figure~\ref{fig:val_test_all_lcbench} reports $\mathrm{Top}\text{-}20(d)$ for every LCBench dataset, color-coded by the above classification. The $\mathcal{D}_{\mathrm{under}}$ datasets have \textit{substantially} lower val--test rank preservation than those in $\mathcal{D}_{\mathrm{top}}$:
+\begin{equation*}
+    \overline{\mathrm{Top}\text{-}20}\,\big|_{\mathcal{D}_{\mathrm{under}}}
+    = \mathbf{36.1\%}
+    \;(n = 14,\ \mathrm{std} = 35.7\%)
+    \quad\ll\quad
+    \overline{\mathrm{Top}\text{-}20}\,\big|_{\mathcal{D}_{\mathrm{top}}}
+    = \mathbf{83.6\%}
+    \;(n = 21,\ \mathrm{std} = 23.8\%).
+\end{equation*}
+When the validation-selected top-$k$ shares little overlap with the test top-$k$, no validation-driven stopping rule can recover test-optimal configurations, so the matched PBGI pairing's apparent underperformance is best attributed to the benchmark's intrinsic val/test mismatch rather than to the stopping rule.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{plots/ValTest_analysis_all_lcbench.pdf}
+    \caption{Top-20 validation--test rank preservation for every LCBench
+    dataset. Datasets are split into $\mathcal{D}_{\mathrm{under}}$ (red) and
+    $\mathcal{D}_{\mathrm{top}}$ (green) based on whether the matched PBGI pair
+    ranks among the top three PBGI-based acquisition function--stopping rule
+    pairs formed by the seven stopping rules in $\mathcal{S}$ at
+    $\lambda = 10^{-4}$. The dashed line marks $\mathrm{Top}\text{-}20 = 0.5$.
+    Datasets where the matched PBGI pair underperforms also have markedly
+    lower validation-to-test rank preservation, indicating that their weaker
+    cost-adjusted regret reflects a val/test mismatch in the benchmark rather
+    than a failure mode of the stopping rule itself.}
+    \label{fig:val_test_all_lcbench}
+\end{figure}
+
+
+\subsection{Additional Experiment Results: Bayesian Regret}
+
+In this section, we present the complete Bayesian regret results.  \Cref{fig:Matern52_1D_uniform,fig:Mater52_1D_linear,fig:Mater52_1D_periodic} show the 1D experiments, and \Cref{fig:Mater52_8D_uniform,fig:Mater52_8D_linear,fig:Mater52_8D_periodic} show the 8D experiments. Each figure corresponds to one cost setting (uniform, linear or periodic) and three values of the cost-scaling factor, $\lambda=10^{-1},10^{-2},10^{-3}$. In all of the experimental results, we observe that PBGI/LogEIPC acquisition function + PBGI/LogEIPC stopping achieves cost-adjusted regret that is not only competitive with the baselines, but is also competitive regarding the \textit{best in hindsight} fixed iteration stopping and often competitive even comparing to \textit{hindsight optimal} stopping. These results indicate that our automatic stopping rule can replace manual selection of stopping times without loss in performance. \Cref{fig:Matern52_1D_uniform,fig:Mater52_1D_linear,fig:Mater52_1D_periodic,fig:Mater52_8D_uniform,fig:Mater52_8D_linear,fig:Mater52_8D_periodic} also show that our PBGI/LogEIPC stopping rule outperforms other baselines when the cost-scaling factor $\lambda$ is large, indicating that it's an  especially suitable stopping criteria when evaluation is expensive. 
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_1D_uniform.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 1D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under uniform cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Matern52_1D_uniform}
+\end{figure}
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_1D_linear.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 1D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under linear cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Mater52_1D_linear}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_1D_periodic.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 1D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under periodic cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Mater52_1D_periodic}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_8D_uniform.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 8D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under uniform cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Mater52_8D_uniform}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_8D_linear.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 8D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under linear cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Mater52_8D_linear}
+\end{figure}
+
+\begin{figure}[t!]
+    \centering
+    \includegraphics[width=0.9\textwidth]{plots/Matern52_8D_periodic.pdf}
+    \caption{Comparison of cost-adjusted simple regret across acquisition function and stopping rule pairs in the 8D Bayesian regret experiments, with cost‐scaling factor $\lambda=10^{-1}, 10^{-2}, 10^{-3}$ and under periodic cost. The dashed line in each subplot represent fixed iteration stopping (e.g., the y-axis value of the line at iteration $50$ represent the cost-adjusted regret when always stop at iteration $50$).}
+    \label{fig:Mater52_8D_periodic}
+\end{figure}
+
+
+\subsubsection{Ablation: Moving-Average Window Size}
+\label{sec:ma_ablation}
+
+We ablate the window size $W \in \{1, 5, 10, 20\}$ for the PBGI/LogEIPC
+stopping rule on the 8D Bayesian regret benchmark, where $W = 1$
+corresponds to no smoothing. \Cref{fig:ma_single_pbgi,fig:ma_single_logeipc,fig:ma_single_ts,fig:ma_single_lcb} show how the window size affects the
+stopping iteration and the resulting cost-adjusted regret along a single
+acquisition-function path under each cost regime. Aggregate results
+across 50 seeds for the PBGI/LogEIPC stopping rule paired with its
+matched acquisition function under the three cost regimes (uniform,
+linear, periodic) are summarized in \cref{fig:ma_agg_uniform,fig:ma_agg_linear,fig:ma_agg_periodic}.
+
+Across all three cost regimes, applying a moving average consistently
+improves cost-adjusted regret when the PBGI/LogEIPC stopping rule is
+paired with its matched acquisition function, with the largest gains
+observed under periodic costs.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_PBGI_001.pdf}
+    \caption{Single-trajectory illustration of how the moving-average
+    window size $W$ affects the PBGI/LogEIPC stopping signal on the 8D
+    Bayesian regret benchmark under periodic costs (seed 0,
+    $\lambda = 10^{-2}$), with PBGI ($\lambda = 10^{-2}$) as the
+    acquisition function. The light grey curve is the raw $\alpha_t^{\mathrm{LogEIPC}}$,
+    the blue curve its $W$-iteration trailing average, the red dashed line
+    the stopping threshold $\log\lambda$, and the green star the resulting
+    stopping iteration. Without smoothing ($W=1$) the rule fires early
+    (iter.~24, regret 4.04) on a noisy dip; smoothing defers the trigger
+    and recovers low cost-adjusted regret (iter.~119, regret 2.78 at $W=20$).}
+    \label{fig:ma_single_pbgi}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_LogEIPC.pdf}
+    \caption{Single-trajectory illustration analogous to Figure~\ref{fig:ma_single_pbgi},
+    with the LogEIPC acquisition function (same seed, same cost regime,
+    $\lambda = 10^{-2}$). Without smoothing the rule fires at iter.~34 with
+    regret $4.01$; with $W=20$ it fires at iter.~93 with regret $2.66$.}
+    \label{fig:ma_single_logeipc}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_TS.pdf}
+    \caption{Single-trajectory illustration analogous to Figure~\ref{fig:ma_single_pbgi},
+    with Thompson sampling (TS) as the acquisition function. Unlike the
+    matched-acquisition cases, smoothing here pushes the stopping iteration
+    later (iter.~71 at $W=1$ vs.~iter.~215 at $W=20$) without a corresponding
+    drop in cost-adjusted regret -- TS does not satisfy the
+    expected-improvement-exceeds-cost property of Lemma~\ref{lem:EI_lower_bound},
+    so the PBGI/LogEIPC stopping rule has no matched guarantee for it.}
+    \label{fig:ma_single_ts}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_LCB.pdf}
+    \caption{Single-trajectory illustration analogous to Figure~\ref{fig:ma_single_pbgi},
+    with LCB as the acquisition function. The raw LogEIPC signal has a
+    clean transient: smoothing changes the stopping iteration only slightly
+    (iter.~2 at $W=1$ vs.~iter.~5 at $W\ge 5$) and the cost-adjusted regret
+    stabilises at $2.73$ for all $W \ge 5$.}
+    \label{fig:ma_single_lcb}
+\end{figure}
+
+
+% --- Aggregate results (50 seeds, lambda = 0.01, 8D Bayesian regret) ---
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_AvgBarPlot_periodic.pdf}
+    \caption{Effect of the moving-average window size $W \in \{1, 5, 10, 20\}$
+    on the average stopping iteration (blue, left axis) and the average
+    cost-adjusted simple regret (orange, right axis) for the PBGI/LogEIPC
+    stopping rule on the 8D Bayesian regret benchmark under
+    \emph{periodic} costs ($\lambda = 10^{-2}$, $50$ seeds, error bars are
+    $\pm 2$~standard errors). Each subplot fixes one acquisition function.
+    Smoothing yields the largest cost-adjusted regret reductions for the
+    matched PBGI and LogEIPC pairs, a smaller reduction for LCB, and no
+    benefit for TS.}
+    \label{fig:ma_agg_periodic}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_AvgBarPlot_uniform.pdf}
+    \caption{Aggregate ablation analogous to Figure~\ref{fig:ma_agg_periodic}
+    under \emph{uniform} costs. Smoothing slightly reduces cost-adjusted
+    regret for the matched PBGI and LogEIPC pairs and is roughly neutral
+    for LCB and TS.}
+    \label{fig:ma_agg_uniform}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{plots/Rebuttal_WindowSize_AvgBarPlot_linear.pdf}
+    \caption{Aggregate ablation analogous to Figure~\ref{fig:ma_agg_periodic}
+    under \emph{linear} costs. Smoothing reduces cost-adjusted regret for
+    the matched PBGI and LogEIPC pairs and for LCB, with no benefit for TS.}
+    \label{fig:ma_agg_linear}
+\end{figure}

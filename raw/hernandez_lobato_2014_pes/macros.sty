@@ -1,0 +1,57 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{macros}
+
+% include some default packages.
+\RequirePackage{amsmath,amsthm,amssymb}
+\RequirePackage{bm}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{definition}{Definition}
+
+% argmax/min operators.
+\def\argmax{\operatornamewithlimits{arg\,max}}
+\def\argmin{\operatornamewithlimits{arg\,min}}
+
+% common sets and operators.
+\def\R{\mathbb{R}}
+\def\N{\mathbb{N}}
+\def\Z{\mathbb{Z}}
+\def\E{\mathbb{E}}
+\def\V{\mathbb{V}}
+\def\I{\mathbb{I}}
+
+\def\T{^\mathsf{T}}
+\def\nT{^{-\mathsf{T}}}
+\def\zero{\mathbf{0}}
+
+% common functions/distributions.
+\def\Normal{\mathcal{N}}
+\def\Uniform{\mathcal{U}}
+\def\Beta{\mathrm{Beta}}
+\def\Bernoulli{\mathrm{Bernoulli}}
+\def\Dir{\mathrm{Dir}}
+\def\GP{\mathrm{GP}}
+
+\def\upper{\mathrm{upper}}
+\def\diag{\mathrm{diag}}
+
+% list of vectorized quantities
+\def\@CAL#1{\expandafter\def\csname cal#1\endcsname{\mathcal{#1}}}
+\def\@cal#1{\ifx#1\@cal\else\@CAL#1\expandafter\@cal\fi}
+\def\@VEC#1{\expandafter\def\csname v#1\endcsname{\mathbf{#1}}}
+\def\@vec#1{\ifx#1\@vec\else\@VEC#1\expandafter\@vec\fi}
+
+\@vec abcdefghijklmnopqrstuvwxyz\@vec
+\@vec ABCDEFGHIJKLMNOPQRSTUVWXYZ\@vec
+\@cal ABCDEFGHIJKLMNOPQRSTUVWXYZ\@cal
+
+\def\vtau{\boldsymbol{\tau}}
+\def\vphi{\boldsymbol{\phi}}
+\def\vPhi{\boldsymbol{\Phi}}
+\def\vsigma{\boldsymbol{\sigma}}
+\def\vSigma{\boldsymbol{\Sigma}}
+\def\vtheta{\boldsymbol{\theta}}
+\def\vpsi{\boldsymbol{\psi}}
+

@@ -1,0 +1,56 @@
+\subsection{Hyperparameter learning and the PES acquisition function}
+\label{sec:hyper-learning}
+
+We now show how the previous approximations are integrated to compute the acquisition function used by 
+predictive entropy search (PES).
+This acquisition function performs a formal treatment of the hyperparameters. Let $\vpsi$ denote
+a vector of hyperparameters which includes any kernel parameters as well as the
+noise variance $\sigma^2$. Let $p(\vpsi|\D_n)\propto p(\vpsi)
+\,p(\D_n|\vpsi)$ denote the posterior distribution over these
+parameters where $p(\vpsi)$ is a hyperprior  and $p(\D_n|\vpsi)$ is the GP marginal likelihood.
+For a fully Bayesian treatment of $\vpsi$ we must marginalize the acquisition
+function (\ref{eq:newObjective}) with respect to this posterior. 
+The corresponding integral has no analytic expression and must be approximated using Monte
+Carlo. This approach is also taken in \cite{Snoek:2012}.
+
+We draw $M$ samples $\{\vpsi\i\}$ from $p(\vpsi|\D_n)$ using
+slice sampling~\cite{Vanhatalo:2012}. Let $\xopt\i$ denote a sampled global maximizer
+drawn from $p(\xopt|\D_n,\vpsi\i)$ as described in Section \ref{sec:sampling}.  Furthermore, let $v_n\i(\x)$ and $v_n\i(\x|\xopt\i)$ denote
+the predictive variances computed as described in
+Section~\ref{sec:predictiveEntropy} when the model hyperparameters are fixed to $\vpsi\i$. 
+We then write the marginalized acquisition function as
+\begin{align}
+    \alpha_n(\x) 
+    &=
+    \textstyle
+    \frac{1}{M}\sum_{i=1}^M 
+    \left\{ 0.5\log[v_n\i(\x)+\sigma^2] - 0.5\log[v_n\i(\x|\xopt\i)+\sigma^2]\right\}
+    \,.\label{eq:marginalizedObjective}
+\end{align}
+Note that PES is effectively marginalizing the original acquisition function
+(\ref{eq:originalObjective}) over $p(\vpsi|\D_n)$. This is a significant
+advantage with respect to other methods that optimize the same
+information-theoretic acquisition function but do not marginalize over
+the hyper-parameters. For example, the approach of
+\cite{HennigSchuler:2012} approximates
+(\ref{eq:originalObjective}) only for fixed $\vpsi$. The resulting approximation is
+computationally very expensive and recomputing it to average over multiple
+samples from $p(\vpsi|\D_n)$ is infeasible in practice.  
+
+Algorithm~\ref{alg:pes} shows pseudo-code for computing the PES acquisition
+function. Note that most of the computations necessary for evaluating (\ref{eq:marginalizedObjective}) can be done
+independently of the input $\x$, as noted in the pseudo-code. This initial cost
+is dominated by a matrix inversion necessary to pre-compute $\vV$ for each
+hyperparameter sample. The resulting complexity is $\calO[M(n+d + d(d-1)/2)^3]$.
+This cost can be reduced to $\calO[M(n+d)^3]$ by ignoring the 
+derivative observations imposed on $\upper[\nabla^2 f(\xopt)]$ by constraint C1.1.
+Nevertheless, in the problems that we consider $d$ is very small (less than 20).
+After these precomputations are done, the evaluation of (\ref{eq:marginalizedObjective})
+is $\calO[M(n+d + d(d-1)/2)]$.
+
+%Note also that the
+%computational complexity of PES is dominated by the matrix inversion in
+%(\ref{eq:mpredvpred}).  This operation has to be performed for each $\xopt\i$
+%and as a result the cost of each iteration of PES is $\calO[M(n + d +
+%d(d-1)/2)^3]$.
+

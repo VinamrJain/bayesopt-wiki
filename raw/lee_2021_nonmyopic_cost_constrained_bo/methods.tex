@@ -1,0 +1,85 @@
+CMDPs are considered far more difficult to solve than MDPs~\citep{altman1999constrained}, and the standard dynamic programming approach of~\citet{bertsekas1995dynamic} does not extend trivially ---Bellman's principle of optimality no longer applies.
+Indeed, unlike the MDP case, the existence of an optimal policy is not guaranteed.
+The standard CMDP solution is to solve a large linear program in the state and action spaces, but this is computationally intractable for all but the smallest problems.
+The difficulty of solving CMDPs in the BO setting is made more difficult by the exponentially growing infinite state space, which consequently excludes standard solutions such as an exact solve on a discretized problem.
+
+In this paper, we approximate the optimal CMDP policy through rollouts, which has been used successfully in the standard BO setting to improve performance over myopic acquisition functions~\citep{lam2016bayesian}.
+
+\subsection{MDP Rollout}
+Rollouts forward-simulate the value function of a fixed policy, and select the action yielding the maximal simulated reward.
+We make this more precise as follows.
+For a given current state $\D_k$, we denote our base rollout policy $\tilde \pi = (\tilde \pi_0, \tilde \pi_1, \ldots ,\tilde \pi_{h-1})$.
+We introduce the notation $\D_{k,0}\equiv\D_k$ to define the initial state of our MDP and $\D_{k,t}$ for $1\leq t\leq h$ to denote the random variable that is the state at each decision epoch.
+In the case of BO, each individual decision rule $\tilde{\pi}_t$ consists of maximizing the base acquisition function $B_t$ given the current state $s_t=\D_{k,t}$,
+\[
+    \tilde \pi_t = \argmax_{\bx \in \Omega} B_t(\bx \mid \D_{k,t}).
+\]
+Using this policy, we define the non-myopic acquisition function $\Lambda_h(\bx)$ as the rollout of $\tilde \pi$ to horizon $h$ i.e., the expected reward of $\tilde{\pi}$ starting with the action $\tilde{\pi}_0=\bx$:
+\[
+    \Lambda_{h}(\bx_{k+1}) := \E \bigg[ V^{\tilde \pi}_h (\D_k \cup \{(\bx_{k+1}, y_{k+1})\}) \bigg] ,
+\]
+where $y_{k+1}$ is the noisy observed value of $f$ at $\bx_{k+1}$.
+$\Lambda_h$ performs better than the base policy in expectation for a correctly specified GP prior and for any base acquisition function.
+This follows from standard results in the MDP literature \citep{bertsekas1995dynamic}.
+If we can sample from the transition probability $P$, we can estimate the expected reward of $\tilde \pi$ through policy evaluation, i.e., Monte-Carlo integration:
+\[
+    V^{\tilde \pi}_h(s_0) \approx \frac{1}{N} \sum_{i=1}^N \bigg[\sum_{t=0}^{h-1} R(s^i_t, \tilde \pi_t(s^i_t), s^i_{t+1}) \bigg].
+\]
+
+\subsection{CMDP Rollout and Our Base Policy}
+In the CMDP setting, rollout is a straightforward extension of rollout in the MDP setting. CMDP rollout also forward simulates of action and reward given a fixed base policy, except that it only keeps feasible trajectories in $G$ and discards infeasible trajectories~\citep{bertsekas2005rollout}.
+In other words, this means that as we roll out a base policy $\tilde \pi$, we terminate either once we reach the horizon or violate the cost constraint.
+
+There remains the question of what base policy to use; the performance of rollout depends on its base policy. We develop a base policy by considering the following two cases:
+
+$\mathbf{h=1}$\textbf{:} Assume the argmax of EI has cost $c(\bx^*) \leq \tau$. The following policy $\pi$ is CMDP optimal:
+    \[
+    \pi(\D_t) = \bx^* = \argmax_{\bx \in \Omega} \EI(\bx \mid \D_t).
+    \]
+$\mathbf{h > 1}$\textbf{:} Assume the argmax of EI has cost $c(\bx^*) =\tau^*$ and there exists a point of small cost $c(\bx_{\epsilon}) = \epsilon$. If $ \tau = \tau^* + \epsilon$, then $\bx_{\epsilon}$ should be evaluated before $\bx^*$.
+In the limit, a point that is free to evaluate should  be evaluated first.
+
+A reasonable base policy should, at the minimum, satisfy these two cases.
+For the first case, maximizing EI must necessarily be the last step in our base policy.
+In the second case, we note that maximizing EIpu for the first rollout iteration will result in the desired behavior.
+For simplicity's sake, we extend EIpu until the last iteration.
+The base rollout policy $\tilde \pi = (\tilde \pi_0, \dots, \tilde \pi_{h-1})$ that we consider is therefore
+\[
+\tilde \pi_{t}(\D_t) =
+    \begin{cases}
+        \; \argmax_{\bx \in \Omega} \text{EIpu}(\bx \mid \D_{t}), & t < h-1,\\
+        \; \argmax_{\bx \in \Omega} \text{EI}(\bx \mid \D_{t}), & t = h-1.
+    \end{cases}
+\]
+In other words, $\tilde \pi$ rolls out $h-1$ steps of EIpu followed by a last step of EI.
+
+This base policy has a few advantages. If $h=1$ and the budget is sufficient, it is CMDP optimal. If the cost is uniform, this is equivalent to rollout of EI, which has been shown to improve performance in standard BO~\citep{wu2019practical, lee2020efficient}.
+Lastly, this base policy is consistent with an early exploration, late exploitation strategy, which is a common heuristic in multifidelity and multitask settings; EIpu tends to select cheaper points.
+Therefore, $\tilde \pi$ starts by trying to select cheaper points and then ends with selecting a point that is likely more expensive.
+
+
+\subsection{Theoretical Analysis}
+If a base policy $\tilde \pi$ is \textit{sequentially consistent}, rollout in the MDP setting will perform better in expectation than the base policy itself ---this is known as the rollout improving property.
+The same holds true in the CMDP setting if $c(\bx)$ is also deterministic. We define sequential consistency below.
+
+\begin{definition} \label{def:sequentialconsistent}
+    \citep{bertsekas1995dynamic}: A policy $\pi$ is sequentially consistent if, for every trajectory from any $s_0$:
+    \[
+        (s_0, a_0), (s_1, a_1), \dots, (s_{h-1}, a_{h-1}),
+    \]
+    $\pi$ generates the following trajectory starting at $s_1$:
+    \[
+        (s_1, a_1), (s_2, a_2) \dots, (s_{h-1}, a_{h-1}).
+    \]
+\end{definition}
+Note that we have presented the simpler deterministic version of Definition~\ref{def:sequentialconsistent} for notational brevity; please refer to the appendix for the full stochastic version.
+
+\begin{theorem}\label{theorem:constrained_mdp_rollout}
+    \citep{bertsekas2005rollout}:
+    In the CMDP setting, a rollout policy $\pi_{roll}$ does no worse than its base policy $\tilde \pi$ in expectation if $\tilde \pi$ is sequentially consistent i.e.,
+    \[
+        V^{\pi_{roll}}_h(s_0) \geq V^{\tilde \pi}_h(s_0).
+    \]
+    Thus, the value function of a rollout policy is always greater than the value function of the base policy.
+\end{theorem}
+To guarantee sequential consistency of our acquisition function, we need only consistently break ties if the acquisition function has multiple maxima.

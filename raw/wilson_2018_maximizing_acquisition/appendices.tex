@@ -1,0 +1,267 @@
+%!TEX root=main.tex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                               Methods Appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Methods Appendix}
+\label{appendix:methods}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                        Concrete Approximations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Concrete approximations}
+\label{appendix:concrete}
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/concrete_approx.pdf}
+% \vspace{-16pt}
+\caption{Left: Concrete approximation to PI for temperatures \(\temperature \in [1\mathrm{e-}3, 1\mathrm{e-}1]\). Middle: Concrete approximation to ES for temperatures \(\temperature \in [1\mathrm{e-}3, 1\mathrm{e-}1]\). Right: Stochastic gradient ascent trajectories when maximizing concrete approximation to parallel versions of PI (top left) and ES (bottom right), both with a temperature \(\temperature=0.01\).}
+\label{fig:concrete_approx}
+\end{center}
+\end{figure}
+
+As per Section~\ref{sect:differentiability}, utility is sometimes measured in terms of discrete events \(\event \in \espace\). Unfortunately, mappings from continuous values \(\Y \in \yspace\) to the space of discrete events \espace{} are typically discontinuous and, therefore, violate a necessary condition for interchangeability of differentiation and expectation. In the generalized context of differentiating a Monte Carlo integral \wrt{} the parameters of a \emph{discrete} generative distribution, \cite{jang2016categorical,maddison2016concrete} proposed to resolve this issue by introducing a continuous approximation to the aforementioned discontinuous mapping.
+
+As a guiding example, assume that \(\rparams\) is a self-normalized vector of \parallelism{} parameters such that \(\forall \rparam \in \rparams,\, \rparam \ge 0\) and that \(\Z = \T{[\z_{1},\ldots,\z_{\parallelism}]}\) is a corresponding vector of uniform random variables. 
+% 
+Subsequently, let \(\reparam(\Z; \rparams) = \log(\nicefrac{-\rparams}{\log \Z})\) be defined as random variables \Y's reparameterization. Denoting by \(\opt{\y} = \max(\Y)\), the vector-valued function \(\events : \yspace^{\parallelism}\mapsto \{0, 1\}^{\parallelism}\) defined as
+\begin{align}
+\events(\Z; \rparams)
+	= \T{[\y_{1} \ge \opt{\y},\ldots, \y_{\parallelism} \ge \opt{\y}]}
+    = \heaviside^{+}\left(\Y - \opt{\y}\right)
+\label{eq:event_onehot}
+\end{align}
+then reparameterizes a (one-hot encoded) categorical random variable \events{} having distribution \(p(\events; \rparams) = \prod\nolimits_{i=1}^{\parallelism} \rparam_{i}^{\event_{i}}\). Importantly, we can rewrite \eqref{eq:event_onehot} as the zero-temperature limit of as continuous mapping \(\tilde{\events} : \yspace^{\parallelism} \mapsto [0, 1]^{\parallelism}\) defined as 
+\begin{align}
+\tilde{\events}(\Y; \temperature)
+    = \softmax\left(\frac{\Y - \opt{\y}}{\temperature}\right)
+    = \softmax\left(\frac{\Y}{\temperature}\right),
+\label{eq:event_softmax}
+\end{align}
+where \(\temperature \in [0, \infty]\) is a temperature parameter. For non-zero temperatures \(\temperature > 0\), we obtain a relaxed version of the original (one-hot encoded) categorical event. Unlike the original however, the relaxed event satisfies the conditions for interchanging differentiation and expectation.
+
+Returning to the case of an acquisition function \eqref{eq:expected_utility} defined over a multivariate normal belief \(p(\Y|\X)\) with parameters \(\rparams = (\means,\Cov)\), random variables \Y{} are instead reparameterized by \(\reparam(\Z; \rparam) = \means + \Chol \operatorname{g}(\Z)\), where \(\operatorname{g}\) denotes, e.g., the Box-Muller transform of uniform \rvs{} \(\Z = \T{[\z_{1},\ldots,\z_{2\parallelism}]}\). 
+% 
+This particular example demonstrates how Entropy Search's innermost integrand can be relaxed using a \emph{concrete} approximation. Identical logic can be applied to approximate Probability of Improvement's integrand. 
+
+For Monte Carlo versions of both acquisition functions, Figure~\ref{fig:concrete_approx} shows the resulting approximation across a range of temperatures along with gradient-based optimization in the parallel setting \(\parallelism = 2\). Whereas for high temperatures \(\temperature\) the approximations wash out, both converge to the corresponding true function as \(\temperature \to 0\).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                   Parallel UCB
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\subsection{Parallel Upper Confidence Bound (\qUCB{})}
+\label{appendix:parallel_ucb}
+For convenience, we begin by reproducing \eqref{eq:expected_utility_mvn} as indefinite integrals,
+\begin{align*}
+\Acq(\X) 
+	=\int_{\boldsymbol{-\infty}}^{\boldsymbol{\infty}}
+		\acq(\Y)
+		\gaussian(\Y; \means, \Cov)
+		d\Y
+	= \int_{\boldsymbol{-\infty}}^{\boldsymbol{\infty}}
+		\acq(\means + \Chol\Z)
+		\gaussian(\Z; \zeros, \identity)
+		d\Z.
+\end{align*}
+Working backward through this equation, we derive an exact expression for parallel \UCB{}. To this end, we introduce the definition
+\begin{align}
+\label{eq:integral_def}
+\sqrt{\frac{\pi}{2}}\int_{-\infty}^{\infty}\abs{\stddev\z} \gaussian(\z; 0, 1)d\z 
+ 	= \sqrt{2\pi}\int_{0}^{\infty} \y \gaussian(\y; 0, \var)d\y = \stddev,
+\end{align}
+where \(\abs{\cdot}\) denotes the (pointwise) absolute value operator.\footnote{This definition comes directly from the standard integral identity \cite{gradshteyn2014table}: \(\int_{0}^{b}xe^{-q^{2}x^{2}}dx = \frac{1 - e^{-q^{2}b^{2}}}{2q^{2}}\).} Using this fact and given \(\z \sim \gaussian(0, 1)\), let \(\hat{\stddev}^{2} \triangleq (\nicefrac{\beta\pi}{2})\var\) such that \(\E{\abs{\hat{\stddev}\z}} = \beta^{\half}\stddev\). Under this notation, marginal \UCB{} can be expressed as
+\begin{align}
+\begin{split}
+\UCB(\x; \beta)
+	&=\mean + \beta^{\half}\stddev\\
+	&=\int_{-\infty}^{\infty}
+    	\left(\mean + \abs{\hat{\stddev} \z}\right)
+    	\gaussian(\z; 0, 1) d\z\\
+    &= \int_{-\infty}^{\infty}
+    	\left(\mean + \abs{\resid}\right)
+    	\gaussian(\resid; 0, \hat{\stddev}^2)d\resid
+\end{split}
+\label{eq:marginal_ucb}
+\end{align}
+where \((\mean, \var)\) parameterize a Gaussian belief over \(\y = f(\x{})\) and \(\resid = \y - \mu\) denotes \y{}'s residual. This integral form of \UCB{} is advantageous precisely because it naturally lends itself to the generalized expression
+\begin{align}
+\begin{split}
+\UCB(\X; \beta)
+	&= \int_{\boldsymbol{-\infty}}^{\boldsymbol{\infty}}
+			\max(\means + \abs{\resids})
+			\gaussian(\resids; \zeros, \hat{\Cov})
+			d\resids\\
+	&= \int_{\boldsymbol{-\infty}}^{\boldsymbol{\infty}}
+			\max(\means + \abs{\hat{\Chol}\Z}) 
+			\gaussian(\Z; \zeros, \identity)
+			d\Z\\
+	&\approx 
+    	\frac{1}{\nSamples} \sum^{\nSamples}_{\sampleIdx=1} \max(\means + \abs{\hat{\Chol}\sample{\Z}})
+        \text{~~for~~}
+        \sample{\Z} \sim \gaussian(\zeros, \identity),
+\end{split}
+\label{eq:parallel_ucb}
+\end{align}
+where \(\hat{\Chol}\T{\hat{\Chol}} = \hat{\Cov} \triangleq (\nicefrac{\beta\pi}{2})\Cov\). This representation has the requisite property that, for any size \(\alt{\parallelism} \le \parallelism\) subset of \X, the value obtained when marginalizing out the remaining \(\parallelism - \alt{\parallelism}\) terms is its \alt{\parallelism}-UCB value.
+
+Previous methods for parallelizing \UCB{} have approached the problem by imitating a purely sequential strategy \cite{contal2013parallel,desautels2014parallelizing}. Because a fully Bayesian approach to sequential selection generally involves an exponential number of posteriors, these works incorporate various well-chosen heuristics for the purpose of efficiently approximate parallel \UCB{}.\footnote{Due to the stochastic nature of the mean updates, the number of posteriors grows exponentially in \parallelism.} By directly addressing the associated \(\parallelism{}\)-dimensional integral however, Eq.~\eqref{eq:parallel_ucb} avoids the need for such approximations and, instead, unbiasedly estimates the true value.
+
+Finally, the special case of marginal \UCB~\eqref{eq:marginal_ucb} can be further simplified as
+\begin{align}
+\label{eq:mUCB_simple}
+\UCB(\x; \beta)
+    =\mean + 2\int_{0}^{\infty}\hat{\stddev} \z \gaussian(\z; 0, 1)dz
+    =\int_{\mu}^{\infty} \y \gaussian(\y; \mu, 2\pi\beta\var) d\y,
+\end{align}
+revealing an intuitive form --- namely, the expectation of a Gaussian random variable (with rescaled covariance) above its mean.
+\pagebreak
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                  Normalizing utility functions
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Normalizing utility functions}
+\label{appendix:normalizing_utility}
+
+An additional requirement when proving the near-optimality of greedy maximization for a \SM{} function \Acq{} is that \Acq{} be a normalized set function such that \(\Acq(\emptyset) = 0\).
+%%%% This is my understanding of why, but I've never read this anywhere
+% This condition occurs because the proof relies on a telescopic sum involving \(\Acq(\emptyset)\) \cite{nemhauser78,krause14}.
+As in Section~\ref{sect:myopic_maximal}, let \lboundAcq{} be defined as the smallest possible utility value given a utility function \acq{} defined over a ground set \version{f} indexed by \xspace{}. Because the \(\max\) is additive such that \(\max(\Y - \lboundAcq) = \max(\Y) - \lboundAcq\), normalization is only necessary when establishing regret bounds and simply requires lower bounding \(\lboundAcq{} > -\infty\). This task is is facilitated by the fact that \lboundAcq{} pertains to the outputs of \acq{} rather than to (a belief over) black-box \f{}.
+% 
+\temp{Addressing the matter by case, we have:}
+\begin{enumerate}[label=\alph*.,leftmargin=16pt]
+%
+\item Expected Improvement: For a given threshold \level{}, let improvement be defined (pointwise) as \(\relu(\Y - \level) = \max(0, \Y - \level)\). \EI's integrand is then the largest improvement \(\acq_{\acqSubscript{\EI}}(\Y; \level) = \max(\relu(\Y - \level))\).\footnote{\(\acq_{\acqSubscript{\EI}}\) is often written as the improvement of \(\max(\Y)\); however, these two forms are equivalent.} Applying the rectifier prior to the \(\max\) defines \(\acq_{\acqSubscript{\EI}}\) as a normalized, submodular function.
+% 
+\item Probability of Improvement: \PI's integrand is defined as \(\acq_{\acqSubscript{\PI}}(\Y, \alpha) = \max(\heaviside^{-}(\Y - \alpha))\), where \(\heaviside^{-}\) denotes the left-continuous Heaviside step function. Seeing as the Heaviside maps \(\yspace \mapsto \{0,1\}\), \(\acq_{\acqSubscript{\PI}}\) is already normalized.
+% 
+\item Simple Regret: The submodularity of Simple Regret was previously discussed in \cite{azimi2010batch}, under the assumption \(\lboundAcq = 0\). More generally, normalizing \(\acq_{\acqSubscript{\SR}}\) requires bounding \f's infimum under \(p\). Technical challenges for doing so make submodular maximization of SR the hardest to justify.
+% 
+\item Upper Confidence Bound: As per \eqref{eq:parallel_ucb_short}, define \UCB's integrand as the maximum over \Y's expectation incremented by non-negative terms. 
+%
+By definition then, \(\acq_{\acqSubscript{\UCB}}\) is lower bounded by the predictive mean and can therefore be normalized as \(\bar{\acq}_{\acqSubscript{\UCB}} = \max(\means + \abs{\resids} - \lboundAcq)\), provided that \(\lboundAcq = \min_{\x \in \xspace}\mean(\x)\) is finite. 
+% 
+For a zero-mean GP with a twice differentiable kernel, this condition is guaranteed for bounded functions \f{}.
+\end{enumerate}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 Iterated forms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \subsection{\warn{Iterated} forms}
+\subsection{Expected Improvement's \mmform{} form}
+
+% \subheading{Expected Improvement's \mmform{} form}
+For the special case of \(\Acq_{\acqSubscript{\EI}}\), the expected improvement of improvement integrand \(\acq_{\acqSubscript{\EI}}\) simplifies as:
+\begin{align}
+\begin{split}
+\EI_{\acq_{\acqSubscript{\EI}}}(\NEW{1}{\x}, \data_{\roundIdx})
+    &= 
+        \E_{\NEW{1}{\y}}\left[
+        \relu\left(
+          \relu(\NEW{1}{\y} - \level) - \max \relu(\OLD{1}{\Y} - \level)
+        \right)\right]\\
+    &= 
+        \E_{\NEW{1}{\y}}\left[
+        \relu\left(
+          \max(\level, \NEW{1}{\y}) - \max(\level, \max \OLD{1}{\Y})
+        \right)\right]\\
+    &= 
+        \E_{\NEW{1}{\y}}\left[
+        \relu\left(
+          \NEW{1}{\y} - \max(\level, \max \OLD{1}{\Y})
+        \right)\right]\\
+    &= 
+        \Acq_{\acqSubscript{\EI}}(\NEW{1}{\x}; \data_{\roundIdx}),
+\end{split}
+\label{eq:\mmform{}_ei}
+\end{align}
+where \(\alpha = \max(\{y : \forall (\x, \y) \in \data\})\) denotes the initial improvement threshold.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                           Experiments Appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \newpage
+\section{Experiments Appendix}
+\label{appendix:experiments}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                Synthetic tasks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Experiment Details}
+\label{appendix:experiment_details}
+
+\subheading{Synthetic tasks} To eliminate model error, experiments were first run on synthetic tasks drawn from a known prior. For a GP with a continuous, stationary kernel, approximate draws \f{} can be constructed via a weighted sum of basis functions sampled from the corresponding Fourier dual \cite{bochner1959lectures, rasmussen-book06a, rahimi2008random, hernandez-nips14}. For a \matern{$\nu$}{2} kernel with anisotropic lengthscales \(\Precis^{-1}\), the associated spectral density is the multivariate \(\mathnormal{t}\)-distribution \(t_{\nu}(\zeros, \Precis^{-1})\) with \(\nu\) degrees of freedom \cite{kotz2004multivariate}. For our experiments, we set \(\Precis = (\nicefrac{\xdim}{16})\,\identity \) and approximated \f{} using \(2^{14}\) basis functions, \temp{resulting in} tasks that were sufficiently challenging and closely resembled exact draws from the prior.
+
+\subheading{Maximizers} In additional to findings reported in the text, we compared several gradient-based approaches (incl. L-BFGS-B and Polyak averaging~\cite{wang2016parallel}) and found that \adam{} consistently delivered superior performance. CMA-ES was included after repeatedly outperforming the rival black-box method \direct{} \cite{jones1993lipschitzian}. RS was chosen as a na\"ive acquisition \solver{} after Successive Halving (SH, \cite{karnin2013almost,jamieson2016non}) failed to yield significant improvement.
+For consistency when identifying the best proposed query set(s), both RS and SH used deterministic estimators \AcqMC{}. Whereas RS was run with a constant batch-size \(\nSamples=1024\), SH started small and iteratively increased \nSamples{} to refine estimated acquisition values for promising candidates using a cumulative moving average and cached posteriors.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                 Initialization
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Multi-start initialization}
+\label{appendix:initialization}
+As noted in \cite{wang2016parallel}, gradient-based query optimization strategies are often sensitive to the choice of starting positions. This \temp{sensitivity} naturally occurs for two primary reasons. 
+% 
+First, acquisition functions \Acq{} are consistently non-convex. As a result, it is easy for members of query set \(\X \subseteq \xspace\) to get stuck in local regions of the space. 
+% 
+Second, acquisition surfaces are frequently patterned by (large) plateaus offering little expected utility. Such plateaus typically emerge when corresponding regions of \xspace{} are thought to be inferior and are therefore excluded from the search process.
+
+To combat this issue, we appeal to the submodularity of \Acq{} (see Section~\ref{sect:myopic_maximal}). Assuming \Acq{} is submodular, then acquisition values exhibit diminishing returns \wrt{} the degree of parallelism \parallelism{}. As a result, the marginal value for querying a single point \(\x \in \xspace\) upper bounds its potential contribution to any query set \X{} s.t. \(\x \in \X\). Moreover, marginal acquisition functions \(\Acq(\x)\) are substantially cheaper to compute that parallel ones (see Figure~\ref{fig:overview_pt1}d). Accordingly, we can initialize query sets \X{} by sampling from \(\Acq(\x)\). By doing so we \temp{gracefully avoid initializing points in excluded regions}, mitigating the impact of acquisition plateaus.
+
+In our experiments we observed consistent performance gains when using this strategy in conjunction with most query optimizers. To accommodate runtime constraints, the initialization process was run for the first tenth of the allocated time.
+
+Lastly, when greedily maximizing \Acq{} (equiv. in parallel asynchronous cases), ``pending'' queries were handled by fantasizing observations at their predictive mean. Conditioning on the expected value reduces uncertainty in the vicinity of the corresponding design points and, in turn, promotes diversity within individual query sets \cite{desautels2014parallelizing}. To the extent that this additional step helped in our experiments, the change in performance was rather modest.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                   Parallel UCB
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Extended Results}
+\label{appendix:results_extended}
+
+Additional results for both \qUCB{} (Section~\ref{sect:differentiability}) and \mmform{} form \qEI{} (Section~\ref{sect:myopic_maximal}) are shown here. These experiments were run under identical conditions to those in Section~\ref{sect:experiments}. 
+
+\subheading{Parallel UCB} We set confidence parameter \(\beta = 2\). Except for on the Levy benchmark, \qUCB{} outperformed \qEI{}, and this result also held for both Branin-Hoo and Hartmann-3 (not shown).
+
+
+\subheading{Incremental q-EI} We tested performance using \(\nSamples \in \{16, 32, 64, 128\}\) states. At the end of the first round of greedy selection \(k=1\), \nSamples{} outcomes \(\y^{(i)}_{1} \sim p(\y_{1} | \x_{1}, \data)\) were fantasized, producing \nSamples{} distinct fantasy states \(\data^{(i)}_{1} = \data \cup \{(\x_{1}, \y^{(i)}_{1})\}\). At all other steps \(k \in [2,\parallelism]\), a single outcome was fantasize for each state such that the number of states remained constant. Additionally, fantasized outcomes were never resampled.
+
+Figure~\ref{fig:results_synthetic_ei_\mmform{}} compares results obtained when greedily maximizing \mmform{} \qEI{} (with \(\nSamples=16\) to those obtained when greedily maximizing joint \qEI{} (as discussed in Section~\ref{sect:experiments}). In contrast with the larger body of results, CMA-ES combined with \mmform{}
+\qEI{} outperformed gradient-based optimization for higher dimensional acquisition surfaces.
+
+% For \mmform{} \qEI{}, we were unfortunately unable to collect a full set of 32 trials for some cases due to time constraints. 
+
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/synthetic_ucb.pdf}
+% \vspace{-16pt}
+\caption{Average performance of different acquisition \solvers{} on synthetic tasks from a known prior, given varied runtimes when maximizing Monte Carlo \qUCB. Reported values indicate the log of the immediate regret \(\log_{10}\left|f_{\max} - f(\opt{\x})\right|\), where \(\opt{\x}\) denotes the observed maximizer \(\opt{\x} \in \argmax_{\x \in \data} \hat{\y}\).}
+\label{fig:results_synthetic_ucb}
+\end{center}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=\linewidth]{figures/blackbox_ucb.pdf}
+% \vspace{-16pt}
+\caption{Average performance of different acquisition \solvers{} on black-box tasks from an unknown prior, given varied runtimes when maximizing Monte Carlo \qUCB. Reported values indicate the log of the immediate regret \(\log_{10}\left|f_{\max} - f(\opt{\x})\right|\), where \(\opt{\x}\) denotes the observed maximizer \(\opt{\x} \in \argmax_{\x \in \data} \hat{\y}\).}
+\label{fig:results_blackbox_ucb}
+\end{center}
+\end{figure}
+
+
+
+\begin{figure}[t]
+\begin{center}
+\includegraphics[width=\linewidth]{figures/synthetic_ei_incr_full.pdf}
+% \vspace{-16pt}
+\caption{Average performance when greedily maximizing joint vs. \mmform{} forms of \qEI{}.}
+\label{fig:results_synthetic_ei_\mmform{}}
+\end{center}
+\end{figure}

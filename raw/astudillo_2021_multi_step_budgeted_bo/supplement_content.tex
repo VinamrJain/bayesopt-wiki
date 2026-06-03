@@ -1,0 +1,310 @@
+\section{Proof of Theorem 1}
+\label{supp:thm1}
+\begin{theorem}
+\label{prop:counterexample}
+The approximation ratios provided by the EI and EI-PUC policies are unbounded. That is, for any $\rho > 0$ and each policy $\pi\in\{\mathrm{EI}, \mathrm{EI\textnormal{-}PUC}\}$, there exists a Bayesian optimization problem instance (a  prior probability distribution over objective and cost functions, a budget, and a set of initial observations $\D_0$) where 
+\[ V^*(\D_0) > \rho \, V^{\pi}(\D_0). \]
+\end{theorem}
+\begin{proof}
+We prove the result in two parts, first focusing on EI-PUC, and then on EI.
+
+\textbf{Part 1: EI-PUC.}
+To show the result for EI-PUC, we construct a problem instance with a discrete finite domain and no observation noise. Let $\epsilon$ and $\delta$ be two strictly positive real numbers and let $K = \lceil (1+\delta)/\epsilon \rceil$. Suppose the domain is $\mathbb X = \{0, 1, \ldots, K+1\}$ and that the overall budget of the problem is $1+\delta$. The prior on $f(x)$ is independent across $x \in \mathbb X$, all points have zero mean under the prior, and the costs $c(x)$ are all known. We assume that the point $x=0$ has already been measured and has value $f(0)=0$.
+The next $K$ points are ``low-variance, low-cost'' and the final point is ``high-variance, high-cost.''
+%suppose that there are $K = \lceil (1+\delta)/\epsilon \rceil$ points in the domain that are ``low-variance, low-cost'' and one point that is 
+\begin{itemize}
+    \item For low-variance, low-cost points, $x \in \{1,\ldots,K\}$, $f(x)$ is normally distributed with mean 0 and variance $\epsilon^2$ and $c(x) = \epsilon$. Thus, $\mathrm{EI}(x) / c(x)$ for these arms is $\E[(f(x) - 0)^+] / \epsilon = \E[\epsilon Z^+] / \epsilon = \E[Z^+]$, where $Z$ is a standard normal random variable.
+    \item For the high-variance, high-cost point, $x = K+1$, $f(x)$ is normally distributed with mean 0 and variance 1, and $c(x) = 1+\delta$. Thus, $\mathrm{EI}(x) / c(x)$ for these arms is $\E[(f(x) - 0)^+] / (1+\delta) = \E[Z^+] / (1+\delta)$.
+\end{itemize}
+
+One feasible policy for the problem is to ``measure the high-variance point once.'' Under this policy, the budget is exhausted after the first measurement and the overall value is $\E[Z^+]$. 
+
+Let us consider the EI-PUC policy. By the calculation above, on the first evaluation, it measures a low-variance arm. Then, after that, the remaining budget is strictly less than $1+\delta$ and it can only measure low-variance, low-cost points. It measures $N = \lfloor (1+\delta)/\epsilon \rfloor$ such points in total (since there is no observation noise, EI of a measured point is zero and a new point is measured each time). We show, in a calculation below, that the value of this policy goes to $0$ as $\epsilon \to 0$ while we hold $\delta$ fixed.
+That is, we show that 
+\begin{equation}
+\lim_{\epsilon \to 0} V^{\mathrm{EI\textnormal{-}PUC}}(\D_0) = 0.
+\label{toshow}
+\end{equation}
+
+There are no policies other than the two just described, so the ``measure the high-variance point once'' policy becomes optimal for all $\epsilon$ sufficiently close to $0$.
+Thus, $\lim_{\epsilon\to0} V^*(\D_0) = \E[Z^+] > 0$. Thus, given any finite strictly positive $\rho$, there is a $\epsilon$ small enough
+whose corresponding problem instance satisfies 
+\begin{equation*}
+V^*(\D_0) > \rho \, V^{\mathrm{EI\textnormal{-}PUC}}(\D_0).
+\end{equation*}
+
+To complete the proof for EI-PUC, we now show (\ref{toshow}).
+%We now complete the proof for EI-PUC by showing that 
+%$\lim_{\epsilon\to0} V^{\mathrm{EI\textnormal{-}PUC}}(\D_0) = 0$.
+%Let $N = (1+\delta)/\epsilon$.
+Under the EI-PUC policy, the values $\{y_n\}_{n=1}^N$ from the sequence of measured points (after the initial point $x=0$) are independent and identically distributed normal random variables, with mean 0 and variance $\epsilon^2$. The expected value under this policy is then $\E[M]$, where $M = \max\left\{0, y_1, \ldots, y_N \right\}$. 
+
+Let $t$ be an arbitrary positive real number. Using Jensen's inequality, we obtain
+\begin{align*}
+\exp \bigl(\E[tM] \bigr) &\leq \E\bigl[\exp(tM)\bigr]\\
+&=\E\bigl[\max\left\{1, \exp(ty_1), \dots, \exp(ty_N) \right\}\bigr]\\
+&\leq\E\left[1 + \sum_{n=1}^N\exp(ty_n)\right]\\
+&=1 + N\exp(t^2\epsilon^2/2)\\
+&\leq (N+1)\exp(t^2\epsilon^2/2),
+\end{align*}
+where we note in the last step that 
+$\exp(t^2\epsilon^2/2) \ge 1$.
+
+Thus, $\E[M] \leq \ln(N + 1)/t + (t\epsilon^2)/2$, and taking $t=\sqrt{2\ln(N+1)}/\epsilon$ we obtain 
+\begin{equation*}
+   \E[M]\leq \epsilon\sqrt{2\ln(N+1)} \le \epsilon \sqrt{2\ln\left(\frac{1+\delta + \epsilon}{\epsilon}\right)}.
+\end{equation*}
+
+Using L'H\^{o}pital's rule, we see that the right hand side of the above inequality converges to 0 as $\epsilon \to 0$ and, therefore, so does $\E[M]$.
+%For any $a>0$, 
+%\begin{equation*}
+%P(\max_{n\le N} y_n < a) = \prod_{n=1}^N P(y_n < a) = P(y_1 < a)^N
+%= P(\epsilon Z < a)^N 
+%= \Phi(a/\epsilon)^N = [1 - (1-\Phi(a/\epsilon))]^N
+%\sim 1 - N \cdot (1-\Phi(a/epsilon))
+%\end{equation*}
+%using a first-order Taylor expansion of $(1-p)^N \sim 1-Np$ as $p\to 0$, $N\to\infty$.
+%Moreover, as $u\to\infty$, $1-\Phi(u) = \phi(u) R(u) \sim \phi(u) / u$ where $R(u)$ is Mills Ratio.
+%Thus, as $\epsilon\to0$, the above becomes
+
+
+\textbf{Part 2: EI.}
+We now show the result for EI. 
+We consider almost the same setup as in the example above, with the only difference being that the low-cost points now have variance $(1-\epsilon)^2$.
+
+This time $\mathrm{EI}(x) = (1-\epsilon) \, \E[Z^+]$ for the low-cost points and $\mathrm{EI}(x) = \E[Z^+]$ for the high-cost point. Hence, the EI policy evaluates the high-cost point and exhausts the budget after that single evaluation, thus implying that $V^\mathrm{EI}(\D_0) = \E[Z^+]$.
+
+Now consider the policy that measures low-cost points only. The expected value under this policy is $\E[M]$, where where $M = \max\left\{0, y_1, \ldots, y_N \right\}$, and $y_1,\ldots, y_N$ are independent identically distributed normal random variables with mean $0$ and variance $(1-\epsilon)^2$.
+
+We have
+\begin{equation*}
+    \E[M] \geq \E\left[\max_{n=1,\ldots, N}y_n\right]
+    \geq (1-\epsilon)\sqrt{a\ln N}
+     \ge (1-\epsilon) \sqrt{a\ln\left(\frac{1+\delta}{\epsilon}-1\right)},
+\end{equation*}
+where $a=(\pi\ln 2)^{-1}$ and the second inequality follows by Theorem 1 in  \cite{kamath2015bounds}. The expression on the right-hand side of the above inequality goes to $\infty$ as $\epsilon\to 0$. Since $V^*(\D_0)\geq \E[M]$, it follows that, for any $\rho > 0$, there exists $\epsilon$ small enough whose corresponding problem instance satisfies
+\begin{equation*}
+V^*(\D_0) > \rho \, V^\mathrm{EI}(\D_0),
+\end{equation*}
+which completes the proof.
+\end{proof}
+
+
+
+\section{Proof of Proposition 1}
+\label{supp:prop1}
+\begin{proposition}
+\label{prop:bcei_app}
+Suppose that $f$ and $\ln c$ follow independent Gaussian process prior distributions and that $\D$ is an arbitrary set of observations. Define $\mu^f_\D(x) = \mathbb{E}[ f(x) \,|\, \D]$, $\mu^{\ln c}_\D(x) = \mathbb{E}[ \ln c(x) \,|\, \D]$, $\sigma^f_\D(x) = \textnormal{Var}[ f(x) \,|\, \D]^{1/2}$, and $\sigma^{\ln c}_\D(x) = \textnormal{Var}[ \ln c(x) \,|\, \D]^{1/2}$. Then,
+\begin{equation*}
+    Q_1(x\mid \D) = \begin{cases} \textnormal{EI}^f(x\mid\D) \, \Phi\left(\frac{\ln\left((B - s(\D)\right) - \mu_\D^{\ln c}(x)}{\sigma_\D^{\ln c}(x)} \right), \textnormal{ if } s(\D) < B,\\
+0, \textnormal{ otherwise,}
+\end{cases}
+\end{equation*}
+where
+\begin{equation*}
+\textnormal{EI}^f(x\mid\D) = \Delta(x)\Phi\left(\frac{\Delta_\D(x)}{\sigma_\D^f(x)}\right) + \sigma^f(x)\varphi\left(\frac{\Delta_\D(x)}{\sigma_\D^f(x)}\right)    
+\end{equation*}
+is the classical expected improvement computed with respect to $f$; $\varphi$ and $\Phi$ are the standard normal pdf and cdf, respectively; and $\Delta_\D(x) = \mu^f(x) -  u(\mathcal{S})$.
+\end{proposition}
+\begin{proof}
+Recall that
+\begin{equation*}
+     Q_1(x \mid \D) = \E\left[(f(x) - u(\D))^+\; \indicate{s(\D) + c(x) \leq B}\right].
+\end{equation*}
+But, since $f$ and $\ln c$ are assumed to be independent, 
+\begin{align*}
+     Q_1(x \mid \D) &= \E\left[(f(x) - u(\D))^+\right] \E\left[\indicate{s(\D) + c(x) \leq B}\right]\\
+     &= \mathrm{EI}^f(x\mid\D) \mathbb{P}\left(s(\D) + c(x) \leq B\right).
+\end{align*}
+
+Now note that, if $s(\D) \geq B$, then $\mathbb{P}\left(s(\D) + c(x) \leq B\right)=0$. If, on the other hand, $s(\D) < B$, then
+\begin{align*}
+    \mathbb{P}\left(s(\D) + c(x) \leq B\right) & = \mathbb{P}\left(\ln c(x) \leq \ln\left(B - s(\D)\right)\right)\\
+    &= \Phi\left(\frac{\ln\left((B - s(\D)\right) - \mu_\D^{\ln c}(x)}{\sigma_\D^{\ln c}(x)} \right),
+\end{align*}
+which concludes the proof.
+\end{proof}
+
+
+\section{Closed-Form Expressions of EI-PUC and EI-PUC-CC}
+\label{supp:closed_form}
+Recall that the EI-PUC and EI-PUC-CC acquisition functions are defined by
+\begin{equation*}
+    \mathrm{EI\textnormal{-}PUC}(x\mid\D) = \E_\D\left[\frac{\{f(x)-f_n^*\}^+}{c(x)}\right],   
+\end{equation*}
+and
+\begin{equation*}
+ \mathrm{EI\textnormal{-}PUC\textnormal{-}CC}(x\mid\D) = \E_\D\left[\frac{\{f(x)-f_n^*\}^+}{c(x)^\nu}\right],   
+\end{equation*}
+respectively, where $\nu$ is the ratio between the remaining budget and the initial budget.
+
+Here we show that, under the same conditions of Proposition 1, EI-PUC and EI-PUC-CC have closed form expressions. This is summarized in Proposition 2 below. Note that this result gives the closed-form expression of EI-PUC as a special case by taking $\nu=1$.
+
+\begin{proposition}
+\label{prop:eipuc}
+Let $\nu$ be an arbitrary positive real number and suppose that the conditions in Proposition 1 are satisfied. Then,
+\begin{equation*}
+ \E_\D\left[\frac{\{f(x)-f_n^*\}^+}{c(x)^\nu}\right]   = \mathrm{EI}^{f}(x\mid \D)\exp(-\nu \mu_{\D}^{\ln c}(x) + \nu^2\sigma_\D^{\ln c}(x)^2/2),
+\end{equation*}
+\end{proposition}
+\begin{proof}
+Since $f$ and $\ln c$ are assumed to be independent,
+\begin{align*}
+  \E_\D\left[\frac{\{f(x)-f_n^*\}^+}{c(x)^\nu}\right]  &=  \E_\D\left[\{f(x)-f_n^*\}^+\right]\E_\D\left[1/c(x)^\nu\right]\\
+  &= \mathrm{EI}^{f}(x\mid\D) \, \E_\D\left[\exp(-\nu \ln c(x))\right].
+\end{align*}
+The well-known formula for the moment generating function of normal random variable gives
+\begin{equation*}
+  \E_\D\bigl[\exp(-\nu \ln c(x))\bigr] = \exp\bigl(-\nu \mu_{\D}^{\ln c}(x) + \nu^2\sigma_\D^{\ln c}(x)^2/2 \bigr), 
+\end{equation*}
+which completes the proof.
+\end{proof}
+
+
+\section{Synthetic Test Problems Details}
+\label{supp:synthetic}
+Below we provide additional details on the synthetic test problems used in the numerical experiments.
+\subsubsection*{Dropwave:}
+\begin{itemize}
+    \item $f(x)=\left(1 + 12\sqrt{x_1^2 + x_2^2}\right)/\left(0.5(x_1^2 + x_2^2) + 2\right)$.
+    \item $\X = [-5.12, 5.12]^2$.
+    \item $\alpha\in[0.75, 1.5]$, $\beta\in[2\pi/5.12, 6\pi/5.12]$, $\gamma\in[0, 2\pi]$.
+\end{itemize}
+
+\subsubsection*{Alpine1:}
+\begin{itemize}
+\item $f(x)= \sum_{i=1}^d\left|x_i \sin(x_i) + 0.1 x_i\right|$.
+\item $\X = [-10, 10]^d$.
+\item $\alpha\in[0.75, 1.5]$, $\beta\in[2\pi, 6\pi]$, $\gamma\in[0, 2\pi]$.
+\item In our experiment, we set $d=3$.
+\end{itemize}
+
+\subsubsection*{Ackley:}
+\begin{itemize}
+\item $f(x)= 20 \exp\left(-\frac{1}{5}\sqrt{\frac{1}{d}\sum_{i=1}^D x_i^2}\right) + \exp\left(\frac{1}{D}\sum_{i=1}^D \cos(2\pi x_i)\right) - 20 - \exp(1)$.
+\item $\X = [-1, 1]^d$.
+\item $\alpha\in[0.75, 1.5]$, $\beta\in[2\pi, 6\pi]$, $\gamma\in[0, 2\pi]$.
+\item In our experiment, we set $d=3$.
+\end{itemize}
+
+\subsubsection*{Shekel5:}
+\begin{itemize}
+\item $f(x)= \sum_{j=1}^5\left(\sum_{i=1}^4\left(x_i - C_{ij}\right)^2 + b_j\right)^{-1}$, where $b = (1, 2, 2, 4, 4)/10$, and
+    \begin{align*}
+        C &= \begin{pmatrix}
+4 & 1 & 8 & 6 & 3\\
+4 & 1 & 8 & 6 & 7\\
+4 & 1 & 8 & 6 & 3\\
+4 & 1 & 8 & 6 & 7
+\end{pmatrix}.
+    \end{align*}
+\item $\X = [0, 10]^4$.
+\item $\alpha\in[0.75, 1.5]$,$\beta\in[2\pi/4, 3\pi/4]$, $\gamma\in[0, 2\pi]$.
+\end{itemize}
+
+\section{AutoML Surrogate Models}
+\label{supp:automl}
+The LDA and CNN problems use surrogate models to emulate the computationally expensive process of training the corresponding ML model. The objective and cost surrogate models for CNN are obtained directly from the HPOLib library, and were originally constructed by fitting independent random forest regression models to the objective and cost evaluations over a uniform grid of points. These evaluations are obtained by training a 3-layer convolutional neural network on the CIFAR-10 dataset. For the LDA problem, we fit independent GPs to the objective and log-cost evaluations over a uniform grid of size 288, and then use the resulting posterior means as the surrogate models. These surrogate models can be found at \url{https://github.com/RaulAstudillo06/BudgetedBO}. 
+
+
+
+
+\section{Acquisition Function Optimization}
+\label{supp:acqfopt}
+All acquisition functions are optimized as follows. First, we evaluate the acquisition value at $200d$ points over $\X$, and $10d$ of these points are selected using the initialization heuristic described in Appendix F.1 of \cite{balandat2020botorch}. Then, we run L-BFGS-B \citep{byrd1995limited} starting from each point. The point with highest acquisition value of the $10d$ points resulting after running L-BFGS-B is then chosen as the next point to evaluate. 
+
+For the variants of B-MS-EI, the $200d$ initial points are chosen using the warm-start initialization strategy described in Appendix D of \cite{jiang2020efficient}. This strategy uses the solution found when optimizing B-MS-EI during the previous iteration and identifies the branch originating at the root of the tree whose fantasy sample is closest to the value actually observed when evaluating the suggested candidate on the true function. For the other acquisition functions, the $200d$ initial points are chosen using a Sobol sampling design.
+
+
+\section{Additional Plots, Initial Design, Hyperparameter Estimation, Runtimes, and Licenses}
+\label{supp:additional}
+
+In each experiment, an initial stage of evaluations is performed using $2(d+1)$ points chosen according to a quasi-random Sobol sampling design over $\X$. Experiments are replicated either 100 (Ackley and Robot Pushing) or 200 (all other test problems) independent trials and we report the average performance and 95\% confidence intervals. For all algorithms, the objective function and the log-cost are modeled using independent GPs with constant mean and Mat\'ern 5/2 covariance function. The length scales of these GP models are estimated via maximum a posteriori (MAP) estimation with Gamma priors.
+
+The average runtimes of the algorithms in each problem are summarized in  Table~\ref{table:runtimes}. Figure~\ref{fig:experiments_supp} plots a 95\% confidence interval on mean log-regret versus the budget. In contrast with the plots in the main paper, these plots also include the results for the 2-step variants of our algorithm. Figure~\ref{fig:animation_supp} below shows the additional evaluations performed by EI-PUC and B-MS-EI within budget in the problem discussed in Figure 2 of the main paper.
+
+\begin{table}
+\caption{Average per-acquisition runtimes (in seconds) of the algorithms in each problem.}
+\label{table:runtimes}
+\begin{center}
+\begin{footnotesize}
+\begin{tabular}{lrrrrrrr}
+\toprule
+& EI & EI-PUC & EI-PUC-CC &  2-B-MS-EI$_\textnormal{p}$ &  2-B-MS-EI &  4-B-MS-EI$_\textnormal{p}$ &  4-B-MS-EI\\
+\midrule
+Dropwave  &  $4.1$ & $5.5$ & $6.2$ & $24.1$ & $26.7$ & $42.6$ & $87.2$\\
+Alpine1    & $7.2$  & $9.9$ & $10.8$ & $36.44$ & $44.1$ & $106.1$ & $236.7$\\
+Ackley    & $6.4$ & $7.3$ & $5.7$ & $16.6$ & $26.0$ & $95.8$ & $103.5$\\
+Shekel5        & $4.5$ & $5.5$ &  $5.6$ & $18.3$ & $12.8$ & $105.8$ & $165.5$ \\
+LDA & $5.4$ & $5.9$ &  $5.5$ & $20.7$ & $29.6$ & $141.9$ & $202.1$ \\
+CNN & $11.7$ & $26.9$ &  $19.3$ & $79.3$ & $95.0$ & $286.1$ & $443.2$ \\
+Robot & $5.9$ & $4.0$ &  $4.7$ & $32.2$ & $34.3$ & $108.2$ & $193.7$ \\
+{Boston} & $1.8$ & $1.6$ &  $1.5$ & $15.7$ & $19.7$ & $65.1$ & $90.5$ \\
+
+\bottomrule
+\end{tabular}
+\end{footnotesize}
+\end{center}
+\end{table}
+
+\begin{figure}
+  \centering
+ \includegraphics[width=0.24\textwidth]{figures/dropwave_supp.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/alpine1_supp.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/ackley_supp.pdf}
+ \includegraphics[width=0.24\textwidth]{figures/shekel5_supp.pdf}
+ \\
+ \includegraphics[width=0.235\textwidth]{figures/lda_supp.pdf}
+ \includegraphics[width=0.245\textwidth]{figures/cnn_supp.pdf}
+\includegraphics[width=0.25\textwidth]{figures/rfboston_supp.pdf}
+\includegraphics[width=0.245\textwidth]{figures/robotpush3d_supp.pdf}
+  \caption{{Log-regret of our non-myopic budget-aware BO methods compared with baseline acquisition functions on a range of problems.} \label{fig:experiments_supp}}
+\end{figure}
+
+\begin{figure}
+\centering
+\subfloat[EI-PUC]{%
+\begin{tabular}[b]{c}%
+\includegraphics[width=0.33\textwidth]{figures/animation/obj3_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/obj4_eipuc.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/obj5_eipuc.pdf}}\\
+    \includegraphics[width=0.33\textwidth]{figures/animation/cost3_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/cost4_eipuc.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/cost5_eipuc.pdf}}\\
+   \includegraphics[width=0.33\textwidth]{figures/animation/acqf4_eipuc.pdf}
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf5_eipuc.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/acqf5_eipuc.pdf}}
+ \end{tabular}
+}\\
+\subfloat[B-MS-EI]{%
+\begin{tabular}[b]{c}
+ \includegraphics[width=0.33\textwidth]{figures/animation/obj3_bmsei.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/obj4_bmsei.pdf}}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/obj4_bmsei.pdf}}\\
+    \includegraphics[width=0.33\textwidth]{figures/animation/cost3_bmsei.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/cost4_bmsei.pdf}}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/cost4_bmsei.pdf}}\\
+  \includegraphics[width=0.33\textwidth]{figures/animation/acqf4_bmsei.pdf}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/acqf5_bmsei.pdf}}
+  \phantom{\includegraphics[width=0.33\textwidth]{figures/animation/acqf5_bmsei.pdf}}
+\end{tabular}
+}
+\caption{Additional plots showing the evaluations performed within budget by EI-PUC and B-MS-EI. Subsequent evaluations are not plotted because the budget is exhausted after their completion and thus are not taken into account to report performance (i.e., the cost of the next point suggested exceeds the remaining budget). Note that EI-PUC performs two additional evaluations within budget, whereas B-MS-EI performs only one additional evaluation. B-MS-EI achieves a better final performance within budget than the one achieved by EI-PUC.
+\label{fig:animation_supp}}
+\end{figure}
+
+The BoTorch package is publicly available under the MIT License. The datasets obtained from the HPOLib and HPOLib 1.5 libraries are publicly available under the GNU General Public License. The source code of the robot pushing problem is publicly available under the MIT License.
+
+\section{Budgets Analysis}
+\label{supp:budget}
+To understand the effect of the budget on the performance of B-MS-EI, we evaluate its performance in three of our test problems (Dropwave, LDA, and Robot Pushing) using half of the original budget. We also report the performance of EI-PUC-CC, which is the only other benchmark method that is budget-aware. For comparison, we also include the performance of both algorithms under the original budget. The results of this experiment are shown in Figure~\ref{fig:experiments_budgets}. Remarkably,  B-MS-EI seems to benefit from knowing the budget constraint in advance. This does not seem to be the case for EI-PUC-CC, however. 
+
+\begin{figure}[H]
+  \centering
+ \includegraphics[width=0.24\textwidth]{figures/dropwave_budget.pdf}
+ \includegraphics[width=0.235\textwidth]{figures/lda_budget.pdf}
+ \includegraphics[width=0.252\textwidth]{figures/robotpush3d_budget.pdf}
+  \caption{{Performance of B-MS-EI (B-MS-EI$_p$ for Dropwave and Robot Pushing) and EI-PUC-CC in three of our test problems under two different budgets. In contrast with EI-PUC-CC, B-MS-EI seems to benefit from knowing the budget constraint in advance.} \label{fig:experiments_budgets}}
+\end{figure}
+

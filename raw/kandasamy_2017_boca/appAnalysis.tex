@@ -1,0 +1,635 @@
+
+\section{Analysis}
+\label{sec:analysis}
+
+We will first state a formal version of Theorem~\ref{thm:regret}.
+Recall from the main text where we stated that most evaluations at $\zhf$ are inside
+the following set $\Xcalrho$.
+\begin{align*}
+\Xcalrho = \{x\in\Xcal: \funcopt - \func(x) \leq 2\rho\sqrtks\inffunc(p)\}.
+\end{align*}
+This is not entirely accurate as it hides a dilation that arises due to a covering
+argument in our proofs.
+Precisely, we will show that after $n$ queries at any fidelity, 
+\bocas will use most of the $\zhf$ evaluations 
+in $\Xcalrhon$ defined below using $\Xcalrho$.
+\begin{align*}
+\Xcalrhon = \big\{\,x\in\Xcal: {\rm B}_2\big(x, \sqrt{d}/n^{\alpha/2d}\big)
+\cap \Xcalrhon \neq \emptyset \big\}
+\numberthis \label{eqn:Xcalrhon}
+\end{align*}
+Here ${\rm B}_2(x, \epsilon)$ is an $L_2$ ball of radius $\epsilon$ centred at $x$.
+$\Xcalrhon$ is a dilation of $\Xcalrho$ by $\sqrt{d}/n^{\alpha/2d}$.
+Notice that for all $\alpha > 0$, as $n\rightarrow\infty$,
+$\Xcalrhon$ approaches $\Xcalrho$ at a polynomial rate.
+We now state our main theorem below.
+
+\vspace{0.1in}
+
+\begin{theorem}
+\label{thm:main}
+Let $\Zcal=[0,1]^p$ and $\Xcal=[0,1]^d$. Let $\gunc\sim\GP(\zero,\kernel)$
+where $\kernel$ is of the form~\eqref{eqn:mfkernel}. Let $\phix$ satisfy 
+Assumption~\ref{asm:kernelAssumption} with some constants $a,b>0$.
+% and satisfy assumptions \emph{\Gtwo}, \emph{\Gthree}.
+% Let $\kernel$ satisfy
+% Assumption~\ref{asm:kernelAssumption} with some constants $a,b$.
+Pick $\delta\in(0,1)$ and run \emph{\bocas} with
+\[
+\betat =
+2\log\left(\frac{\pi^2t^2}{2\delta}\right) + 4d\log(t) + 
+\max\left\{\,0\,,\, 
+2d\log\left(brd\log\bigg(\frac{6ad}{\delta}\bigg) \right)\right\}.
+\]
+Then, for all $\alpha\in(0,1)$ 
+there exists $\rho,\capital_0$ such that with probability at least $1-\delta$ we have
+for all $\capital \geq \capital_0$,
+\begin{align*}
+S(\capital)\;&\leq\;
+  \sqrt{\frac{2C_1\beta_{2\ncapital} \IGnn{2\ncapital}(\Xcalrhon)}{\ncapital} }
+ \;+\;
+  \sqrt{\frac{2C_1\beta_{2\ncapital} \IGnn{2\ncapital^\alpha}(\Xcal)}{\ncapital^{2-\alpha}} }
+  \;+\; \frac{\pi^2}{6\ncapital}.
+\end{align*}
+Here $C_1 = 8/\log(1+\eta^2)$ is a constant and $\ncapital=\floor{\capital/\cost(\zhf)}$.
+$\rho$ satisfies %depends only on $\alpha$ and satisfies
+$\rho > \rho_0 = \max\{2, 1 + \sqrt{(1+2/\alpha)/(1+d)}\}$.
+% $\COSTnought$ depends on several problem dependent quantities including
+% the volumes of the sets $\Htcalm$ and consequently on $\rho$.
+\end{theorem}
+In addition to the dilation,
+Theorem~\ref{thm:regret} in the main text also suppresses the constants and $\polylog$ terms.
+The next three subsections are devoted to proving the above theorem.
+In Section~\ref{sec:setup} we describe some discretisations for $\Zcal$ and $\Xcal$ which
+we will use in our proofs.
+Section~\ref{sec:techLemmas} gives some lemmas we will need and
+Section~\ref{sec:mainproof} gives the proof.
+
+% $\Xcalrhon$ arises due to a covering argument in our proofs.
+
+
+
+\subsection{Set Up \& Notation}
+\label{sec:setup}
+
+\textbf{Notation:}
+Let $U\subset\Zcal\times\Xcal$.
+$\Tn(U)$ will denote the number of queries by \bocas at points $(z,x)\in U$ within
+$n$ time steps.
+When $A\subset\Zcal$ and $B\subset\Xcal$, we will overload notation to denote
+$\Tn(A,B) = \Tn(A\times B)$.
+% denotes the number of queries by \bocas
+% at points $(z,x)\in W\times A$ within time $n$.
+For $z\in\Zcal$, $\greaterz$  will denote the fidelities which are more expensive than $z$,
+i.e. $\greaterz = \{z'\in\Zcal: \cost(z') > \cost(z)\}$.
+
+We will require a fairly delicate set up before we can prove Theorem~\ref{thm:main}.
+Let $\alpha >0$.
+All sets described in the rest of this subsection are defined with respect to $\alpha$.
+First define
+\[
+\Hcalntilde = \{(z,x)\in\Zcal\times\Xcal: \funcopt - \func(x) <
+2\rho\betanh\sqrtks\inffunc(z) \},
+\]
+where recall from~\eqref{eqn:inffunc}, $\inffunc(z) = \sqrt{1-\phiz^2(\|z-\zhf\|)}$ is the
+information gap function.
+We next define $\Hcalnprime$ to be an $L_2$ dilation of $\Hcalntilde$ in the $\Xcal$
+space, i.e.
+\[
+\Hcalnprime = 
+\{ (z,x) \in \Zcal\times\Xcal:
+{\rm B}_2\big(x, \sqrt{d}/n^{\alpha/2d}\big) \cup
+\Hcalntilde \neq \emptyset
+ \}.
+\]
+Finally, we define $\Hcaln$ to be the intersection of $\Hcalnprime$ with all fidelities
+satisfying the third condition in~\eqref{eqn:candfidelst}.
+That is,
+\begin{align*}
+\Hcaln = \Hcalnprime \cap \Big\{(z,x)\in\Zcal\times\Xcal: \inffunc(z) >
+\inffunc(\sqrt{p})/\betanh \Big\}.
+\numberthis \label{eqn:Hcaln}
+\end{align*}
+In our proof we will use the second condition in~\eqref{eqn:candfidelst} to control the
+number of queries in $\Hcaln$.
+
+To control the number of queries outside $\Hcaln$ we first introduce 
+a $\frac{\sqrt{d}}{2n^{\frac{\alpha}{2d}}}$-covering of
+the space $\Xcal$ of size $n^{\alpha/2}$.
+If $\Xcal=[0,1]^d$, a sufficient covering would be an equally spaced grid having
+$n^{\frac{\alpha}{2d}}$ points per side.
+Let $\{\ain\}_{i=1}^{\nalphabt}$ be the points in the covering.
+$\Ain\subset\Xcal$ to be the points in $\Xcal$ which are closest to $\ain$ in $\Xcal$.
+Therefore $\Fn = \{\Ain\}_{i=1}^{\nalphabt}$ is a  partition of $\Xcal$.
+% We now define $\Fcaln$ to be the union of all $\Ain$ which are outside of $\Hcalntilde$.
+
+Now define $\Qt:2^\Xcal\rightarrow 2^\Zcal$ to be the following function
+which maps subsets of $\Xcal$ to subsets of $\Zcal$.
+\begin{align*}
+\Qt(A) = \Big\{z\in\Zcal: \;\forall\,x\in A, \quad
+      \funcopt - \func(x) \geq 2\rho\betath\sqrtks\inffunc(z) \Big\}.
+\numberthis\label{eqn:Qt}
+\end{align*}
+That is, $\Qt$ maps $A\subset\Xcal$ to fidelities where the information gap $\inffunc$
+is smaller than $(\funcopt - \func(x))/(2\rho\betath)$ for all $x\in A$.
+Next we define $\thetat:2^\Xcal\rightarrow \Zcal$, to be the cheapest fidelity
+in $\Qt(A)$ for a subset $A\in\Xcal$. 
+\begin{align*}
+\thetat(A)\,=\, \arginf_{z\in\Qt(A)} \cost(z).
+\numberthis\label{eqn:thetat}
+\end{align*}
+We will see that \bocas will not query inside an $\Ain\in\Fn$ at fidelities larger
+than $\thetat(\Ain)$ too many times (see Lemma~\ref{lem:gtrthetatbound}).
+That is, $\Tnzzxx{\greaterzz{\thetan(\Ain)}}{\Ain}$ will be small.
+We now define $\Fcaln$ as follows,
+\begin{align*}
+\Fcaln = \bigcup_{\Ain\subset\Xcal\setminus\Xcalrhon} 
+\greaterzz{\thetan(\Ain)} \times \Ain.
+\numberthis \label{eqn:Fcaln}
+\end{align*}
+That is, we first choose $\Ain$'s that are completely outside $\Xcalrhon$
+and take their cross product with fidelities more expensive than $\thetat(\Ain)$.
+By design of the above sets, and using the third condition in~\eqref{eqn:candfidelst}
+we can bound the total number of queries as follows,
+% $\Hcaln\cup\Fcaln\cup(\{\zhf\}\times\Xcalrhon) 
+% = \Zcal\times\Xcal$. Therefore,
+\begin{align*}
+n = \Tn(\Zcal,\Xcal) \;\leq\;
+  \Tn(\{\zhf\},\Xcalrhon)
+  + \Tn(\Fcaln) + \Tn(\Hcaln)
+\label{eqn:Tnbreakdown}
+\end{align*}
+We will show that the last two terms on the right hand side are small for \bocas
+and consequently, the first term will be large.
+But first, we establish a series of technical results which will be useful in
+proving theorem~\ref{thm:main}.
+
+
+
+\subsection{Some Technical Lemmas}
+\label{sec:techLemmas}
+
+The first lemma proves that the UCB $\utilt$ in~\eqref{eqn:mfucb}
+upper bounds $\func(\xt)$ on all the domain points $\{\xt\}_{t\geq 1}$ chosen for
+evaluation.
+\insertprespacing
+% 
+\begin{lemma}
+\label{lem:ucblemma}
+Let $\betat > 2\log(\pi^2t^2/2\delta)$. Then, with probability $>1-\delta/3$, we have
+\[
+\forall\,t\geq 1,\quad
+|\func(\xt) - \mutmo(\xt)|\,\leq\,\betath\sigmatmo(\xt).
+\]
+\end{lemma}
+\textbf{Proof:}
+This is a straightforward argument using Lemma~\ref{lem:gaussConcentration}
+and the union bound.
+At $t\geq 1$,
+\begingroup
+\allowdisplaybreaks
+\begin{align*}
+\PP\Big(|\func(x)-\mutmo(x)|>\betath\sigmatmo(x)\Big) &=
+\EE\left[\EE\left[ |\func(x)-\mutmo(x)|>\betath\sigmatmo(x) 
+  \;\Big|\; \Dcal_{t-1}  \right]\right] \\
+&=\EE\left[ \PP_{Z\sim\Ncal(0,1)}\left(|Z|>\betath\right) \right] 
+\leq\; \exp\Big(\frac{-\betat}{2}\Big)
+\;=\; \frac{2\delta}{\pi^2t^2}.
+\end{align*}
+\endgroup
+In the first step we have conditioned w.r.t $\Dcal_{t-1} = \{(z_i,x_i,y_i)\}_{i=1}^{t-1}$
+which allows us to use Lemma~\ref{lem:gaussConcentration}
+as $\func(x)|\Dcal_{t-1} \sim\Ncal(\mutmo(x),\sigmasqtmo(x))$.
+The statement follows via a union bound over all 
+$t\geq 0$ and the fact that $\sum_{t}t^{-2} = \pi^2/6$.
+\hfill\BlackBox
+
+
+Next we show that the GP sample paths are well behaved and that $\utilt(x)$ upper
+bounds  $\func(x)$ on a sufficiently dense subset at each time step.
+For this we use the following lemma.
+
+\insertprespacing
+\begin{lemma}
+\label{lem:smoothnesslemma}
+Let $\betat$ be as given in Theorem~\ref{thm:main}.
+Then for all $t$, there exists a discretisation $G_t$ of $\Xcal$ of size
+$(t^2brd\sqrt{6ad/\delta})^d$ such that the following hold.
+\vspace{-0.1in}
+\begin{itemize}
+\item
+Let $[x]$ be the closest point to $x\in\Xcal$ in the discretisation.
+With probability $>1-\delta/6$, we have
+\[
+\forall\;t\geq 1,\quad
+\forall\;x\in \Xcal,\quad
+|\func(x) - \func([x]_t)| \leq 1/t^2. 
+\]
+\vspace{-0.25in}
+\item
+With probability $>1-\delta/3$,
+for all $t\geq 1$ and for all $a\in G_t$,
+$|\func(a) -\mutmo(a)| \leq \betath\sigmatmo(a)$.
+\end{itemize}
+\end{lemma}
+\insertpostspacing
+\textbf{Proof:}
+The first part of the proof, which we skip here, uses the regularity condition
+for $\phix$ in Assumption~\ref{asm:kernelAssumption} and mimics the argument in Lemmas
+5.6, 5.7 of~\citet{srinivas10gpbandits}.
+The second part mimics the proof of Lemma~\ref{lem:ucblemma} and uses the fact that
+$\betat > 2\log(|G_t|\pi^2t^2/2\delta)$.
+\hfill\BlackBox
+
+
+The discretisation in the above lemma is different to the coverings introduced
+in Section~\ref{sec:setup}.
+The next lemma is about the information gap function in~\eqref{eqn:inffunc}.
+
+\begin{lemma}
+\label{lem:inffuncbound}
+Let $g\sim\GP(0,\kernel)$, $g:\Zcal\times\Xcal\rightarrow\RR$ and $\kernel$ is
+of the form~\eqref{eqn:mfkernel}.
+Suppose we have $s$ observations from $g$.
+Let $z\in\Zcal$ and $x\in\Xcal$.
+Then $\tautmo(z,x) < \alpha$ implies $\sigmatmo(x) < \alpha + \sqrtks\inffunc(z)$.
+\end{lemma}
+\textbf{Proof:}
+The proof uses the observation that for radial kernels, the maximum difference
+between the variances at two points $u_1$ and $u_2$ occurs when all $s$ observations
+are at $u_2$ or vice versa.
+Now we use $u_1 = (z,x)$ and $u_2 = (\zhf,x)$ and apply Lemma~\ref{lem:varbound}
+to obtain $\tausqtmo(\zhf,x) \leq \kernelscale(1-\phiz(\|\zhf-z\|))^2 +
+\frac{\eta^2/s}{1 + \frac{\eta^2}{s\kernelscale}}$.
+However, As $\tausqtmo(z,x) = \frac{\eta^2/s}{1 + \frac{\eta^2}{s\kernelscale}}$
+when all observations are at $(z,x)$ and noting that
+$\sigmasqtmo(x) = \tausqtmo(\zhf,x) $, we have
+$\sigmasqtmo(\zhf,x) \leq \kernelscale(1-\phiz(\|\zhf-z\|))^2 + \tausqtmo(z,x)$.
+Since the above situation characterised the maximum difference between
+$\sigmasqtmo(x)$ and $\tausqtmo(z,x)$, this inequality is valid for any general
+observation set.
+The proof is completed using the elementary inequality $a^2 + b^2 \leq (a+b)^2$ for $a,b>0$.
+\hfill\BlackBox
+
+
+We are now ready to prove Theorem~\ref{thm:main}.
+The plan of attack is as follows.
+We will analyse \bocas after $n$ time steps and bound the number of plays at fidelities
+$z\neq\zhf$ and outside $\Xcalrhon$ at $\zhf$.
+Then we will show that for sufficiently large $\capital$, the number of \emph{random}
+plays $N$ is bounded by $2\ncapital$ with high probability.
+Finally we usee techniques from~\citet{srinivas10gpbandits}, specifically the
+maximum information gain, to control the simple regret.
+However, unlike them we will obtain a tighter bound as we can control the regret due
+to the sets $\Xcalrhon$ and $\Xcal\setminus\Xcalrhon$ separately.
+
+% \vspace{0.1in}
+% \subsection{Set Up}
+
+\subsection{\textbf{Proof of Theorem~\ref{thm:main}}}
+\label{sec:mainproof}
+
+Let $\alpha >0$ be given.
+We invoke the sets $\Xcalrhon, \Hcaln,\Fcaln$ in equations~\eqref{eqn:Xcalrhon},
+~\eqref{eqn:Hcaln},~\eqref{eqn:Fcaln}
+for the given $\alpha$.
+The following lemma establishes that for any $A\subset\Xcal$, we will not query
+inside $A$ at fidelities larger than $\thetat(A)$~\eqref{eqn:thetat}
+too many times.
+The proof is given in Section~\ref{sec:gtrthetatbound}.
+\begin{lemma}
+\label{lem:gtrthetatbound}
+Let $A\subset\Xcal$ which does not contain the optimum.
+Let $\rho,\betat$ be as given in Theorem~\ref{thm:main}.
+Then for all $u>\max\{3, (2(\rho-\rho_0)\eta)^{-2/3}\}$, we have
+\[
+\PP\Big(\Tnzzxx{\greaterzz{\thetat(A)}}{A} \,>\, u \Big)
+\;\leq\; \frac{\delta}{\pi^2}\frac{1}{u^{1+4/\alpha}}
+\]
+\end{lemma}
+To bound $T(\Fcaln)$, we will apply Lemma~\ref{lem:gtrthetatbound} with $u=n^{\alpha/2}$
+on all $\Ain\in \Fn$ satisfying
+$\Ain\subset\Xcal\setminus\Xcalrhon$.
+Since $\Xcalrho\subset\Xcalrhon$, $\Ain$ does not contain the optimum.
+As $\Fcaln$ is the union of such sets~\eqref{eqn:Fcaln}, we have for all
+$n$ (larger than a constant),
+\begin{align*}
+\PP(T(\Fcaln) > n^{\alpha}) \;&\leq\;\;
+\PP\Big( \exists \Ain\subset\Xcal\setminus\Xcalrhon, \;\;
+\Tnzzxx{\greaterzz{\thetat(\Ain)}}{\Ain} \,>\,  n^{\alpha/2} \Big) \\
+  &\leq
+  \sum_{\substack{\Ain\in \Fn\\ \Ain\subset\Xcal\setminus\Xcalrhon}} \PP\Big(
+    \Tnzzxx{\greaterzz{\thetat(\Ain)}}{\Ain} \,>\, n^{\alpha/2} \Big) 
+  \leq |\Fn|\frac{\delta}{\pi^2} \frac{1}{n^{\alpha/2 + 2}} 
+    \leq \frac{\delta}{\pi^2}\frac{1}{n^2}
+\end{align*}
+Now applying the union bound over all $n$, we get
+$\PP(\forall\,n\geq 1,\;T(\Fcaln) > n^{\alpha}) \,\leq\, \delta/6$.
+
+Now we will bound the number of plays in $\Hcaln$ using the second condition
+in~\eqref{eqn:candfidelst}.
+We begin with the following Lemma.
+The proof mimics the argument in Lemma 11 of~\citet{kandasamy16mfbo} who prove
+ a similar result for GPs defined on just the domain, i.e. $\func\sim\GP(\zero,\kernel)$
+where $\func:\Xcal\rightarrow\RR$.
+
+\begin{lemma}
+\label{lem:mfvarbound}
+Let $A\subset\Zcal\times\Xcal$ and the $L_2$ diameter of $A$ in $\Xcal$ be
+$\Dx$ and that in $\Zcal$ be $\Dz$.
+Suppose we have $n$ evaluations of $g$ of which $s$ are in $A$. 
+Then for any $(z,x)\in A$, the posterior variance $\tau'^2$ satisfies, 
+\[
+\tau'^2(z,x) \leq \kernelscale(1 - \phiz^2(\Dz) \phix^2(\Dx)) + \frac{\eta^2}{s}.
+\]
+\end{lemma}
+Let $\costratio = \cost_{min}/\cost(\zhf)$ where $\cost_{min} = \min_{z\in\Zcal}\cost(z)$.
+% To show that we will not query in a certain region at time $n$, it is sufficient to prove
+If the maximum posterior variance in a certain region is smaller than $\gamma(z)$,
+then we will not query within that region by the second condition
+in~\eqref{eqn:candfidelst}.
+Further by the third condition, since we will only query at fidelities satisfying
+ $\inffunc(z) > \inffunc(\sqrt{p})/\betanh$,
+it is sufficient to show that
+the posterior variance is bounded by
+$\kernelscale \inffunc(\sqrt{p})^2 \costratio^{2q}/\beta_n$ at time $n$ 
+to prove that we will not query again in that region.
+% This uses the fact that $\inffunc(z) > \inffunc(\sqrt{p})/\betanh$ by the third condition.
+For this we can construct a covering of $\Hcaln$ such that 
+$1 - \phiz^2(\Dz) \phix^2(\Dx) < \frac{1}{2}\inffunc(\sqrt{p})^2\costratio^{2q}/\betan$.
+For any $A\subset\Zcal\times\Xcal$, the covering number, which we denote $\Omega_n(A)$
+of this construction
+will typically be polylogarithmic in $n$ (See Remark~\ref{rem:construction} below).
+Now if there are 
+$\frac{2\betan\eta^2}{\costratio^{2q}\inffunc^2(\sqrt{p})\kernelscale} + 1$
+queries inside a ball in this covering,
+the posterior variance, by Lemma~\ref{lem:mfvarbound} will be smaller than
+$\kernelscale \inffunc(\sqrt{p})^2 \costratio^{2q}/\beta_n$. Therefore, 
+we will not query any further inside this ball.
+Hence, the total number of queries in $\Hcaln$ is
+$\Tn(\Hcaln) \leq C_2 \Omega_n(\Hcaln) \frac{\betan}{\costratio^{2q}}
+\leq C_3 \vol(\Hcaln) \frac{\polylog(n)}{\poly(\costratio)}$
+for appropriate constants $C_2,C_3$.
+(Also see Remark~\ref{rem:qchoice}).
+
+Next, we will argue that the number of queries for sufficiently large $\capital$,
+is bounded by $\ncapital/2$ where, recall $\ncapital = \floor{\capital/\cost(\zhf)}$.
+This simply follows from the bounds we have for $\Tn(\Fcaln)$ and $\Tn(\Hcaln)$.
+\[
+\Tn(\Zcal\setminus\{\zhf\},\Xcal)
+\leq \Tn(\Fcaln) + \Tn(\Hcaln) \leq n^\alpha + \bigO(\polylog(n)).
+\]
+Since the right hand side is sub-linear in $n$, we can find $n_0$ such that
+for all $n_0$, $n/2$ is larger than the right hand side.
+Therefore for all $n\geq n_0$, $\Tn(\{\zhf\},\Xcal) > n/2$.
+Since our bounds hold with probability $>1-\delta$ for all $n$ we can invert the
+above inequality to bound $N$, the random number of queries after capital $\capital$.
+We have $N\leq 2\capital/\cost(\zhf)$. We only need to make sure that $N\geq n_0$ which
+can be guaranteed if $\capital > \capital_0 = n_0\cost(\zhf)$.
+
+The final step of the proof is to bound the simple regret after $n$ time steps
+in \boca. This uses techniques that are now standard in GP bandit optimisation, so we
+only provide an outline. We begin with the following Lemma.
+\begin{lemma}
+\label{lem:IGBoundLemma}
+Assume that we have queried $g$ at $n$ points, $(z_t,x_t)_{t=1}^n$ of
+which $s$ points are in $\{\zhf\}\times A$ for any $A\subset\Xcal$.
+Let $\sigmatmo$ denote the posterior variance of $\func$ at time $t$,
+i.e. after $t-1$ queries.
+Then, $\sum_{x_t\in A,\zt=\zhf}\sigmasqtmo(x_t)\leq \frac{2}{\log(1+\eta^{-2})}\IGnn{s}(A)$.
+Here $\IGnn{s}(A)$ is the MIG of $\phix$ after $s$ queries to $A$ as given
+in Definition~\ref{def:infGain}.
+% \newcommand{\xAss}[1]{x_{(#1)}}
+\end{lemma}
+
+We now define the quantity $R_n$ below.
+Readers familiar with the GP bandit literature might see that it is similar to the notion
+of cumulative regret, but we only consider queries at $\zhf$.
+\begin{align*}
+R_n = \sum_{\substack{t=1\\ \zt=\zhf}}^{n} \funcopt - \func(\xt) \;\;=\;\;
+  \sum_{\substack{\zt=\zhf\\\xt\in\Xcalrhon}}
+        \funcopt - \func(\xt)
+\quad + \quad
+  \sum_{\substack{\zt=\zhf\\\xt\notin\Xcalrhon}}
+        \funcopt - \func(\xt).
+\numberthis
+\label{eqn:Rn}
+\end{align*}
+% We first work with the first term on the right hand side.
+% Using a 
+For any $A\subset\Xcal$ we can use Lemmas~\ref{lem:ucblemma},~\ref{lem:smoothnesslemma},
+and~\ref{lem:IGBoundLemma} and the Cauchy Schwartz inequality to obtain,
+\[
+\sum_{\substack{\zt=\zhf\\\xt\in A}}
+      \funcopt - \func(\xt)
+\leq \sqrt{C_1 \Tn(\zhf,A)\betan \IG_{\Tn(\zhf,A)}(A)} + 
+\sum_{\substack{\zt=\zhf\\\xt\in A}} \frac{1}{t^2}.
+\]
+For the first term in~\eqref{eqn:Rn}, we use the trivial bound
+$\Tn(\zhf,\Xcalrhon) \leq n$.
+For the second term we use the fact that
+$\{\zhf\}\times(\Xcal\setminus\Xcalrhon)\subset\Fcaln$ and hence,
+$\Tn(\zhf,\Xcal\setminus\Xcalrhon) \leq \Tn(\Fcaln) \leq n^\alpha$.
+% Further noting that $ \Xcal\setminus\Xcalrhon \subset \Xcal$, we have
+Noting that $A\subset B\implies \IGn(A)\leq\IGn(B)$, we have
+$R_n \leq \sqrt{C_1n\betan\IGn(\Xcalrhon)} + \sqrt{C_1n^\alpha\betan\IGnalpha(\Xcal)} 
++ \pi^2/6$.
+Now, using the fact that $N \leq 2\ncapital$ for large enough $N$ we have,
+\[
+R_N \leq  \sqrt{{2C_1\ncapital\beta_{2\ncapital} \IGnn{2\ncapital}(\Xcalrhon)} }
+ \;+\;
+  \sqrt{{2^\alpha C_1\ncapital^\alpha\beta_{2\ncapital}
+\IGnn{2\ncapital^\alpha}(\Xcal)}} 
+  \;+\; \frac{\pi^2}{6}.
+\]
+The theorem now follows from the fact that $S(\capital) \leq \frac{1}{N}R_N$ by definition
+and that $N\geq \ncapital$.
+The failure instances arise out of Lemmas~\ref{lem:ucblemma},~\ref{lem:smoothnesslemma} and
+the bound on $\Tn(\Fcaln)$, the summation of whose probabilities are bounded by
+$\delta$.
+\hfill\BlackBox
+
+\vspace{0.2in}
+
+\begin{remark}[Construction of covering for the SE kernel]
+\label{rem:construction}
+\emph{
+We demonstrate that such a construction is always possible using the SE kernel.
+Using the inequality $e^{-x} \geq 1 - x$ for $x>0$ we have,
+\[
+1 - \phix^2(\Dx)\phiz^2(\Dz) <
+\frac{\Dx^2}{\hx^2} + 
+\frac{\Dz^2}{\hz^2} 
+\]
+% Using the inequality $e^{-x} \leq 1 - x + x^2/2$ for $x>0$ we have,
+% \[
+% 1 - \phix^2(\Dx)\phiz^2(\Dz) > 
+% \frac{\Dx^2}{\hx^2} + 
+% \frac{\Dz^2}{\hz^2} -
+% \frac{\Dx^4}{2\hx^4} - 
+% \frac{\Dz^4}{2\hz^4}
+% \]
+where $\Dz,\Dx$ will be the $L_2$ diameters of the balls in the covering.
+% We will be letting $\Dz,\Dx$ shrink with $n$, so for sufficiently large $n$ the
+% right hand side will be larger than 
+% $ \frac{\Dx^2}{2\hx^2} + \frac{\Dz^2}{2\hz^2}$.
+Now let $h = \min\{\hz, \hx\}$ and choose 
+\[
+\Dx = \Dz = \frac{h}{2}\frac{\inffunc(\sqrt{p})}{\betanh} \costratio^{q},
+\]
+via which we have
+$1 - \phiz^2(z) \phix^2(x) < \frac{1}{2}\inffunc(\sqrt{p})^2\costratio^{2q}/\betan$
+as stated in the proof.
+Noting that $\betan\asymp\logn$, using standard results on covering numbers, we can
+show that the size of this covering will be
+$\logn^{\frac{d+p}{2}}/\costratio^{q(d+p)}$.
+A similar argument is possible for Mat\'ern kernels, but the exponent on $\logn$ will be
+worse.
+}
+\end{remark}
+
+\begin{remark}[Choice of $q$ for SE kernel]
+\label{rem:qchoice}
+\emph{
+From the arguments in our proof and Remark~\ref{rem:construction}, we have that
+the number of plays in a set $S\subset(\Zcal\times\Xcal)$ is
+$T(S)\leq \vol(S) \log(n)^{\frac{d+p+2}{2}}
+\left(\frac{\cost(\zhf)}{\cost_{min}}\right)^{q(p+d+2)}$.
+However, we chose to work work $\cost_{min}$ mostly to simplify the proof.
+It is not hard to see that for $A\subset\Xcal$ and $B\subset\Zcal$
+if $\cost(z) \approx \cost'$ for all $z\in B$, then
+$\Tn(B,A)\approx \vol(B\times A) \log(n)^{\frac{d+p+2}{2}}
+\left(\frac{\cost(\zhf)}{\cost'}\right)^{q(p+d+2)}$.
+As the capital spent in this region is $\cost'\Tn(A,B)$,
+by picking $q=1/(p+d+2)$ we ensure that the 
+capital expended for a certain $A\subset\Xcal$ at all fidelities is roughly the same,
+i.e. for any $A$, the capital density in fidelities $z$ such that $\cost(z) <
+\cost(\thetat(A))$ will be roughly the same.
+\citet{kandasamy16mfbandit} showed that doing so achieved a nearly minimax optimal strategy
+for cumulative regret in $K$-armed bandits.
+While it is not clear that this is the best strategy for optimisation under GP
+assumptions, it did reasonably well in our experiments. We leave it to
+future work to resolve this.
+}
+\end{remark}
+
+
+\subsubsection{Proof of Lemma~\ref{lem:gtrthetatbound}}
+\label{sec:gtrthetatbound}
+For brevity, we will denote $\theta = \thetat(A)$.
+We will invoke the discretisation $G_t$ used in Lemma~\ref{lem:smoothnesslemma} via which
+we have $\utilt([\xopt]_t) \geq \funcopt - 1/t^2$ for all $t\geq 1$.
+Let $b = \argmax_{x\in A} \utilt(x)$ be the maximiser of the upper
+confidence bound $\utilt$ in $A$ at time $t$.
+Now note that,
+$\xt\in A \implies \utilt(b) > \utilt([\xopt]_t) \implies
+\utilt(b) > \funcopt - 1/t^2$.
+We therefore have,
+\begingroup
+\allowdisplaybreaks
+\begin{align*}
+\PP\big(\Tnzzxx{\greaterzz{\theta}}{A} \,>\, u \big)\;
+&\leq\; 
+% \frac{\delta}{\pi^2}\frac{1}{u^{1+4/\alpha}}
+\PP\big( \exists t: u+1\leq t \leq n, \;\;
+  \utilt(b) > \funcopt - 1/t^2 \;\;\wedge\;\; \tautmo(b) <\gamma(\theta)) 
+\\
+&\leq\;
+  \sum_{t=u+1}^n
+\PP\big( \mutmo(b) - \func(b) >  \funcopt - \func(b) 
+  - \betath\sigmatmo(b) - 1/t^2
+\;\;\wedge\;\; \tautmo(b) <\gamma(\theta)\big) 
+\numberthis\label{eqn:sumprobgtr}
+% &\hspace{0.2in}\leq\;
+%   \sum_{t=u+1}^n \PP_{Z\sim\Ncal(0,1)}\left(Z > (\rho_0-1)\betath\right)
+% \;\leq\;
+%   \sum_{t=u+1}^n \frac{1}{2}\exp\left(\frac{(\rho_0-1)^2}{2}\betat\right) \\
+% &\hspace{0.2in}\leq\;
+%   \frac{1}{2}\left(\frac{\delta}{M\pi^2}\right)^{(\rho_0-1)^2}
+%   \sum_{t=u+1}^n t^{-(\rho_0-1)^2(2+2d)} 
+% \;\leq\;
+% \frac{\delta}{M\pi^2} u^{-(\rho_0-1)^2(2+2d) + 1}
+% \;\leq\;
+% \frac{\delta}{\pi^2} \frac{1}{u^{1+4/\alpha}}.
+\end{align*}
+\endgroup
+We now note that 
+\[
+\tautmo(b)<\gamma(\theta)\implies \sigmatmo(b) < \gamma(\theta) +
+\sqrtks\inffunc(\theta) \leq 2\sqrtks\inffunc(\theta)
+\leq \frac{1}{\betath\rho}(\funcopt - \func(b)).
+\]
+The first step uses Lemma~\ref{lem:inffuncbound}.
+The second step uses the fact that $\gamma(\theta) = \sqrtks\inffunc(\theta)
+(\cost(z)/\cost(\zhf))^{1/(p+d+2)} \leq \sqrtks\inffunc(\theta)$ and
+the last step uses the definition of $\Qt(A)$ in~\eqref{eqn:Qt} whereby we have
+$\funcopt - \func(x) \geq 2\rho\betath\sqrtks\inffunc(\theta)$.
+Now we plugging this back into~\eqref{eqn:sumprobgtr}, we can bound each term in
+the summation by,
+\begin{align*}
+&\PP\big( \mutmo(b) - \func(b) > (\rho-1)\betath\sigmatmo(b) - 1/t^2 \big) 
+\;\leq\;
+  \PP_{Z\sim\Ncal(0,1)}\left(Z > (\rho_0-1)\betath\right) \\
+&\hspace{0.2in}\leq\;
+  \frac{1}{2}\exp\left(\frac{(\rho_0-1)^2}{2}\betat\right) 
+\;\leq\;
+  \frac{1}{2}\left(\frac{2\delta}{\pi^2}\right)^{(\rho_0-1)^2}
+  t^{-(\rho_0-1)^2(2+2d)} 
+\;\leq\;
+  \frac{\delta}{\pi^2}   t^{-(\rho_0-1)^2(2+2d)} .
+\numberthis\label{eqn:termprobgtr}
+% \;\leq\;
+% \frac{\delta}{M\pi^2} u^{-(\rho_0-1)^2(2+2d) + 1}
+% \;\leq\;
+% \frac{\delta}{\pi^2} \frac{1}{u^{1+4/\alpha}}.
+\end{align*}
+In the first step we have used the following facts,
+$t>u\geq\max\{3,\,(2(\rho-\rho_0)\eta)^{-2/3}\},\,$
+$\pi^2/2\delta >1$ and
+$\sigmatmo(b) > \eta/\sqrt{t}$ to conclude,
+\begin{align*}
+(\rho-\rho_0)\frac{\eta\sqrt{4\logt}}{\sqrt{t}} > \frac{1}{t^2}
+\;&\implies\;
+(\rho-\rho_0)\cdot
+\sqrt{2\log\left(\frac{\pi^2t^2}{2\delta}\right)}\cdot\frac{\eta}{\sqrt{t}} > 
+            \frac{1}{t^2} 
+\;\implies\;
+(\rho-\rho_0) \betath\sigmatmo(b) > \frac{1}{t^2}.
+\end{align*}
+The second step of~\eqref{eqn:termprobgtr} uses Lemma~\ref{lem:gaussConcentration},
+the third step uses the conditions on $\betath$ as given in theorem~\ref{thm:main}
+and the last step uses the fact that $\pi^2/2\delta > 1$.
+Now plug~\eqref{eqn:termprobgtr} back into~\eqref{eqn:sumprobgtr}.
+The result follows by bounding the sum by an integral and  noting that
+$\rho_0>2$ and $\rho_0\geq 1+ \sqrt{(1+2/\alpha)/(1+d)}$.
+\hfill\BlackBox
+
+
+\subsubsection{Proof of Lemma~\ref{lem:IGBoundLemma}}
+
+\newcommand{\xAss}[1]{u_{#1}}
+\newcommand{\xAt}{\xAss{t}}
+\newcommand{\sigmattmo}{\tilde{\sigma}_{t-1}}
+\newcommand{\sigmattmosq}{\tilde{\sigma}^2_{t-1}}
+Let $A_s = \{\xAss{1},\xAss{2},\dots,\xAss{s}\}$ be the queries in $\{\zhf\}\times A$
+in the order they were queried.
+Now, assuming that we have queried $\gunc$ only inside $\{\zhf\}\times A$, denote by
+$\sigmattmo(\cdot)$, the posterior standard deviation after $t-1$ such queries. Then,
+\begin{align*}
+\sum_{t:x_t\in A, \zt=\zhf} \sigmasqtmo(x_t) \leq\;
+  \sum_{t=1}^s\sigmattmosq(\xAt) 
+  \leq\; \sum_{t=1}^s \eta^2\frac{\sigmattmosq(\xAt)}{\eta^2}
+  \leq\; \sum_{t=1}^s
+    \frac{\log(1+\eta^{-2}\sigmattmosq(\xAt))}{\log(1+\eta^{-2})} 
+  \leq \frac{2}{\log(1+\eta^{-2})} I(y_{A_s}; f_{A_s}).
+\end{align*}
+Queries outside $\{\zhf\}\times A$ will only decrease the variance of the GP so we can
+upper bound
+the first sum by the posterior variances of the GP with only the queries in
+$\{\zhf\}\times A$.
+The third step uses the inequality $u^2/v^2 \leq \log(1+u^2)/\log(1+v^2)$.
+The result follows from the fact that $\IGnn{s}(A)$
+maximises the mutual information among all subsets of size $s$.
+\hfill\BlackBox
+
+

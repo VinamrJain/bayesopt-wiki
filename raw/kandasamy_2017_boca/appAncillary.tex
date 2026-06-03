@@ -1,0 +1,135 @@
+\section*{\Large Appendix}
+\vspace{0.1in}
+
+\section{Some Ancillary Material}
+\label{sec:ancillary}
+
+\subsection{Review of \gpucb}
+\label{sec:gpucbReview}
+
+We present a review of the \gpucbs algorithm of~\citet{srinivas10gpbandits} which we build
+on in this work.
+Here we will assume $\func\sim\GP(\zero,\kernel)$ where $\kernel:\Xcal^2\rightarrow\RR$ is
+a radial kernel defined on the domain $\Xcal$.
+The algorithm is given below.
+
+\insertAlgorithmGPBALGO
+
+To present the theoretical results for \gpucb, we begin
+by defining the \emph{Maximum Information Gain} (\mig) which characterises the
+statistical difficulty of GP bandits.
+
+\begin{definition}(Maximum Information Gain~\citep{srinivas10gpbandits})
+Let $f\sim \GP(\zero, \phix)$.
+Consider any $A\subset\RR^d$ and
+let $A' = \{x_1, \dots, x_n\} \subset A$ be a finite subset.
+Let $f_{A'}, \epsilon_{A'}\in\RR^n$ such that $(f_{A'})_i=f(x_i)$ and
+$(\epsilon_{A'})_i\sim\Ncal(0,\eta^2)$.
+Let $y_{A'} = f_{A'}+\epsilon_{A'}$.
+Denote the Shannon Mutual Information by $I$.
+The Maximum Information Gain of $A$ is
+\[
+\IG_n(A) = \max_{A'\subset A, |A'| = n} I(y_{A'}; f_{A'}).
+\]
+\label{def:infGain}
+\end{definition}
+\insertpostspacing
+
+Next, we will need the following regularity conditions on the kernel.
+It is satisfied for four times differentiable
+kernels such as the SE kernel and \matern{} kernel when
+$\nu>2$~\citep{ghosal06gpconsistency}.
+
+% \insertprespacing
+\begin{assumption} Let $\func\sim\GP(\zero,\kernel)$, where
+$\kernel:\Xcal^2 \rightarrow \RR$ is a stationary kernel.
+%  $\kernel(\cdot, x)$ is $L$-Lipschitz for all $x$. 
+The partial derivatives
+of $\func$  satisfies the following condition.
+There exist constants $a, b >0$ such that,
+\[
+\text{for all $J>0$, $\;$and for all $i \in \{1,\dots,d\}$},\quad \PP\left( \sup_{x} 
+\Big|\partialfrac{x_i}{\func(x)}\Big| > J \right)
+\leq a e^{-(J/b)^2}.
+\]
+\label{asm:kernelAssumption}
+\end{assumption}
+
+The following theorem is a bound on the simple regret $S_n$~\eqref{eqn:SnDefn} for \gpucb.
+
+\begin{theorem}(\cite{srinivas10gpbandits})
+\label{thm:gpucb}
+Let $\func\sim\GP(\zero,\kernel)$, where $\Xcal=[0,1]^d$,
+$\func:\Xcal\rightarrow\RR$ and the kernel $\kernel$ satisfies
+Assumption~\ref{asm:kernelAssumption}).
+At each query, we have noisy observations
+$y = f(x) + \epsilon$ where $\epsilon\sim\Ncal(0,\eta^2)$.
+Denote $C_1 = 8/\log(1+\eta^{-2})$.
+Pick a failure probability $\delta\in(0,1)$ and run \emph{\gpucbs} with
+  $\betat = 2\log\left(\frac{2\pi^2t^2}{3\delta}\right) + 
+  2d\log\left(t^2bdr\sqrt{\frac{4ad}{\delta}}\right)$.
+The following holds with probability $>1-\delta$,
+% \hspace{-0.2in}
+\vspace{-0.02in}
+\[
+% \PP\left( \forall n\geq 1,\; R_n \leq \sqrt{C_1n\betan\IGn(\Xcal)} \,+\, 2 \right)
+% \geq 1-\delta
+\text{for all $n\geq 1$,}
+\hspace{0.4in}
+S_n \leq \sqrt{\frac{C_1\betan\IGn(\Xcal)}{n}} \,+\, \frac{\pi^2}{6}.
+\]
+\end{theorem}
+
+
+\subsection{Some Technical Results}
+\label{sec:technical}
+
+Here we present some technical lemmas we will need for our analysis.
+
+\begin{lemma}[Gaussian Concentration]
+\label{lem:gaussConcentration}
+Let $Z\sim\Ncal(0,1)$. Then $\;\PP(Z>\epsilon) \leq \frac{1}{2}\exp(-\epsilon^2/2)$.
+\end{lemma}
+% \insertprespacing
+
+\begin{lemma}[Mutual Information in GP, \cite{srinivas10gpbandits} Lemma 5.3]
+\label{lem:IGformula}
+Let $\func\sim\GP(\zero,\kernel)$, $f:\Xcal\rightarrow\RR$ and we observe
+$y=f(x) + \epsilon$ where $\epsilon\sim\Ncal(0,\eta^2)$. Let $A$ be a finite
+subset of $\Xcal$ and $f_A,y_A$ be the function values and observations on this set
+respectively. Then the Shannon Mutual Information
+$I(y_A;f_A)$ is,
+\[
+I(y_A; \func_A) = \frac{1}{2} \sum_{t=1}^{n} \log(1 + \eta^{-2}
+  \sigma^2_{t-1}(x_t) ).
+\]
+where $\sigma^2_{t-1}$ is the posterior GP variance after observing the first $t-1$
+points. 
+\end{lemma}
+
+Our next result is a technical lemma taken from~\citet{kandasamy16mfbo}.
+It will be used in controlling
+the posterior variance of our $\func$ and $\gunc$ GPs.
+
+\begin{lemma}[Posterior Variance Bound~\citep{kandasamy16mfbo}]
+\label{lem:varbound}
+Let $\func\sim(\zero,\kernel)$, $\func:\Ucal\rightarrow\RR$ where
+$\kernel(u,u') = \kernelscale\phi(\|u-u'\|)$ and
+$\phi$ is a radial kernel.
+Upon evaluating $f$ at $u$ we observe $y = f(u) + \epsilon$ where
+$\epsilon\sim\Ncal(0,\eta^2)$.
+Let $u_1\in\Ucal$ and suppose we have $s$ observations at $u_1$ and no observations
+elsewhere.
+Then the posterior variance $\kernel'$ (see~\eqref{eqn:gpPost}) at all $u\in\Ucal$
+satisfies,
+\[
+\kernel'(u,u) \leq \kernelscale(1-\phi^2(\|u-u_1\|)) + \frac{\eta^2/s}{ 1+
+\frac{\eta^2}{\kernelscale s}}.
+\]
+\end{lemma}
+\textbf{Proof:}
+The proof is in Section C.0.1 of~\citet{kandasamy16mfbo} who
+prove this result as part of a larger proof.
+\hfill\BlackBox
+
+

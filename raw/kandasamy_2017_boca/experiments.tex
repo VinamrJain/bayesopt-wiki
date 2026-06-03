@@ -1,0 +1,145 @@
+
+% \vspace{-0.05in}
+\insertToyResultsFigure
+\vspace{-0.05in}
+\vspace{-0.05in}
+
+\section{Experiments}
+\label{sec:experiments}
+
+We compare \bocas to the following four baselines: 
+(i) \gpucb,
+(ii) the \gpeis criterion in \bayo~\citep{jones98expensive}, 
+(iii) \mfgpucbones~\citep{kandasamy16mfbo} and
+(iv) \mfsko, the multi-fidelity sequential kriging optimisation method
+from~\citet{huang06mfKriging}.
+All methods are based on GPs and we use the SE kernel for both the fidelity space
+and domain.
+The first two are not multi-fidelity methods, while the last two are finite multi-fidelity
+methods\footnote{%
+To our knowledge, the only other work that applies to continuous approximations
+is~\citet{klein2015towards} which was developed specifically for hyper-parameter tuning.
+Further, their implementation is not made available and is not straightforward to
+implement.  }.
+We have described the implementation details for all methods in
+Appendix~\ref{sec:appImplementation}.
+
+
+\subsection{Synthetic Experiments}
+\label{sec:synthetic}
+
+
+The results for the first set of synthetic experiments are given in Fig.~\ref{fig:toy}.
+The title of each figure states the function used, and the dimensionalities $p,d$ of the
+fidelity space and domain.
+In all cases, the fidelity space was taken to be $\Zcal=[0,1]^p$ with
+$\zhf = \one_p = [1,\dots,1]\in\RR^p$
+being the most expensive fidelity.
+For \mfgpucbones and \mfsko, we used $3$ fidelities ($2$ approximations) where the
+approximations were obtained at $z=0.333\one_p$ and $z=0.667\one_p$ points in the fidelity
+space.
+To reflect the setting in our theory, we add Gaussian noise to the function value
+when observing $g$ at any $(z,x)$.
+This makes the problem more challenging than standard global optimisation problems
+where function evaluations are not noisy.
+The functions $g$, the cost functions $\cost$ and the noise variances $\eta^2$ are given
+in Appendix~\ref{sec:appSynthetic}.
+
+The first two figures in Fig.~\ref{fig:toy} are simple sanity checks.
+In both cases, $\Zcal=[0,1]$ and $\Xcal=[0,1]$ and the functions were sampled from GPs. 
+The GP was made known to all methods, i.e. the methods used the true GP in picking the
+next point.
+In the first figure, we used an SE kernel with bandwidth $0.1$ for $\phix$ and
+$1.0$ for $\phiz$.
+The large fidelity bandwidth causes $\gunc$ to be smooth across $\Zcal$ and
+\mfgpucbtwos outperforms other baselines in this setting.
+The curve starts mid-way in the figure as \bocas is yet to query at $\zhf$ up until
+that point.
+The second figure uses the same set up as the first except we used an SE
+kernel with bandwidth $0.01$ for $\phiz$.
+Even though $\gunc$ is highly  unsmooth across $\Zcal$,
+\mfgpucbtwos does not perform poorly.
+% It immediately skips the lower fidelities (curve starts early) as the threshold
+% $\gamma(z)$ is large in~\eqref{eqn:candfidelst} and achieves as good regret
+% as \gpucbs and \gpei.
+This corroborates a claim that we made earlier that \bocas can naturally adapt
+to the smoothness of the approximations.
+The other multi-fidelity methods seem to suffer in this setting.
+
+
+
+In the remaining experiments, we use some standard benchmarks for global optimisation.
+We modify them to obtain $g$ and add noise to the observations.
+As the kernel and other GP hyper-parameters are unknown, we learn them by maximising
+the marginal likelihood every $25$ iterations.
+This is a common heuristic used in the \bayo{} literature.
+We outperform all methods on all problems
+except in the case of the Borehole function where \mfgpucbones does better.
+The last synthetic experiment is the Branin function given in Fig.~\ref{fig:branin}.
+We used the same set up as above, but use 10 fidelities for \mfgpucbones and \mfskos
+where the $k$\ssth fidelity is obtained at $z = \frac{k}{10}\one_p$ in the fidelity space.
+Notice that the performance of finite fidelity methods deteriorate.
+In particular, as \mfgpucbones does not share information across fidelities, the
+approximations need to be designed carefully for the algorithm to work well.
+Our more natural modelling assumptions prevent such pitfalls.
+We next present two real examples in astrophysics and hyper-parameter tuning.
+We do \emph{not} add noise to the observations, but treat it as optimisation tasks,
+where the goal is to maximise the function.
+
+\subsection{Astrophysical Maximum Likelihood Inference}
+
+\label{sec:sn}
+
+
+We use data on TypeIa supernova for maximum likelihood
+inference on $3$ cosmological parameters, the Hubble constant $H_0\in(60,80)$, the
+dark matter fraction $\Omega_M\in(0,1)$ and dark energy fraction $\Omega_\Lambda\in(0,1)$,
+hence $d=3$.
+The likelihood is given by the Robertson-Walker metric, the computation of which
+requires a one dimensional numerical integration for each point in the dataset.
+Unlike typical maximum likelihood problems, here the likelihood is only accessible
+via point evaluations.
+\insertRealResultsFigure
+We use the dataset from~\citet{davis07supernovae} which has data on $192$ supernovae.
+We construct a $p=2$ dimensional multi-fidelity problem where we can choose 
+between data set size $N\in[50,192]$ and perform the integration on grids of size 
+$G\in[10^2, 10^6]$ via the trapezoidal rule.
+As the cost function for fidelity selection, we used $\cost(N,G) = NG$ as
+the computation time is linear in both parameters.
+Our goal is to maximise the average log likelihood at $\zhf=[192, 10^6]$.
+For the finite fidelity methods we use three fidelities with the approximations available
+at $z=[97,2.15\times 10^3]$ and $z=[145, 4.64\times 10^4]$ (which correspond to
+$0.333\one_p$ and $0.667\one_p$ after rescaling as in Section~\ref{sec:synthetic}).
+The results are given in Fig.~\ref{fig:sn} where we plot the maximum average log
+likelihood against wall clock time as that is the cost in this experiment.
+The plot includes the time taken by each method to tune the GPs and determine the next
+points/fidelities for evaluation.
+% \bocas outperforms other methods on this problem.
+
+
+\subsection{Support Vector Classification with $20$ news groups}
+\label{sec:news}
+
+We use the $20$ news groups dataset~\cite{joachims1996probabilistic} in a text
+classification task.
+We obtain the bag of words representation for each document, convert them to tf-idf
+features and feed them to a support vector classifier.
+The goal is to tune the regularisation penalty and the temperature of the rbf kernel
+both in the range $[10^{-2}, 10^3]$. Hence $d=2$.
+The support vector implementation was taken from scikit-learn.
+We set this up as a $2$ dimensional multi-fidelity problem where we can choose
+a dataset size $N\in[5000, 15000]$ and the number of training iterations
+$T\in[20, 100]$.
+Each evaluation takes the given dataset of size $N$ and splits it up into $5$ to perform
+$5$-fold cross validation.
+As the cost function for fidelity selection, we used $\cost(N,T) = NT$ as
+the training/validation complexity is linear in both parameters.
+Our goal is to maximise the cross validation accuracy at $\zhf = [15000, 100]$.
+For the finite fidelity methods we use three fidelities with the approximations available
+at $z=[8333,47]$ and $z=[11667, 73]$.
+The results are given in Fig.~\ref{fig:news} where we plot the average cross validation
+accuracy against wall clock time.
+
+
+% Our goal is to use tune the 
+
