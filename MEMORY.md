@@ -20,7 +20,7 @@ Tracks: `raw/**/*.tex`, `raw/**/*.bib`, trustworthy `raw/**/*.md`; plus `referen
 
 ## Sources
 
-Truth: `raw/` — LaTeX via `fetch_arxiv_sources.py`, else `raw/<key>/<key>.md` from PDF (YAML: `source_type: pdf-derived`, `parser: mathpix|marker-pdf`).
+Truth: `raw/` — LaTeX via `scripts/fetch_arxiv_sources.py`, else `raw/<key>/<key>.md` from PDF (YAML: `source_type: pdf-derived`, `parser: mathpix|marker-pdf`).
 
 Parse order: (1) LaTeX fetch (2) **Mathpix** for theory/proofs (3) marker-pdf fallback (4) Read PDF for spot-check. **Never pymupdf4llm.**
 

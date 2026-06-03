@@ -25,7 +25,7 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
   derive content with no source — defer instead.
 
 ## Tooling
-- `fetch_arxiv_sources.py <id> --name id:folder --out raw/` — scrape arXiv LaTeX into `raw/`.
+- `scripts/fetch_arxiv_sources.py <id> --name id:folder --out raw/` — scrape arXiv LaTeX into `raw/`.
   Needs network (arXiv may be sandbox-blocked; run with `!` if so).
 
 ## Ops
