@@ -1,38 +1,26 @@
 # OS / editor
 .DS_Store
-Thumbs.db
-*.swp
-*~
 .idea/
 .vscode/
 
-# Python
+# Python / secrets
 __pycache__/
-*.py[cod]
-*.egg-info/
 .venv/
-venv/
 .env
 .env.*
 
-# PDFs (keep parsed markdown + LaTeX sources; ignore binary PDFs)
+# PDFs (parsed md + LaTeX are tracked; binaries stay local)
 *.pdf
 
-# Stale PDF stash (CLAUDE.md: ignore papers/)
-papers/
-
-# PoC / scratch (parser comparisons, temp extracts)
-_poc_parse/
-_parse_eval/
-**/_marker_out/
-*_marker_run.log
-
-# Archive — superseded drafts, not authoritative
+# Superseded drafts
 _archive/
 
-# Large or generated artifacts
-*.tar.gz
-*.zip
-
-# Wiki build artifacts (when added)
+# Wiki tooling
 wiki/.obsidian/
+
+# raw/: track only LaTeX source, bib, and good parsed md
+raw/**
+!raw/**/
+!raw/**/*.tex
+!raw/**/*.bib
+!raw/**/*.md

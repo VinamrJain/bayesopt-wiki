@@ -6,10 +6,10 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
 
 ## Sources of truth
 - **`raw/`** — paper LaTeX sources. The ONLY content source. Derive notes from these.
-- **`papers/`** — stale PDFs. Ignore.
+- **`papers/`** — removed; PDFs live in `raw/<citation_key>/` (gitignored binaries).
 - **`_archive/`** — superseded LLM-generated drafts (`EI*.md`). NOT sources; not authoritative
   voice. Do not anchor content or style on them.
-- `references.md` — bibliography (citation keys). `paper_summaries.md` — orientation only.
+- `references.md` — bibliography (citation keys, contributions, links). `MEMORY.md` — agent workflow & parse queue.
 
 ## Conventions (when building/editing the wiki)
 - **Concept-based, not paper-based.** Same concept across papers → one note; reconcile differing
@@ -27,6 +27,9 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
 ## Tooling
 - `fetch_arxiv_sources.py <id> --name id:folder --out raw/` — scrape arXiv LaTeX into `raw/`.
   Needs network (arXiv may be sandbox-blocked; run with `!` if so).
+
+## Ops
+`MEMORY.md` — git habits, PDF parse order, env constraints (concise).
 
 ## Status
 Design locked; build pending. Full design + implementation prompt:
