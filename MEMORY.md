@@ -37,18 +37,22 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 
 Plan, routing table, synthesis mandate, model rules, and session batches all live in **`wiki/build/source-routing.md`**.
 
-**Progress:** Tier 0 + Tier 1 done.
+**Progress:** Tier 0 + Tier 1 + S2 done.
 - S0a ✅ `3b7289c` — `CONVENTIONS.md`, `notation.md`, `gaussian-process-regression.md`, `expected-improvement.md` (exemplar).
 - S0b ✅ `6f1a60b` — `problem-setup`, `gp-hyperparameters`.
 - S1a ✅ `b3513b0` — `acquisition-functions` (hub), `probability-of-improvement`, `gp-ucb`, `thompson-sampling-bo`.
 - S1b ✅ `54a8c85` — `value-of-information`, `knowledge-gradient` (coupled; shared VoI frame).
 - S1c ✅ `c71077e` — `entropy-search`, `predictive-entropy-search`, `max-value-entropy-search`
   (ES-frame relayed to PES/MES; promoted `p_⋆`, `γ_T`, `δ` to notation.md; trimmed gp-ucb delta).
+- S2 ✅ `21cdb5e` — `bo-as-dynamic-program` (lead-authored). Terminal-reward Bellman recursion
+  matching the VoI/KG seam; truncation table (EI/noisy-EI/KG/ES/PES/MES ← terminal utilities `u`);
+  lam2016 stage-reward form reconciled (telescoping, `E[r_n]=EI`, `γ` = myopic↔multi-step dial).
+  No new promotions (S2-local `S^n`/`V^n`/`π` kept as delta; revisit at S6 if shared by ≥3).
 
-Next: **S2** (`bo-as-dynamic-program`) — the parent frame all Tier-1 one-step acquisitions point to;
-pick up `V^n(s)=max_x E[V^{n+1}|·]`, terminal reward `u`, as `value-of-information`/`knowledge-gradient`/
-the entropy notes already set it (each is a one-step truncation of this DP).
-Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-s1c-done.md`.
+Next: **S3a** (cost-aware EI family, 4 Sonnet writers) — `cost-aware-bo`, `ei-per-unit-cost`,
+`cost-cooling-carbo`, `cost-models`. Small sources (`lee2020` `main2020.tex`, `snoek2012` `draft.tex`,
+`lee2021`, `xie2025`). Then S3b (DP/non-myopic cost family — connects to S2), S4, S5, S6.
+Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-s2-done.md`.
 
 **Routing corrections found mid-build** (source-routing.md "primary" column was optimistic):
 `frazier2018` covers **only** EI / KG / ES / PES — it has **no** PI, GP-UCB, TS, or standalone
