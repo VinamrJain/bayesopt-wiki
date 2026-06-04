@@ -36,3 +36,8 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 ## Wiki build — status
 
 Plan, routing table, synthesis mandate, model rules, and session batches all live in **`wiki/build/source-routing.md`**.
+
+**Progress:** S0a ✅ (commit `3b7289c`) — `CONVENTIONS.md`, `notation.md`,
+`gaussian-process-regression.md`, `expected-improvement.md` (exemplar). Next: **S0b**
+(problem-setup, gp-hyperparameters). Batch handoff:
+`~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-S0a-done.md`.
