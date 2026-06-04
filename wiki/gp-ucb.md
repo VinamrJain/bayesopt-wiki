@@ -18,13 +18,11 @@ regret guarantee** (`srinivas2010`). It recasts Bayesian optimization as a **Gau
 bandit**, where the goal is cumulative reward rather than only the final best point. Symbols
 follow [[notation]].
 
-> **Notation delta.** $\gamma_T := \max_{S\subseteq A:\,|S|=T} I(\boldsymbol y_S;\boldsymbol f_S)$
-> — the **maximum information gain** from any set $S$ of $T$ evaluation points (mutual
-> information between the sampled observations $\boldsymbol y_S$ and the values $\boldsymbol
-> f_S=[f(x)]_{x\in S}$). It is the kernel-dependent quantity that controls the regret bound
-> below; $I(\cdot\,;\cdot)$ and $H(\cdot)$ are as in [[notation]]. $\delta\in(0,1)$ is a
-> failure probability. `srinivas2010` indexes by round $t$ with posterior $\mu_{t-1},
-> \sigma_{t-1}$; we index by $n$ evaluations with $\mu_n,\sigma_n$ (crosswalk below).
+> **Notation delta.** The maximum information gain $\gamma_T$, the failure probability
+> $\delta\in(0,1)$, and $I(\cdot\,;\cdot)$, $H(\cdot)$ are as in [[notation]]; $\gamma_T$ is the
+> kernel-dependent quantity that controls the regret bound below. `srinivas2010` indexes by round
+> $t$ with posterior $\mu_{t-1},\sigma_{t-1}$; we index by $n$ evaluations with $\mu_n,\sigma_n$
+> (crosswalk below).
 
 ## The acquisition
 
@@ -185,6 +183,6 @@ entropy search), so it appears here for intuition, not for a derivation.
 | $\lambda$ (noise variance) | $\sigma^2$ | `srinivas2010`'s $\sigma$ is noise s.d.; distinct from $\sigma_n(x)$ |
 | $\sigma_n(x)$ (posterior s.d.) | $\sigma_{t-1}(x)$ | posterior, not noise |
 | $f^* = f(x^*)$ (global max value) | $f(x^*)$, $x^*=\operatorname*{arg\,max}_D f$ | identical; they then study regret to it |
-| $\gamma_T$ (max information gain) | $\gamma_T$ (eq. 7) | same symbol; new to [[notation]] |
+| $\gamma_T$ (max information gain) | $\gamma_T$ (eq. 7) | same symbol; see [[notation]] |
 | $R_T=\sum_t (f(x^*)-f(x_t))$ | $R_T=\sum_t r_t$, $r_t=f(x^*)-f(x_t)$ | identical (we both maximize reward here) |
 | $\beta_n$ (exploration weight) | $\beta_t$ (Thms 1–3) | reconciled to $n$-indexing; schedules above |

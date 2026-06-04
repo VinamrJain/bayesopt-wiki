@@ -70,6 +70,7 @@ convention. Where a source differs, its mapping lives in that note's crosswalk, 
 | $\mu_n^{**} = \max_{i\le n}\mu_n(x_i)$ | best posterior mean among **evaluated** points (used by noisy [[expected-improvement]]) |
 | $\mathrm{EI}_n,\ \mathrm{PI}_n,\ \mathrm{UCB}_n,\ \mathrm{KG}_n,\ \mathrm{ES}_n,\ \mathrm{PES}_n,\ \mathrm{MES}_n$ | the specific acquisition functions (see their notes) |
 | $\beta_t$ | UCB exploration weight (see [[gp-ucb]]) |
+| $p_\star(x\mid\mathcal D_n)$ | posterior probability that $x$ is the global maximizer, $P_n\big(x\in\operatorname*{arg\,max}_{x'\in A}f(x')\big)$ — a **global** functional of the posterior over $f$, not of the marginal at $x$; sampled by [[thompson-sampling-bo]], its entropy targeted by [[entropy-search]] / [[predictive-entropy-search]] |
 
 ## Standard normal
 
@@ -87,4 +88,6 @@ convention. Where a source differs, its mapping lives in that note's crosswalk, 
 | $\operatorname*{arg\,max},\ \operatorname*{arg\,min}$ | maximizing / minimizing argument |
 | $\mathrm{Normal}(m,\Sigma)$ | (multivariate) normal with mean $m$, covariance $\Sigma$ |
 | $H(\cdot)$ | (differential) entropy; $I(\cdot\,;\cdot)$ mutual information (see [[entropy-search]]) |
+| $\gamma_T$ | maximum information gain after $T$ evaluations, $\max_{S\subseteq A:\,|S|=T} I(\boldsymbol y_S;\boldsymbol f_S)$; kernel-dependent, controls GP-bandit regret (see [[gp-ucb]], [[regret-gp-bandits]]) |
+| $\delta$ | failure probability $\delta\in(0,1)$ in high-probability bounds (see [[gp-ucb]]) |
 | $\nabla$ | gradient with respect to $x$ unless stated otherwise |
