@@ -38,19 +38,19 @@ We cannot maximize $I_n(x)$ directly — $f(x)$ is unknown until sampled — so 
 posterior expectation. That is the expected improvement,
 
 $$
-\boxed{\ \EI_n(x) := E_n\big[\,[f(x)-f^*_n]^+\,\big]\ }, \qquad
-x_{n+1}\in\argmax_{x\in A}\EI_n(x).
+\boxed{\ \mathrm{EI}_n(x) := E_n\big[\,[f(x)-f^*_n]^+\,\big]\ }, \qquad
+x_{n+1}\in\operatorname*{arg\,max}_{x\in A}\mathrm{EI}_n(x).
 $$
 
 Under the GP posterior ([[gaussian-process-regression]]), $f(x)\mid\mathcal D_n \sim
-\Normal(\mu_n(x),\sigma_n^2(x))$ — the *only* facts about the model EI uses. This is the
+\mathrm{Normal}(\mu_n(x),\sigma_n^2(x))$ — the *only* facts about the model EI uses. This is the
 single most important structural feature of EI: **it sees the posterior only through the
 marginal at $x$**, never through how a sample at $x$ would reshape the posterior elsewhere.
 That myopia is what later acquisitions relax.
 
 ## Closed form
 
-Write $f(x)=\mu_n(x)+\sigma_n(x)Z$ with $Z\sim\Normal(0,1)$, and let
+Write $f(x)=\mu_n(x)+\sigma_n(x)Z$ with $Z\sim\mathrm{Normal}(0,1)$, and let
 
 $$
 \Delta_n(x) := \mu_n(x)-f^*_n
@@ -61,7 +61,7 @@ $f(x)-f^*_n = \Delta_n(x)+\sigma_n(x)Z$, which is positive iff $Z > -\Delta_n(x)
 Abbreviate $\Delta=\Delta_n(x)$, $\sigma=\sigma_n(x)$, $u=\Delta/\sigma$, and integrate:
 
 $$
-\EI_n(x)
+\mathrm{EI}_n(x)
 = \int_{-u}^{\infty}(\Delta+\sigma z)\,\varphi(z)\,dz
 = \Delta\underbrace{\int_{-u}^{\infty}\varphi(z)\,dz}_{=\,\Phi(u)}
 \;+\; \sigma\underbrace{\int_{-u}^{\infty} z\,\varphi(z)\,dz}_{=\,\varphi(u)}.
@@ -72,19 +72,19 @@ The first integral is $1-\Phi(-u)=\Phi(u)$; the second uses $\int_a^\infty z\var
 signs of $\Delta_n(x)$ when $\sigma_n(x)>0$:
 
 $$
-\boxed{\ \EI_n(x) = \Delta_n(x)\,\Phi\!\Big(\tfrac{\Delta_n(x)}{\sigma_n(x)}\Big)
+\boxed{\ \mathrm{EI}_n(x) = \Delta_n(x)\,\Phi\!\Big(\tfrac{\Delta_n(x)}{\sigma_n(x)}\Big)
 + \sigma_n(x)\,\varphi\!\Big(\tfrac{\Delta_n(x)}{\sigma_n(x)}\Big)\ }
 \qquad(\sigma_n(x)>0),
 $$
 
-and $\EI_n(x)=0$ when $\sigma_n(x)=0$ (a noise-free observed point yields no improvement). The
+and $\mathrm{EI}_n(x)=0$ when $\sigma_n(x)=0$ (a noise-free observed point yields no improvement). The
 two limits sanity-check the formula: as $\Delta\to+\infty$, $\Phi\to1$ and $\varphi\to0$ so
-$\EI\to\Delta$ (a near-certain gain of size $\Delta$); as $\Delta\to-\infty$, $\EI\to0$ (the
+$\mathrm{EI}\to\Delta$ (a near-certain gain of size $\Delta$); as $\Delta\to-\infty$, $\mathrm{EI}\to0$ (the
 mean sits far below the incumbent).
 
 > **Remark — the tutorial's compact form has a typo.** `frazier2018` (eq. for `EI-formula`)
 > prints the single-expression form
-> $\EI_n(x)=[\Delta_n]^+ + \sigma_n\varphi(\Delta_n/\sigma_n) - |\Delta_n|\Phi(\Delta_n/\sigma_n)$.
+> $\mathrm{EI}_n(x)=[\Delta_n]^+ + \sigma_n\varphi(\Delta_n/\sigma_n) - |\Delta_n|\Phi(\Delta_n/\sigma_n)$.
 > As written this is wrong: at $\Delta\to+\infty$ it gives $\Delta+0-\Delta\cdot1=0$, whereas
 > EI must grow to $\Delta$. The expression is correct only with the cdf argument
 > $-|\Delta_n|/\sigma_n$, i.e. $[\Delta_n]^+ + \sigma_n\varphi(\Delta_n/\sigma_n) -
@@ -92,21 +92,21 @@ mean sits far below the incumbent).
 > for either sign of $\Delta_n$. We use the transparent two-term form throughout and do not
 > recommend the compact one.
 
-EI is itself cheap, smooth, and analytically differentiable, so $\argmax_x\EI_n(x)$ is solved
+EI is itself cheap, smooth, and analytically differentiable, so $\operatorname*{arg\,max}_x\mathrm{EI}_n(x)$ is solved
 by a standard continuous optimizer (e.g. L-BFGS-B with multi-restart); see
 [[acquisition-functions]] for the inner-optimization problem common to all acquisitions, and
 `wilson2018` for gradient-based maximization specifically.
 
 ## Exploration vs. exploitation
 
-$\EI_n(x)$ is increasing in **both** $\Delta_n(x)$ (expected quality relative to the
+$\mathrm{EI}_n(x)$ is increasing in **both** $\Delta_n(x)$ (expected quality relative to the
 incumbent) and $\sigma_n(x)$ (posterior uncertainty). Iso-EI curves in the $(\Delta,\sigma)$
 plane therefore trade the two off implicitly: a point can earn a high acquisition either by
 looking good in the mean (**exploitation**) or by being uncertain (**exploration**), with no
 hand-tuned weight between them. Two consequences:
 
 - At any **already-evaluated** point (noise-free), $\sigma_n=0$ and $\mu_n\le f^*_n$, so
-  $\EI_n=0$ — EI never wastes a noise-free re-evaluation.
+  $\mathrm{EI}_n=0$ — EI never wastes a noise-free re-evaluation.
 - The maximizer tends to sit where the posterior mean is high *and* the credible interval is
   wide, i.e. away from existing data but in promising regions.
 
@@ -129,7 +129,7 @@ $\mu_n^{**}=\max_{i\le n}\mu_n(x_i)$; after sampling $x$ it would be
 $\mu_{n+1}^{**}=\max_{i\le n+1}\mu_{n+1}(x_i)$, giving the acquisition
 
 $$
-\EI^{\text{noisy}}_n(x) = E_n\big[\,\mu_{n+1}^{**}-\mu_n^{**}\ \big|\ x_{n+1}=x\,\big].
+\mathrm{EI}^{\text{noisy}}_n(x) = E_n\big[\,\mu_{n+1}^{**}-\mu_n^{**}\ \big|\ x_{n+1}=x\,\big].
 $$
 
 > **Notation delta.** $\mu_n^{**}:=\max_{i\le n}\mu_n(x_i)$ — best posterior mean *among
@@ -157,7 +157,7 @@ report set ($\mu^{**}$ vs. $\mu^*$). It is the most natural generalization of EI
 - **[[acquisition-functions]]** places EI in the taxonomy of improvement-, optimistic-, and
   information-based rules; **[[ego-convergence-rates]]** (`bull2011`) gives EI's convergence
   theory; **[[parallel-batch-bo]]** extends EI to a batch via
-  $\EI_n(x^{(1:q)})=E_n[(\max_i f(x^{(i)})-f^*_n)^+]$.
+  $\mathrm{EI}_n(x^{(1:q)})=E_n[(\max_i f(x^{(i)})-f^*_n)^+]$.
 
 ## Origin and crosswalk
 
@@ -171,5 +171,5 @@ primary and record the mapping here rather than re-deriving.
 |---|---|---|---|
 | $f^*_n=\max_{m\le n}f(x_m)$ | $f_{\min}$, current best | — | sign flip |
 | $\Delta_n(x)=\mu_n(x)-f^*_n$ | $f_{\min}-\hat y(x)$ | — | margin, opposite sign |
-| $\EI=\Delta\,\Phi(\Delta/\sigma)+\sigma\,\varphi(\Delta/\sigma)$ | $(f_{\min}-\hat y)\Phi(\cdot)+s\,\varphi(\cdot)$ | improvement concept | identical up to sign |
+| $\mathrm{EI}=\Delta\,\Phi(\Delta/\sigma)+\sigma\,\varphi(\Delta/\sigma)$ | $(f_{\min}-\hat y)\Phi(\cdot)+s\,\varphi(\cdot)$ | improvement concept | identical up to sign |
 | $\mu_n,\sigma_n$ (GP posterior) | kriging predictor $\hat y$, s.d. $s$ | — | see [[gaussian-process-regression]] crosswalk |

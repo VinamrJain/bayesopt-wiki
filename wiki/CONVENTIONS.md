@@ -81,6 +81,12 @@ connections are a first-class deliverable, mirrored in [[map]].
 
 - **Math.** LaTeX in `$…$` (inline) and `$$…$$` (display). Use the symbols in [[notation]]
   verbatim — e.g. $\varphi$ for the standard-normal pdf, $\Phi$ for its cdf, $a^+=\max(a,0)$.
+- **No custom macros.** There is no preamble/style file; notes are rendered by a stock
+  KaTeX/MathJax pipeline, so `\newcommand` and source-specific shorthands (`\EI`, `\Normal`,
+  `\R`, `\argmax`, `\xstar`, …) **do not exist** and render as raw text. Use stock primitives
+  only: `\mathrm{EI}` / `\mathrm{KG}` / `\mathrm{ES}` / `\mathrm{Normal}`, `\mathbb{R}`,
+  `\operatorname*{arg\,max}`, `x^*`. When lifting equations from a paper's LaTeX, expand its
+  preamble macros to these primitives — do not paste `\EI`-style tokens.
 - **Wikilinks.** Reference other notes inline as `[[slug]]` or `[[slug|display text]]`. Link
   liberally; a link to a not-yet-written note is acceptable (it marks intended structure).
 - **Citations.** Cite sources by key inline, e.g. "(`frazier2018`)", and list them in

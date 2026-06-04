@@ -22,7 +22,7 @@ $f(x_{1:k}) = [f(x_1),\dots,f(x_k)]$. GP regression's modelling assumption is th
 vector is multivariate normal,
 
 $$
-f(x_{1:k}) \sim \Normal\!\big(\mu_0(x_{1:k}),\ \Sigma_0(x_{1:k},x_{1:k})\big),
+f(x_{1:k}) \sim \mathrm{Normal}\!\big(\mu_0(x_{1:k}),\ \Sigma_0(x_{1:k},x_{1:k})\big),
 $$
 
 with the mean vector built by evaluating a **mean function** $\mu_0$ at each $x_i$ and the
@@ -41,7 +41,7 @@ normal above. The conditional distribution of one block of a joint Gaussian give
 again Gaussian, and applying that standard identity yields the posterior
 
 $$
-f(x)\mid f(x_{1:n}) \sim \Normal\!\big(\mu_n(x),\ \sigma_n^2(x)\big),
+f(x)\mid f(x_{1:n}) \sim \mathrm{Normal}\!\big(\mu_n(x),\ \sigma_n^2(x)\big),
 $$
 $$
 \mu_n(x) = \mu_0(x) + \Sigma_0(x,x_{1:n})\,\Sigma_0(x_{1:n},x_{1:n})^{-1}\big(f(x_{1:n})-\mu_0(x_{1:n})\big),
@@ -99,7 +99,7 @@ convergence theory ([[ego-convergence-rates]], [[regret-gp-bandits]]).
 
 ## Noisy observations
 
-With i.i.d. Gaussian observation noise $\varepsilon_n\sim\Normal(0,\lambda)$, the model
+With i.i.d. Gaussian observation noise $\varepsilon_n\sim\mathrm{Normal}(0,\lambda)$, the model
 extends by adding $\lambda I$ to the data covariance: replace
 $\Sigma_0(x_{1:n},x_{1:n})$ with $\Sigma_0(x_{1:n},x_{1:n})+\lambda I$ in the posterior
 formulas. The posterior variance is then positive even at observed points — observing a noisy
