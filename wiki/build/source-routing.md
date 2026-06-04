@@ -27,6 +27,28 @@ The team does **not transcribe** papers. For every note:
   ↔ lower bounds). These connections are a first-class deliverable, captured in `map.md` and in
   each note's interpretation/relation section — not an afterthought.
 
+## Post-writing review & refine (binding)
+
+Writing a note is **not** the last step. After a note (or batch) is drafted, the lead runs an
+explicit **critical-review and refinement pass** before committing — treating the fresh draft
+as a source to interrogate, not a finished artifact. This pass is mandatory, agent-driven, and
+may surface findings for **human feedback** before refinement.
+
+Checklist:
+- **Correctness.** Re-derive key results independently; sanity-check closed forms at
+  limits/edge cases; if claiming a source errs, verify against the exact line and cite it.
+  (The S0a EI exemplar caught a sign error in `frazier2018`'s compact EI formula this way.)
+- **Self-containment & rendering.** Note + [[notation]] must stand alone; math uses stock
+  KaTeX/MathJax primitives only — no `\newcommand` / paper-preamble macros (see `CONVENTIONS.md`).
+- **Notation hygiene.** No symbol collisions. Resolve a clash in a *shared* symbol (e.g. a
+  kernel parameter vs. the acquisition symbol) **upstream in `notation.md` before dependent
+  notes are written**, not per-note. `sources:` lists only keys actually used in the body.
+- **Connections.** Cross-note relations present and accurate; crosswalks reconcile, never duplicate.
+
+Prioritize findings: correctness / open decisions > derivation strength > wording. Fold
+accepted fixes back in, then commit. Record notable refinements in the batch handoff so later
+writers inherit the raised standard.
+
 ## Topology — star with lead as cross-talk router
 
 Writer subagents **cannot peer-chat** in this harness. The **Opus lead is the integration point
@@ -88,7 +110,8 @@ actively engineers connections and may bounce a note back for a "find the cleane
 
 Each batch: lead spawns one writer subagent per note (writer reads heavy sources in its **own**
 context, returns note + notation conflicts + suggested crosswalk rows + cross-note connections);
-lead integrates, reconciles notation/DAG/wikilinks, engineers connections, commits, writes handoff.
+lead integrates, reconciles notation/DAG/wikilinks, engineers connections, **runs the
+post-writing review & refine pass (above)**, commits, writes handoff.
 Foundations (S0a) are **lead-authored** (not subagent) to set the voice/notation standard.
 
 | Batch | Notes | Synthesis / cross-talk |
@@ -121,6 +144,11 @@ Synthesis mandate — do NOT transcribe:
 Do not read other raw/ keys unless this is an explicit gap-fill for a listed secondary.
 If secondary material is needed and absent from the primary, add it with cite + crosswalk
 (no duplicate derivation), or flag it for a gap-fill pass.
+
+Before returning, self-check: math uses stock KaTeX/MathJax primitives only (no \newcommand or
+paper-preamble macros like \EI, \Normal, \R — expand them); note + notation.md stands alone;
+sources: lists only keys you actually used. If you suspect a source errs, flag it with the
+exact line — do not silently "fix" it.
 Return to lead: the note, notation conflicts, suggested crosswalk rows, cross-note connections.
 ```
 
