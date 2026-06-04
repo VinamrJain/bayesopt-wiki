@@ -153,7 +153,12 @@ report set ($\mu^{**}$ vs. $\mu^*$). It is the most natural generalization of EI
   *away* from where we sample — which EI, seeing only the marginal at $x$, structurally
   cannot. Noisy EI is the intermediate case above.
 - **[[probability-of-improvement]].** Maximizes $P_n(f(x)>f^*_n)=\Phi(\Delta_n/\sigma_n)$ —
-  EI's first factor without the $\sigma\varphi$ weighting, hence more exploitative.
+  EI's cdf term alone, *without* the $\Delta_n$ quality weighting or the $\sigma_n\varphi$
+  exploration bonus, hence more exploitative.
+- **Integrated & cost-aware EI (`snoek2012`).** The closed form above conditions on a point
+  estimate of the GP hyperparameters; `snoek2012` instead **marginalizes EI over the
+  hyperparameter posterior** by MCMC (see [[gp-hyperparameters]]) and rescales it by
+  evaluation cost (*EI per second*) to trade value against expense — see [[ei-per-unit-cost]].
 - **[[acquisition-functions]]** places EI in the taxonomy of improvement-, optimistic-, and
   information-based rules; **[[ego-convergence-rates]]** (`bull2011`) gives EI's convergence
   theory; **[[parallel-batch-bo]]** extends EI to a batch via

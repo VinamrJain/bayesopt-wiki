@@ -54,7 +54,8 @@ convention. Where a source differs, its mapping lives in that note's crosswalk, 
 | $\mu_n(x)$ | posterior mean at $x$ after $n$ observations |
 | $\sigma_n^2(x)$ | posterior variance at $x$; $\sigma_n(x)$ the posterior standard deviation |
 | $\eta$ | vector of kernel/mean hyperparameters |
-| $\alpha_{0:d}$ | kernel output scale ($\alpha_0$) and per-dimension inverse length scales ($\alpha_{1:d}$) |
+| $\sigma_f^2$ | kernel output scale (signal variance) |
+| $\ell_{1:d}$ | per-dimension length-scales (ARD); smaller $\ell_i$ ⇒ faster variation in coordinate $i$ |
 | $\nu$ | Matérn smoothness parameter |
 
 ## Acquisition functions
