@@ -42,8 +42,12 @@ Plan, routing table, synthesis mandate, model rules, and session batches all liv
 - S0b ✅ `6f1a60b` — `problem-setup`, `gp-hyperparameters`.
 - S1a ✅ `b3513b0` — `acquisition-functions` (hub), `probability-of-improvement`, `gp-ucb`, `thompson-sampling-bo`.
 - S1b ✅ `54a8c85` — `value-of-information`, `knowledge-gradient` (coupled; shared VoI frame).
+- S1c ✅ `c71077e` — `entropy-search`, `predictive-entropy-search`, `max-value-entropy-search`
+  (ES-frame relayed to PES/MES; promoted `p_⋆`, `γ_T`, `δ` to notation.md; trimmed gp-ucb delta).
 
-Next: **S1c** (entropy-search trio: `entropy-search`, `predictive-entropy-search`, `max-value-entropy-search`).
+Next: **S2** (`bo-as-dynamic-program`) — the parent frame all Tier-1 one-step acquisitions point to;
+pick up `V^n(s)=max_x E[V^{n+1}|·]`, terminal reward `u`, as `value-of-information`/`knowledge-gradient`/
+the entropy notes already set it (each is a one-step truncation of this DP).
 Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-tier1-done.md`.
 
 **Routing corrections found mid-build** (source-routing.md "primary" column was optimistic):
@@ -52,6 +56,6 @@ VoI section. PI & TS fell back to `shahriari2016` (taxonomy/default owner); VoI 
 from frazier2018's EI+KG sections + `frazier2009kg`. Expect the same for any note routed
 "frazier2018 primary" outside {EI, KG, ES, PES}.
 
-**S6 promotion queue** (symbols now shared by ≥3 notes, living as note-local deltas):
-`γ_T` (max information gain — gp-ucb, regret-gp-bandits, +entropy methods); `δ` (failure prob —
-gp-ucb, regret-gp-bandits). `μ_n^*` / `μ_n^{**}` already promoted in notation.md.
+**Notation promotions done** (no longer note-local deltas): `μ_n^*` / `μ_n^{**}` (S1a);
+`p_⋆`, `γ_T`, `δ` (S1c — promoted mid-pass once shared by ≥3 notes). Precedent updated: promote
+shared symbols when they recur, not deferred to S6. S6 queue currently empty.
