@@ -37,7 +37,21 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 
 Plan, routing table, synthesis mandate, model rules, and session batches all live in **`wiki/build/source-routing.md`**.
 
-**Progress:** S0a ✅ (commit `3b7289c`) — `CONVENTIONS.md`, `notation.md`,
-`gaussian-process-regression.md`, `expected-improvement.md` (exemplar). Next: **S0b**
-(problem-setup, gp-hyperparameters). Batch handoff:
-`~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-S0a-done.md`.
+**Progress:** Tier 0 + Tier 1 done.
+- S0a ✅ `3b7289c` — `CONVENTIONS.md`, `notation.md`, `gaussian-process-regression.md`, `expected-improvement.md` (exemplar).
+- S0b ✅ `6f1a60b` — `problem-setup`, `gp-hyperparameters`.
+- S1a ✅ `b3513b0` — `acquisition-functions` (hub), `probability-of-improvement`, `gp-ucb`, `thompson-sampling-bo`.
+- S1b ✅ `54a8c85` — `value-of-information`, `knowledge-gradient` (coupled; shared VoI frame).
+
+Next: **S1c** (entropy-search trio: `entropy-search`, `predictive-entropy-search`, `max-value-entropy-search`).
+Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-tier1-done.md`.
+
+**Routing corrections found mid-build** (source-routing.md "primary" column was optimistic):
+`frazier2018` covers **only** EI / KG / ES / PES — it has **no** PI, GP-UCB, TS, or standalone
+VoI section. PI & TS fell back to `shahriari2016` (taxonomy/default owner); VoI was synthesized
+from frazier2018's EI+KG sections + `frazier2009kg`. Expect the same for any note routed
+"frazier2018 primary" outside {EI, KG, ES, PES}.
+
+**S6 promotion queue** (symbols now shared by ≥3 notes, living as note-local deltas):
+`γ_T` (max information gain — gp-ucb, regret-gp-bandits, +entropy methods); `δ` (failure prob —
+gp-ucb, regret-gp-bandits). `μ_n^*` / `μ_n^{**}` already promoted in notation.md.
