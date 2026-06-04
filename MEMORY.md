@@ -48,7 +48,7 @@ Plan, routing table, synthesis mandate, model rules, and session batches all liv
 Next: **S2** (`bo-as-dynamic-program`) — the parent frame all Tier-1 one-step acquisitions point to;
 pick up `V^n(s)=max_x E[V^{n+1}|·]`, terminal reward `u`, as `value-of-information`/`knowledge-gradient`/
 the entropy notes already set it (each is a one-step truncation of this DP).
-Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-tier1-done.md`.
+Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-s1c-done.md`.
 
 **Routing corrections found mid-build** (source-routing.md "primary" column was optimistic):
 `frazier2018` covers **only** EI / KG / ES / PES — it has **no** PI, GP-UCB, TS, or standalone
