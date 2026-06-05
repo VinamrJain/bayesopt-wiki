@@ -1,0 +1,13 @@
+#!/bin/sh
+# Pre-commit hook: keep wiki/map.md in sync with note frontmatter and lint
+# cross-references. Auto-heals map.md (re-stages it if regenerated); aborts the
+# commit on a lint error (broken wikilink, unknown requires, missing source key).
+#
+# Install with: sh scripts/hooks/install.sh
+set -e
+
+# only act when wiki/ or references.md are part of this commit
+if git diff --cached --name-only | grep -Eq '^(wiki/|references\.md)'; then
+    python3 scripts/build_index.py
+    git add wiki/map.md
+fi
