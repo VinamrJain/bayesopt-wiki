@@ -72,6 +72,21 @@ convention. Where a source differs, its mapping lives in that note's crosswalk, 
 | $\beta_t$ | UCB exploration weight (see [[gp-ucb]]) |
 | $p_\star(x\mid\mathcal D_n)$ | posterior probability that $x$ is the global maximizer, $P_n\big(x\in\operatorname*{arg\,max}_{x'\in A}f(x')\big)$ — a **global** functional of the posterior over $f$, not of the marginal at $x$; sampled by [[thompson-sampling-bo]], its entropy targeted by [[entropy-search]] / [[predictive-entropy-search]] |
 
+## Cost-aware Bayesian optimization
+
+Shared by the cost-aware tier ([[cost-aware-bo]], [[ei-per-unit-cost]], [[cost-cooling-carbo]],
+[[cost-models]], and the budget-constrained DP family).
+
+| Symbol | Meaning |
+|---|---|
+| $c(x)$ | evaluation cost at $x$, $c(x)>0$; black-box like $f$, modeled by a **separate** GP |
+| $\log c(x)$ | GP-modeled log-cost (warped-GP target, guaranteeing positivity); `lee2020`'s $\gamma(x)$, renamed here to avoid collision with $\gamma_T$ |
+| $\tau$ | total cost budget; feasibility is $\sum_n c(x_n)\le\tau$ (not an iteration count) |
+| $\tau_{\mathrm{init}}$ | warm-start / initial-design sub-budget, $\tau_{\mathrm{init}}<\tau$ |
+| $\tau_k$ | cumulative cost spent by the $k$th iteration; $\tau_0=\tau_{\mathrm{init}}$ |
+| $\alpha_k$ | cost-cooling exponent, $\alpha_k=(\tau-\tau_k)/(\tau-\tau_{\mathrm{init}})$, decaying $1\to0$ (see [[cost-cooling-carbo]]); **distinct** from the generic acquisition $\alpha_n(x)$ — no $x$-argument, indexed by iteration $k$ |
+| $\mathrm{EIpu}_n,\ \mathrm{EI\text{-}cool}_k$ | cost-aware acquisitions: EI per unit cost and cost-cooled EI (see their notes) |
+
 ## Standard normal
 
 | Symbol | Meaning |
