@@ -37,7 +37,7 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 
 Plan, routing table, synthesis mandate, model rules, and session batches all live in **`wiki/build/source-routing.md`**.
 
-**Progress:** Tier 0 + Tier 1 + S2 + S3a done.
+**Progress:** Tier 0 + Tier 1 + S2 + S3a + S3b done.
 - S0a ✅ `3b7289c` — `CONVENTIONS.md`, `notation.md`, `gaussian-process-regression.md`, `expected-improvement.md` (exemplar).
 - S0b ✅ `6f1a60b` — `problem-setup`, `gp-hyperparameters`.
 - S1a ✅ `b3513b0` — `acquisition-functions` (hub), `probability-of-improvement`, `gp-ucb`, `thompson-sampling-bo`.
@@ -56,12 +56,20 @@ Plan, routing table, synthesis mandate, model rules, and session batches all liv
   family map covers EIpu / cost-cooling / PBGI-LogEIPC-stopping. EI-cool schedule re-derived
   against lee2020 source line.
 
-Next: **S3b** (DP/non-myopic cost family — connects to S2) — `budget-constrained-dp`,
-`multistep-budgeted-bo`, `nonmyopic-cost-constrained-bo`, `cost-aware-stopping`. Opus-heavy.
-Sources: `lam2016`, `astudillo2021` (`main_content.tex`), `lee2021`
-(`cost_constrained_bo.tex`/`methods.tex`/`cmdp.tex`), **`xie2025`** (`cost-aware-stopping` primary;
-present at `raw/2025_cost_aware_stopping_bo/`, Pandora's-box Gittins-index stopping). Then S4, S5, S6.
-Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-04-wiki-s3a-done.md`.
+- S3b ✅ `fe32098` (notes) / `9079869` (xie2024 source) — `budget-constrained-dp`,
+  `multistep-budgeted-bo`, `nonmyopic-cost-constrained-bo`, `cost-aware-stopping`, **+
+  `pandoras-box-gittins-index`** (PBGI split out as its own acquisition note — **5** notes, not the
+  routed 4; user-approved). Lead-authored; connects to S2 (`V^n`/`V^{π,n}` rollout seam).
+  **Notation:** resolved `τ` overload — `τ`=hard budget; new **`T`**=adaptive stopping time,
+  **`N_B`**=random budget-depletion horizon, **`B`**=expected budget. **Ingested `xie2024`**
+  (arXiv 2406.20062, Pandora's-Box Gittins Index): the true origin of PBGI/LogEIPC — S3a had
+  mis-attributed them to `xie2025`; re-attributed across `cost-aware-stopping`/`ei-per-unit-cost`/
+  `cost-aware-bo`. Fixed `snoek2012` missing from `cost-aware-bo` `sources:`. astudillo↔lee2021
+  random-vs-fixed-horizon contrast surfaced; deterministic-cost caveat carried per `cost-models` flag.
+
+Next: **S4** (regret / convergence) — `regret-gp-bandits`, `ego-convergence-rates`,
+`gp-bandit-lower-bounds`; connect srinivas (upper) ↔ scarlett (lower) ↔ bull (EGO rates). Then S5
+stubs, S6 integration. Batch handoff: `~/.claude/handoffs/Bayesian-Optimization-2026-06-05-wiki-s3b-done.md`.
 
 **Routing corrections found mid-build** (source-routing.md "primary" column was optimistic):
 `frazier2018` covers **only** EI / KG / ES / PES — it has **no** PI, GP-UCB, TS, or standalone
