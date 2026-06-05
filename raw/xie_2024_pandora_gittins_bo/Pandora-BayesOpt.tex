@@ -1,0 +1,1437 @@
+\documentclass{article}
+
+\usepackage[final,nonatbib]{neurips_2024}
+
+\usepackage[centerfigures,citations,commands,enumerate,environments,theorems,lmrscinnershape]{AVT}
+
+\usepackage[bottom]{footmisc}
+\usepackage[shortlabels]{enumitem}
+\setlist[enumerate,1]{leftmargin=2em}
+\setlist[itemize,1]{leftmargin=2em}
+\usepackage[font=normalsize]{subcaption}
+\setcounter{secnumdepth}{4}
+\renewcommand{\thesubsubsection}{\thesubsection}
+\Crefname{paragraph}{Section}{Sections}
+\renewbibmacro{in:}{}
+
+\usepackage{xcolor}
+\definecolor{linkcolor}{HTML}{1f77b4}
+\hypersetup{colorlinks=true,allcolors=linkcolor}
+\let\UrlFont\scshape
+
+\DeclareMathOperator{\logh}{log\_h}
+
+\bibliography{Pandora-BayesOpt}
+
+
+\title{Cost-aware Bayesian Optimization\\via the Pandora's Box Gittins Index}
+
+\author{Qian Xie\rlap{\textsuperscript{\ensuremath{1}}}\qquad Raul Astudillo\rlap{\textsuperscript{\ensuremath{2}}}\qquad Peter I. Frazier\rlap{\textsuperscript{\ensuremath{1}}}\qquad Ziv Scully\rlap{\textsuperscript{\ensuremath{1}}}\qquad Alexander Terenin\rlap{\textsuperscript{\ensuremath{1}}}\\\textsuperscript{\ensuremath{1}}Cornell University\qquad\textsuperscript{\ensuremath{2}}Caltech}
+
+\begin{document}
+
+
+\maketitle
+
+
+\begin{abstract}
+Bayesian optimization is a technique for efficiently optimizing unknown functions in a black-box manner. To handle practical settings where gathering data requires use of finite resources, it is desirable to explicitly incorporate function evaluation costs into Bayesian optimization policies. To understand how to do so, we develop a previously-unexplored connection between cost-aware Bayesian optimization and the Pandora's Box problem, a decision problem from economics. The Pandora's Box problem admits a Bayesian-optimal solution based on an expression called the Gittins index, which can be reinterpreted as an acquisition function. We study the use of this acquisition function for cost-aware Bayesian optimization, and demonstrate empirically that it performs well, particularly in medium-high dimensions. We further show that this performance carries over to classical Bayesian optimization without explicit evaluation costs. Our work constitutes a first step towards integrating techniques from Gittins index theory into Bayesian optimization.
+\end{abstract}
+
+\bgroup
+\let\thefootnote\relax
+\footnotetext{Code available at: \url{https://github.com/QianJaneXie/PandoraBayesOpt}.}
+\egroup
+
+\section{Introduction}
+
+Bayesian optimization is a framework for optimizing functions whose evaluation is time-consuming or expensive.
+It is widely used for hyperparameter tuning of machine learning algorithms \cite{snoek2012practical}, robot control \cite{martinez2017bayesian}, material design \cite{zhang2020bayesian}, and other areas.
+Bayesian optimization works by forming a probabilistic model for the objective function, and then chooses where to sample via an acquisition function that balances the explore-exploit trade-offs arising from uncertainty in this model.
+
+We study \emph{cost-aware} Bayesian optimization, where one must pay a cost to acquire another sample and this cost may vary with where the function is evaluated.
+Costs are an important factor in practical~scenarios. 
+For instance, in hyperparameter tuning using GPUs rented from a cloud provider, training a neural network for twice as many epochs may carry twice the financial cost.
+
+
+Despite its practical relevance, cost-aware Bayesian optimization is less-studied than standard Bayesian optimization, where budgets are framed in terms of the number of function evaluations and costs are not explicitly considered. 
+Many existing theoretically-principled cost-aware approaches \cite{yue2020non,jiang2020efficient,lee2021nonmyopic,astudillo2021multi,belakaria2023bayesian} rely on multi-step lookahead computations that are computationally expensive and can be numerically brittle, limiting their applicability.
+Other approaches lack a theoretical foundation and risk having poor performance on certain problems. 
+For example, one of the most popular cost-aware acquisition functions used in practice, expected improvement per unit cost \cite{snoek2012practical}, has recently been theoretically shown by \textcite{astudillo2021multi} to perform arbitrarily worse than the optimal policy.
+Thus, in the cost-aware setting, there is a need for theoretically-principled and computationally-straightforward acquisition functions with good empirical performance.
+
+In this work, we develop such an approach.
+To do so, we introduce a novel link between cost-aware Bayesian optimization and a discrete-space decision problem from economics called the \emph{Pandora's Box} problem \cite{weitzman1979optimal,doval_whether_2018, singla_price_2018}.
+The Pandora's Box problem admits an explicit Bayesian-optimal solution.
+We show how this solution can be used to develop a novel acquisition function class for two cost-aware Bayesian optimization settings: (i) \emph{expected budget-constrained} Bayesian optimization, where there is a constraint on the expected cost of the samples taken, and (ii) \emph{cost-per-sample} Bayesian optimization where the total costs incurred are subtracted from the final objective function value.
+The resulting acquisition functions are closely connected to expected improvement variants, but incorporate costs in a different, non-multiplicative way.
+
+We evaluate the proposed acquisition function, termed the \emph{Pandora's Box Gittins Index (PBGI)}, on a comprehensive set of experiments to understand its strengths and weaknesses.
+On both sufficiently-easy low-dimensional problems and too-difficult high-dimensional ones, performance is comparable to baselines.
+On most medium-hard problems of moderate dimension, the proposed acquisition function either matches or outperforms the strongest baselines.
+Surprisingly, we find this performance carries over to the classical setting with uniform costs.
+We also discuss limitations, including behavior on problems where baselines are~stronger.
+
+The Pandora's Box Gittins Index is a version of the \emph{Gittins index} \cite{gittins2011multiarmed}, a general framework for deriving optimal policies for a variety of bandit-like decision problems \cite{weber_gittins_1992, dumitriu_playing_2003, gupta_markovian_2019} which is widely-used in queueing theory and related areas \cite{glazebrook_parallel_2001, aalto_gittins_2009, scully_gittins_2020}.
+Other versions of the Gittins index have recently been proposed for Bayesian optimization with an infinite-horizon discounted cumulative regret objective \cite{persky_exploration_2021}.
+Our Pandora's-Box-based formulation is instead designed for the simple regret objective more commo n in the literature \cite{garnett23}.
+Our work thus opens a novel angle of attack for designing acquisition functions specialized to specific practical settings of~interest.
+
+\paragraph*{Contributions.}
+In this work, we (i) connect the Pandora's Box problem with a variant of cost-aware Bayesian optimization over a discrete search space.
+Using this connection, we (ii) explore the use of Gittins indices, which are Bayesian-optimal for the Pandora's Box problem, as an acquisition function for general cost-aware Bayesian optimization where data is incorporated via the posterior distribution. 
+We (iii) demonstrate the resulting acquisition function has strong empirical performance on a variety of problems of moderate-to-high dimension, including the varying-cost problems it was designed for, as well as classical cost-unaware problems.
+
+
+
+
+
+
+
+
+\section{Cost-aware Bayesian optimization}
+\label{sec:background}
+
+In black-box optimization, we are interested in finding the global optimum of an unknown (potentially stochastic) function $f : X \-> \R$ defined on some compact domain, using pointwise function evaluations of $f$ at locations $x_1, .., x_T \in X$ that we select sequentially.
+We are interested in policies that achieve low \emph{simple~regret}---see \textcite[Sec. 10.1]{garnett23}---namely
+\[
+\label{eqn:bb_opt_problem}
+\E \sup_{x\in X} f(x) - \E \max_{1\leq t\leq T} f(x_t)
+\]
+where the expectation is taken over all sources of randomness in the function $f$ and the policy, including the stopping time $T$ and sequential selections $x_1, .., x_T$.
+In our setup, obtaining a new function evaluation at a point $x$ carries a non-zero \emph{cost} $c(x) \in \R_+$, assumed automatically-differentiable unless discussed otherwise.
+We consider settings that integrate costs into the problem in different~ways: 
+\1[(a)] In the \emph{expected budget-constrained} setting, there is a budget $B \in \R_+$, and the algorithm is not allowed to exceed this budget in expectation.
+\2 In the \emph{cost-per-sample} setting, at each time the algorithm must choose whether to pay a cost and obtain a new function evaluation, or to stop and return some previously-observed point. In this setting, we add the total sum of costs at termination time to the regret.
+\0 
+Note that the cost function $c : X \-> \R_+$ can be constant, which we term \emph{uniform costs}. 
+In this case, (a) reduces to standard black-box optimization with a finite time horizon, and (b) reduces to a variant of stopping-aware Bayesian optimization.
+These are not the only possible settings: one can also consider other variants including the almost-sure budget-constrained setting where the algorithm is not allowed to exceed the budget in a strict manner.
+Since we are interested primarily in the role of costs rather than stopping times in this work, we mostly work with budget constraints throughout this paper, especially almost-sure budget constraints for our empirical results.
+We will use the cost-per-sample setting as a conceptual framework with which to study budget-constrained~settings.
+
+
+\subsection{Probabilistic models and acquisition functions}
+
+\emph{Bayesian optimization} algorithms for solving various black-box optimization problems work by (i)~building a \emph{probabilistic model} of $f$---that is, a probability distribution which quantifies what is known about $f$ given the data points $(x_t, y_t)_{t=1}^T$ seen so far---where $y_t = f(x_t)$ are previous function evaluations---then (ii)~using the model and its uncertainty to decide where to evaluate the unknown function next.
+For an introduction, see \textcite{frazier18,garnett23}.
+Following standard practice, we work with Gaussian process models \cite{rasmussen06}. 
+Let $f \given x_{1:t}, y_{1:t}$ be the respective posterior distribution.
+
+To decide where to evaluate $f$ next, one uses the model to define a (potentially random) \emph{acquisition function} $\alpha_{t}: X \-> \R$, which quantifies how promising a particular location is given what is known so far.
+We then evaluate $f$ at
+\[
+x_{t+1} = \argmax_{x\in X} \alpha_{t}(x),
+\]
+obtaining an additional data point that is used to reduce uncertainty and further improve the model.
+
+\subsection{Expected improvement per unit cost}
+
+ The most popular cost-aware acquisition function is \emph{expected improvement per unit cost (EIPC)} \cite{snoek2012practical}, defined via 
+\[
+\label{eqn:expected_improvement}
+\alpha_{t}^{\f{EIPC}}(x)&= \frac{\f{EI}_{f\given x_{1:t}, y_{1:t}}(x; \max_{1\leq\tau\leq t} y_\tau)}{c(x)}
+&
+\f{EI}_\psi(x; y) & = \E \max(0, \psi(x) - y)
+\]
+where we have written $\alpha^{\f{EIPC}}_{t}(\.)$ in terms of the general \emph{expected improvement function} $\f{EI}_\psi$, defined with respect to some random function $\psi : X \-> \R$, and a comparator point $y$.
+With this notation, EIPC can be interpreted as the ratio of the expected improvement, with respect to the current posterior and using the best point seen so far as the comparator, to the cost.
+
+In the uniform-cost case, where the costs $c(x) = C \in \R_+$ are constant for all $x$, this acquisition function reduces to the classical \emph{expected improvement (EI)} acquisition function $\alpha_{t}^{\f{EI}}(x) = \f{EI}_{f\given x_{1:t}, y_{1:t}}(x; \max_{1\leq\tau\leq t} y_\tau)$.
+In turn, expected improvement can be derived by considering the setup where the unknown function $f$ is randomly sampled from the model's prior.
+If we imagine that the optimization process continues for only one more time step before stopping, maximizing expected improvement is the optimal strategy in this one-step-lookahead scenario.
+
+Since EIPC reduces to EI in the uniform-cost case where $c(x) = C$, it follows that it chooses the same points whether $C = 0.0001$ or $C = 1\,000\,000$. 
+This is somewhat peculiar: one might expect that a cost-aware acquisition function should be more risk-averse if costs are high, and vice versa if they are low.
+Thus, EIPC is perhaps best suited to settings where heterogeneity of costs is the main factor at play: without heterogeneity, one can simply apply standard acquisition function variants \cite{chowdhury2017kernelized}.
+However, even with heterogeneous costs, \textcite{astudillo2021multi} show there exist reasonable problems where EIPC performs arbitrarily worse than the optimal policy in an approximation-ratio sense, due to over-sampling low-value low-cost points. 
+Analogous behavior can occur in multi-fidelity settings, which \textcite{wu2020practical} argue can be especially undesirable in the presence of model-misspecification.
+
+In spite of this rather negative outlook, EIPC has been shown to work well on many practical problems, is computationally efficient and reliable, and is the standard cost-aware choice in BoTorch \cite{balandat2020botorch}.
+We therefore ask: \emph{can one develop a technically-principled and computationally-straightforward alternative with at-least-comparable empirical performance?}
+
+
+
+\section{The Pandora's Box Gittins index for Bayesian optimization}
+\label{sec:Gittins}
+
+To develop a cost-aware acquisition function, we study a simplified decision problem that captures key difficulties of the main problem but is tractable enough to yield analytic insights.
+An analogous strategy is used classically to derive expected improvement, by exactly solving a simplified one-step decision problem.
+We study a different simplified decision problem, which can also be solved exactly, but where the simplification is spatial rather than temporal in nature.
+Specifically, we connect Bayesian optimization with the \emph{Pandora's Box} problem from economics.
+To do so, we describe Pandora's Box in \Cref{sec:Gittins:pandora} and its solution in \Cref{sec:Gittins_index}, showing along the way how these ideas can be reinterpreted from the view of Bayesian optimization. 
+We illustrate this in \Cref{fig:boxes}.
+Then, in \Cref{sec:Gittins:bayesopt}, we use Pandora's Box to derive a novel class of cost-aware acquisition~functions.
+
+\subsection{The Pandora's Box problem}
+\label{sec:Gittins:pandora}
+
+The \emph{Pandora's Box} problem \cite{weitzman1979optimal, gittins2011multiarmed} is a sequential decision-making problem.
+It begins with a finite set of boxes, which we collect into a set and label $X = \{1,..,N\}$.
+Each box has a \emph{hidden reward}, denoted by $f(x)$, and an \emph{inspection cost}, denoted by $c(x)$.
+The rewards are given by mutually independent random variables whose distributions are known and vary between different boxes.
+
+The decision-making process starts with a set of closed boxes, and proceeds in discrete time steps.
+At time $t$, one can choose to do one of two things: 
+\1 \emph{Open a box $x_t\in X$}. This incurs cost~$c(x_t)$, but reveals the exact value $f(x_t)$ of the reward inside the box, which is drawn using the box's respective reward distribution.
+\2 \emph{Stop opening new boxes, and take the reward from the best opened box.} This ends the decision-making process, and yields a terminal reward equal to the maximum value among the boxes opened so far, with the convention that at least one box must be opened.
+\0 
+The policy's goal is to maximize the expected net utility, which is the reward of the best open box minus the expected total costs of all boxes opened so far, and is written
+\[
+\label{eqn:pandora_objective}
+\E \max_{1 \leq t \leq T} f(x_t) - \E \sum_{\smash{t=1}}^{\smash{T}} c(x_t)
+\]
+where $T$ is a random variable that denotes the number of opened boxes, indicating that the policy terminates at time $T+1$.
+
+\begin{figure}[t]
+\includegraphics{figures/tex/idea_overview}
+\caption{An illustration of this work's key idea. We view cost-aware Bayesian optimization as an extension of the Pandora's Box problem, and derive the cost-aware acquisition function $\smash{\alpha^{\f{PBGI}}_{t}}$ by incorporating the posterior into the Bayesian-optimal Pandora's Box acquisition function $\alpha^\star$.}
+\label{fig:boxes}
+\end{figure}
+
+If we subtract the objective \eqref{eqn:pandora_objective} from $\E \sup_{x\in X} f(x)$, which is constant with respect to the policy, we obtain the sum of the simple regret objective \eqref{eqn:bb_opt_problem} defined in \Cref{sec:background} and expected total costs.
+\emph{The Pandora's Box problem is therefore equivalent to a special case of cost-aware black-box optimization}, specifically the cost-per-sample variant of \Cref{sec:background}, where (a) the domain $X$ is a finite set, and (b) the objective function $f$ is random, with independent $f(x)$ and $f(x')$ for $x\neq x'$.
+We will return to this point in the sequel, but first study the Pandora's Box problem in more detail.
+
+\subsection{Optimally solving Pandora's Box}
+\label{sec:Gittins_index}
+
+The Pandora's Box problem gives rise to an explore-exploit tradeoff: a policy must balance the opportunity gained from learning the value of the reward contained inside the box with the cost of opening it.
+Since the reward distributions are known, this tradeoff is captured within a Markov decision process (MDP). 
+By general MDP theory, there exists an optimal policy describing which box, if any, one should open for a given configuration---we call such a policy~\emph{Bayesian-optimal}.
+
+This MDP can be solved explicitly, with a remarkably simple solution, first derived in an economics setting by \textcite{weitzman1979optimal}.
+We start by associating with each box $x\in X$ a number~$\alpha^\star(x)$ known as the \emph{Gittins index} \cite{gittins2011multiarmed}.~Define
+\[
+\label{eqn:gittins_eqn}
+\alpha^\star(x) &= g
+&
+&\t{where} g \t{solves}
+&
+\f{EI}_f(x; g) = c(x)
+\]
+where $\f{EI}_f(x; y)$, previously defined in \eqref{eqn:expected_improvement} of \Cref{sec:background}, is the \emph{expected improvement of $x$ relative to $y$}---the same expression which appeared in the expected improvement acquisition function variants $\alpha^{\f{EI}}_{t}$ and $\alpha^{\f{EIPC}}_{t}$.
+Note that, unlike in those cases, $\alpha^\star$ is \emph{not time-dependent} due to the lack of correlations or conditioning.
+Since $\f{EI}_f(x; g)$ is strictly decreasing in $g$, the root-finding problem \eqref{eqn:gittins_eqn} admits a unique solution for every value of~$c(x)$.
+
+To understand what $\alpha^\star(x)$ represents, consider a single closed box~$x$, and suppose there is a second, open box with reward $f^*$. 
+Is opening box $x$ better than taking the reward $f^*$ from the open box? 
+This amounts to whether the expected improvement from opening $x$ balances out the opening cost $c(x)$: one can show that opening $x$ is better if and only if $\f{EI}_f(x; f^*) > c(x)$.
+The value $\alpha^\star(x)$ tells us \emph{how large does the alternative reward $f^*$ need to be, for stopping and taking it to be at least as good as opening box~$x$}---a kind of \emph{fair value} which makes different boxes directly comparable to one another.
+
+If we decide which box to open via the aforementioned fair values, we obtain the \emph{Gittins index policy}, which proceeds as follows. 
+At each time~$t$, let $f^*_t = \max_{1 \leq \tau \leq t} f(x_\tau)$ be the maximum reward among all open boxes, and let $x^*_t$ be the box of maximum Gittins index value $\alpha^\star(x)$ among unopened boxes, with ties broken according to a given ordering.
+With this notation, using a tie-breaking rule that stops as early as possible---but noting that other tie-breaking rules, including stopping as late as possible, or stopping with some probability, are also valid---we get:
+\1* If $f^*_t < \alpha^\star(x^*_t)$, the policy opens box~$x^*$.
+\2* If $f^*_t \geq \alpha^\star(x^*_t)$, the policy stops and receives terminal reward $f^*_t$.
+\0*
+
+It turns out that opening boxes according to the order determined by their fair values, in the sense above, is not only a good idea, but is outright Bayesian-optimal.
+We state this formally as~follows.
+
+\begin{theorem}[\textcite{weitzman1979optimal}]
+\label{thm:cost-per-sample}
+Let $X$ be a finite set, let $f : X \-> \R$ be a finite-mean random function for which $f(x)$ is independent of $f(x')$ for $x \neq x'$, and let $c : X \-> \R_+$, without loss of generality, be deterministic.
+Then, for the cost-per-sample~problem, the policy defined by maximizing the Gittins index acquisition function $\alpha^\star$ with its associated stopping rule is Bayesian-optimal.
+\end{theorem}
+
+In the language of Bayesian optimization, this means that not only is there an explicit Bayesian-optimal policy for the Pandora's Box setting, but this policy also \emph{takes the form of maximizing an acquisition function}.
+This gives an explicit solution for the cost-per-sample setting, thereby showing Pandora's Box fits our original goal of finding a simplified decision problem that sheds insights on cost-aware Bayesian optimization.
+For an alternative proof, see \textcite[Theorem 1]{kleinberg2016descending}.
+Using Lagrangian relaxation, we show that the obtained solution carries over to the expected budget-constrained setting.
+
+\begin{restatable}{theorem}{ThmBudgetConstrained}
+\label{thm:equivalence}
+Consider the expected budget-constrained problem, with the assumptions of \Cref{thm:cost-per-sample}.
+Assume the problem is feasible and the constraint is active, namely $\min_{x\in X} c(x) < B < \sum_{x\in X} c(x)$.
+Then there exists a $\lambda > 0$ and a tie-breaking rule such that the policy defined by maximizing the Gittins index acquisition function $\alpha^\star(\.)$, defined using costs $\lambda c(x)$, is~Bayesian-optimal.
+\end{restatable}
+
+A proof is given in \Cref{apdx:theory}.
+This result extends a special case of \textcite[Theorem 1]{aminian2023markovian}.
+Compared to that work, we consider only Pandora's Box, but allow general reward distributions---including those with infinite support, such as Gaussian rewards.
+The optimal $\lambda$ depends on the budget constraint~$B$ implicitly via a convex optimization problem given in \Cref{apdx:theory}.
+In budget-constrained problems, we therefore view $\lambda$ as a hyperparameter, which controls the degree to which the algorithm is risk-averse vs. risk-seeking---precisely what we argued was missing from EIPC in~\Cref{sec:background}.
+
+One can intuitively understand $\lambda$ using a needle-in-haystack metaphor.
+Suppose one wants to find the best needle, but can only search a fraction of the haystack in expectation, represented by the budget $B$.
+The key phrase is \emph{in expectation}: if the search is not promising, one can stop early and avoid wasting budget, otherwise one can search more of the haystack.
+This prompts the question: in what situations should one continue searching?
+The answer depends on the interplay between the budget $B$, costs $c$, and best value $f^*_t$ seen so far, and is encoded by $\lambda$ in \Cref{thm:equivalence}. 
+Larger $\lambda$-values correspond to smaller budgets $B$, incentivizing one to search less of the haystack.
+Crucially, the optimal acquisition function $\alpha^\star$ behaves differently for different $\lambda$-values, and therefore for different budgets: roughly, smaller budgets cause $\alpha^*$ to explore less.
+We will return to this in \Cref{par:qualitative} and~\Cref{fig:contour}.
+
+
+
+\subsection{An acquisition function class for cost-aware Bayesian optimization}
+\label{sec:Gittins:bayesopt}
+
+
+\begin{figure}[t]
+\includegraphics{figures/tex/variable_amplitude_eipc}
+\caption{A Bayesian optimization problem with varying costs on which LogEIPC---a numerically stable implementation of EIPC, see \Cref{sec:experiments,apdx:log_ei}---has poor performance, inspired by \textcite[Section A]{astudillo2021multi}. The domain is $X = [-500,500]$, which we visualize on the subinterval $[-5,5]$. Left: illustration of the non-uniform prior variance, which is given by a Matérn-5/2 kernel scaled by a narrow bump function. Center: the cost function, which is a narrow bump-shaped function. Right: median regret curves and quartiles for LogEIPC and PBGI. Legend refers only to regret curves.}
+\label{fig:EIPC_stuck}
+\end{figure}
+
+To adapt $\alpha^\star$ to the Bayesian optimization setting, we need to handle two differences: (i) $X$ does not need to be discrete, and (ii) a general probabilistic model is used for~$f$.
+Since \Cref{thm:cost-per-sample} ostensibly requires $f(x)$ to be independent of $f(x')$ for all $x\neq x'$, the key question is \emph{how to incorporate data and spatial correlations} into $\alpha^\star$.
+We propose to do so in the simplest and most obvious way: namely, at each time $t$, we plug the posterior distribution $f \given x_{1:t}, y_{1:t}$ in place of $f$.
+This yields three variants, depending on the precise cost-aware setting one is interested in:
+\1 \emph{Budget-constrained}: define \emph{Pandora's Box Gittins index (PBGI)} acquisition~function
+\[
+\label{eqn:gittins_acquisition}
+\alpha^{\f{PBGI}}_{t}(x) &= g
+&
+&\t{where} g \t{solves}
+&
+\f{EI}_{f\given x_{1:t}, y_{1:t}}(x; g) = \lambda c(x)
+\]
+and $\lambda$ is a hyperparameter that should be tuned to match the evaluation budget $B$.
+\2 \emph{Cost-per-sample}: we can directly apply $\alpha^{\f{PBGI}}_{t}$ in this setting as well, but now $\lambda$ is instead interpreted as unit-conversion factor which ensures costs and rewards have the same units, and the Pandora's Box stopping rule is used for deciding when to terminate the optimization procedure and return the best observed value. 
+\3 \emph{Adaptive decay}: here, we do not have a pre-defined budget or cost-based stopping rule. Define the \emph{Pandora's Box Gittins index with adaptive decay (PBGI-D)} acquisition function $\alpha^{\f{PBGI-D}}(x)$ analogously to $\alpha^{\f{PBGI}}(x)$, but with a time-dependent $\lambda_t$ schedule, set according to the Pandora's Box stopping rule. Specifically, $\lambda_0$ is initialized to a given value, then set
+\[
+\label{eq:stopping}
+\lambda_{\tau+1} = 
+\left[\,\,
+\begin{aligned}
+&\frac{\lambda_\tau}{\beta} & &\t{if} f^*_{\tau} \geq \alpha^{\f{PBGI}}_{\tau}(x^*_{\tau};\lambda_{\tau})
+\\
+&\lambda_\tau & &\t{otherwise}
+\end{aligned}
+\right.
+\]
+where $\beta > 1$ is a decay factor that is used to decrease $\lambda_\tau$ at any time $\tau$ when the Pandora's Box stopping rule triggers.
+The advantage of this variant is that it can be more robust to different ranges of the policy hyperparameters: we discuss this further in \Cref{apdx:PBGI-D}.
+\0
+
+To understand this acquisition function class, one can think of it via the following approximation: for the general cost-aware Bayesian optimization problem, we (a) correctly incorporate observed data into the prior to obtain the posterior, but then (b) pick new samples according to the rule that would have been Bayesian-optimal if the posterior had no correlations.
+Said differently, $\alpha^{\f{PBGI}}$ arises from exactly solving a simplified dynamic program, where the simplification is of a spatial nature, rather than the usual temporal lookahead.
+One can therefore expect this acquisition function to work best in situations where correlations are not the decisive factor for determining performance.
+
+In what problems does this happen?
+In stationary kernels, correlations encode local dependence.
+Therefore, one can expect $\alpha^{\f{PBGI}}$ to be approximately-optimal in settings where the key decisions involve choosing between different far-away data points.
+One can intuitively expect this to occur more often in high-dimensional problems, where the volume of the search space is large and most points are far away from each other.
+We will examine this point empirically in the sequel.
+
+\paragraph{Computation.} 
+To compute $\alpha^{\f{PBGI}}$ efficiently, note that $y \|> \f{EI}_\psi(x;y)$ is monotone. 
+As a result, the value $g$ in \eqref{eqn:gittins_acquisition} can be computed efficiently via bisection search. 
+In \Cref{apdx:theory:gradient}, we show that (i) the gradient of $\alpha^{\f{PBGI}}$ can be computed straightforwardly via an explicit analytical expression without any additional optimization, and (ii) the resulting computational costs are closer to those of expected improvement than those of expensive multi-step-lookahead-based approaches.
+
+\paragraph{Extension to stochastic and non-automatically-differentiable costs.}
+One can show that \Cref{thm:cost-per-sample} holds in the more general case where the cost function is random, as long as one substitutes $c(x)$ with its mean. 
+The same holds for \Cref{thm:equivalence}, as shown in \Cref{apdx:theory:equivalence}.
+In this setting, therefore, stochasticity of $c(x)$ affects performance, but does not change the optimal strategy.
+Building on these observations, we propose extensions of $\alpha_t^{\f{PBGI}}$ to the more general setting where costs are modeled using a log-normal process in \Cref{apdx:theory:unknown_cost}.
+
+\begin{figure}[t]
+\includegraphics{figures/tex/contour_and_cost}
+\caption{Left: contour plots showing how EI (left) and PBGI (center-left, center-right) depend on the posterior mean and standard deviation at a given point (lighter colors indicate higher values). We see that PBGI values high standard deviation more than EI. Right: PBGI performance across values of $\lambda$, under the setup of the Bayesian regret experiment of \Cref{sec:experiments} with $d=8$. We plot the median of a set of samples using $n=256$ random seeds, along with quartiles to show variability. We see that large $\lambda$-values decrease regret sooner, but eventually lose out to smaller $\lambda$-values.}
+\label{fig:contour}
+\end{figure}
+
+\paragraph{Qualitative behavior and comparisons.} 
+\label{par:qualitative}
+Compared to cost-unaware acquisition functions such as EI, PBGI can be more risk-averse if costs are large or more risk-seeking if costs are small.
+In varying-cost budget-constrained settings, this tradeoff is mediated by $\lambda$, and the obtained decisions can differ significantly from those of widely-used baselines such as EIPC.
+In particular, PBGI can make qualitatively different decisions on problems where there is a high-variance point with a large cost, among a set of many low-variance low-cost points. 
+In \Cref{fig:EIPC_stuck}, we adapt the construction of \textcite[Section A]{astudillo2021multi} into a one-dimensional Bayesian optimization problem with a non-stationary prior, and observe that EIPC---even in its numerically stable logarithmic form described in \Cref{sec:experiments}---has substantially worse performance than PBGI.
+
+The PBGI acquisition functions depends on $f\given x_{1:t}, y_{1:t}$ through its mean and standard deviation at each point.
+We plot this in \Cref{fig:contour}.
+This shows for large $\lambda$ that PBGI can resemble EI, whereas for small $\lambda$ it is nearly linear.
+Specifically, in the $\lambda\->0$ limit, we have 
+\[
+\alpha^{\f{PBGI}}_{t}(\.) \approx \mu_t(\.) + \sigma_t(\.) \sqrt{2\log \frac{\sigma_t(\.)}{\lambda c(\.)}}
+\]
+where $\mu_t$ and $\sigma_t$ are the mean and standard deviation of $f\given x_{1:t}, y_{1:t}$.
+This expression is similar to the upper confidence bound (UCB) acquisition function whose dependence is exactly linear, with heterogeneous learning rate parameter set to $\eta_t = \sqrt{2\log \frac{\sigma_t(x)}{\lambda c(x)}}$. 
+A derivation is given in \Cref{apdx:theory:PBGI_approximation}.
+For small $\lambda$, one can thus view PBGI as giving a way to automatically tune UCB's confidence parameter in a careful way depending on~$c(x)$.
+
+
+
+
+
+\section{Experiments}
+\label{sec:experiments}
+
+We now empirically evaluate the Gittins-index-based acquisition function on cost-aware problems. We also evaluate on the same problems with a spatially-constant cost function, a setting we term \emph{uniform costs}---this facilitates comparisons with classical, cost-unaware baselines.
+In both cases, mirroring practical settings, we work with a deterministic, algorithm-independent evaluation budget.
+
+We implement all methods in BoTorch \cite{balandat2020botorch} using Matérn Gaussian processes with smoothness $\nu = 5/2$. 
+For Bayesian regret experiments where objectives are sampled from the prior, we fix the length scale to be $\kappa = 10^{-1}$ for both the prior and the posterior.
+For synthetic and empirical experiments, we apply maximum marginal likelihood optimization to dynamically adjust the length scale every iteration.
+To ensure that our results are not sensitive to these and other hyperparameter choices, all experiments were repeated with alternatives given in \Cref{apdx:kernel}.
+Each experiment was repeated for $16$ seeds to assess variability, unless stated otherwise.
+Experimental details are in \Cref{apdx:experiments}.
+
+We evaluate both PBGI variants from \Cref{sec:Gittins:bayesopt}, namely $\alpha^{\f{PBGI}}$ with $\lambda = 10^{-4}$, and $\alpha^{\f{PBGI-D}}$ with $\lambda_0= 10^{-1}$ and $\beta = 2$.
+To assure ourselves that performance differences are not primarily due to tuning, we deliberately use the same $\lambda$-values for PBGI and the same $(\lambda_0,\beta)$-values for PBGI-D on all problems.
+Comparisons with other $(\lambda_0,\beta)$-values can be found in \Cref{apdx:PBGI-D}.
+
+\begin{figure}[t]
+\includegraphics{figures/tex/bayesian_regret}
+\caption{Regret curves for objective functions sampled from the prior, shown using medians, as well as quartiles to indicate experiment variability. We see in the cost-aware setting that both PBGI variants usually exhibit comparable performance to LogEIPC and LogEICC, with PBGI-D decisively outperforming other baselines. In the uniform-cost setting, the story is similar for $d = 8$ and $d = 16$: PBGI and PBGI-D perform comparably to the best baselines, which are LogEI and UCB, as well as MSEI for $d=8$. However, for $d = 32$, all methods perform comparably to random search, with PBGI, PBGI-D, LogEI, and UCB having near-identical median performance.
+See \Cref{fig:standard_errors} for an alternative visualization using mean and standard error.}
+\label{fig:bayesian_regret}
+\end{figure}
+
+For varying-cost problems---that is, those with spatially non-constant cost---we compare with \emph{(log) expected improvement per unit cost (LogEIPC)} \cite{snelson2003warped,snoek2012practical}, \emph{(log) expected improvement with cost cooling (LogEICC)} \cite{lee2020cost}, \emph{multi-fidelity max-value entropy search (MFMES)} \cite{takeno2020multi} and \emph{budgeted multi-step expected improvement (BMSEI)}, \cite{astudillo2021multi}, which was shown in that work to have state-of-the-art cost-aware performance.
+For uniform-cost problems---that is, those with constant costs---we compare with \emph{log expected improvement (LogEI)} \cite{ament2023unexpected}, \emph{Thompson sampling (TS)}, \emph{upper confidence bound (UCB)} \cite{srinivas2009gaussian}, \emph{max-value entropy search (MES)} \cite{wang2017max}, \emph{knowledge gradient (KG)} \cite{frazier2009knowledge}, and \emph{multi-step expected improvement (MSEI)} \cite{jiang2020efficient}.
+We choose these because (i) they are standard, and (ii) acquisition function optimization succeeds for them on our problems, reducing confounding.
+We work with logarithmic expected improvement variants (LogEI, LogEIPC, LogEICC), as they have recently been shown to have substantially better numerical and optimization properties than their traditional counterparts \cite{ament2023unexpected}---see \Cref{apdx:log_ei} for details.
+
+
+\subsection{Bayesian regret}
+
+For our first experiment, we examine how well the proposed acquisition functions perform on random functions sampled from the prior.
+To quantify the effect of problem difficulty, we vary the dimension of the domain $X = [0,1]^d$, and consider $d \in \{8,16,32\}$.
+Results, in terms of empirical regret curves and their associated quartiles, are shown in \Cref{fig:bayesian_regret}.
+Additional results for $d=4$, demonstrating comparable performance between both PBGI variants and all baselines, as well as sensitivity comparisons involving the Gaussian process prior with varying kernel hyperparameters such as different smoothness values and length scales, are included in \Cref{apdx:experiments}. 
+
+In the low-dimensional case of $d=8$, PBGI and LogEI variants achieve similar or better performance to the non-myopic (B)MSEI baseline.
+Once we increase dimension to $d=16$, we see bigger differences, with PBGI variants, LogEI variants, and UCB now decisively outperforming (B)MSEI.
+Notably, the PBGI variants are also competitive in the uniform-cost setting---in spite of being designed for cost-aware problems.
+This can be explained via the curse of dimensionality: as dimension increases, the problem begins to look more like the uncorrelated Pandora's Box problem where using Gittins index is Bayesian-optimal.
+Eventually, however, the problem becomes too difficult for meaningful progress to be made within our computational budget, as seen for the uniform-cost problem with $d=32$, where all deterministic methods perform near-identically and no method outperforms random search.
+
+
+\subsection{Synthetic benchmarks}
+
+\begin{figure}[t]
+\includegraphics{figures/tex/synthetic_benchmark}
+\caption{Synthetic benchmark regret curves, shown using medians, as well as quartiles to assess variability. All objective functions are defined with dimension $d = 16$. We see in the cost-aware setting that PBGI, PBGI-D, LogEIPC, and LogEICC all perform similarly on the heavily-multimodal Ackley function, matching or outperforming the non-myopic BMSEI baseline.
+On the Levy and Rosenbrock functions, PBGI-D matches---and for some cost budgets outperforms---all baselines, including the non-myopic BMSEI.
+Under uniform costs, PBGI performs well on Ackley and Levy, but is outperformed by PBGI-D and most baselines on Rosenbrock.
+See \Cref{fig:standard_errors} for an alternative visualization using mean and standard error.}
+\label{fig:synthetic}
+\end{figure}
+
+Next, we consider standard synthetic global optimization benchmark functions.
+To represent a variety of geometric properties, we examine the \emph{Ackley}, \emph{Levy}, and \emph{Rosenbrock} functions.
+A visualization of the two-dimensional versions of these functions is given in \Cref{apdx:visual}.
+
+\Cref{fig:synthetic} presents results for $d=16$. 
+Additional results for $d \in \{4, 8\}$ showing that PBGI and all baselines perform similar, are given in \Cref{apdx:experiments}.
+We see that the behavior of different acquisition functions varies according to the the function.
+On the Ackley function, PBGI outperforms PBGI-D and the baselines.
+In contrast, on the Levy function, PBGI is best in the uniform-cost setting, but PBGI-D, LogEIPC, and LogEICC are best in the varying-cost setting.
+We conclude that PBGI can in principle offer stronger performance than PBGI-D, as long as $\lambda$ is not-too-suboptimal, while PBGI-D tends to be less-performant but is more robust to this hyperparameter choice.
+
+We also examine performance on the banana-shaped Rosenbrock-function, which has a small number of local optima \cite{shang2006note}.
+In this case, PBGI-D performs the strongest, matching the LogEI variants, while outperforming PBGI and (B)MSEI.
+This can intuitively be explained by the one-step optimality of expected improvement, which better-exploits the less-multimodal objective, while PBGI and multi-step-based acquisition functions are more conservative and may therefore require different tuning to perform best.
+We conclude that PBGI-D may be a better choice in settings where there is a potential mismatch between the objective and the prior in terms of degree of multimodality, as this can be counteracted in part by its decay behavior, particularly compared to~PBGI.
+
+
+\subsection{Empirical objectives}
+
+\begin{figure}[t]
+\includegraphics{figures/tex/empirical}
+\caption{Empirical benchmark regret curves, shown using medians, as well as quartiles to show variability.
+We see in both the varying-cost and uniform-cost settings that PBGI exhibits strong performance on the Pest Control and Lunar Lander problems. On the Robot Pushing problem, LogEI variants perform strongest, with PBGI-D performing second-strongest and matching or outperforming all other baselines.
+See \Cref{fig:standard_errors} for an alternative visualization using mean and standard error.}
+\label{fig:empirical}
+\end{figure}
+
+Finally, we benchmark PBGI policies on three empirical global optimization problems motivated by applied challenges: \emph{Pest Control} where $d = 25$ \cite{oh2019combinatorial}, \emph{Lunar Lander} where $d = 12$ \cite{eriksson2019scalable}, and \emph{Robot Pushing} where $d = 14$ \cite{wang2017max}. 
+Detailed descriptions of these problems and associated cost functions are in \Cref{apdx:experiments}. 
+Note that, for Lunar Lander and Robot Pushing, the cost functions used are not automatically-differentiable. 
+To handle this challenge and illustrate how our acquisition function can be used when the cost function is unknown, we apply unknown-cost PBGI and baseline variants, where the costs are modeled using a second independent log-Gaussian process: details on this unknown-cost PBGI variant, including its analytic form, are given in \Cref{apdx:theory:unknown_cost}.
+
+From \Cref{fig:empirical}, we see that the PBGI matches or outperforms baselines on Pest Control and Lunar Lander, in both the varying-cost and uniform-cost settings. 
+On the other hand, PBGI performs poorly on Robot Pushing, where instead LogEI variants perform best and PBGI-D performs second-best; the non-myopic BMSEI baseline also performs poorly.
+This mirrors behavior previously seen on the Rosenbrock function, from which we suspect that a mismatch between prior and objective multimodality may be at play here as well.
+Note also that unlike in the Bayesian regret experiments, UCB's performance is far from strongest.
+This may be in part because we tune UCB using the schedule of \textcite{srinivas2009gaussian}, which is derived specifically for Bayesian regret, and may be less-ideal for other settings.
+In comparison, PBGI-D works reasonably well on five of the six~cases.
+
+\section{Conclusion}
+
+In this paper, we introduced a new acquisition function class for cost-aware Bayesian optimization, the \emph{Pandora's Box Gittins index}, based on an unexplored connection between Bayesian optimization and the \emph{Pandora's Box} problem from economics. 
+We observed promising performance from two variants of this acquisition function class on both cost-aware problems which are the focus of this work, and, additionally, on classical uniform-cost problems.
+Performance gains tended to be largest on higher-dimensional and multi-modal problems.
+Our work constitutes a first step toward integrating ideas from Gittins index theory, including insights from generalizations of Pandora's Box, and related areas such as queueing theory, into Bayesian~optimization.
+
+\section*{Acknowledgments}
+
+We thank James T. Wilson for his suggestions, which helped us significantly improve the paper's presentation.
+AT is grateful to Anastasios Angelopoulos for hosting him at UC Berkeley on November 17th, 2022: though the visit and planned talk that day had to be cancelled last-minute due to labor strikes, the cancellation ultimately resulted in an unexpected chain of events that, months later, led to AT and ZS exchanging ideas about Gaussian processes and Gittins index theory, which ultimately led to this work.
+PF was partially supported by AFSOR FA9550-20-1-0351.
+ZS was supported by the NSF under grant numbers CMMI-2307008, DMS-2023528, and DMS-2022448.
+AT was supported by Cornell University, jointly via the Center for Data Science for Enterprise and Society, the College of Engineering, and the Ann S. Bowers College of Computing and Information Science.
+
+\printbibliography
+
+\clearpage
+
+\appendix
+
+\section{Illustrations}
+\label{apdx:visual}
+
+Here we provide a set of additional illustrations to aid understanding of our results.
+
+\subsection{Visualization of synthetic benchmark functions}
+
+\begin{figure}
+\begin{subfigure}{0.3\textwidth}
+\includegraphics[scale=0.25]{figures/png/fn_a.png}
+\caption{Ackley}
+\end{subfigure}
+\begin{subfigure}{0.3\textwidth}
+\includegraphics[scale=0.25]{figures/png/fn_l.png}
+\caption{Levy}
+\end{subfigure}
+\begin{subfigure}{0.3\textwidth}
+\includegraphics[scale=0.25]{figures/png/fn_r.png}
+\caption{Rosenbrock}
+\end{subfigure}
+\caption{An illustration of the two-dimensional Ackley, Levy, and Rosenbrock functions.\protect\footnotemark[1] From the visual, one can see that these functions differ in terms of multimodality and ridge-regions within the optimization landscape. }
+\label{fig:synthetics_illustration}
+\end{figure}
+
+\footnotetext[1]{This visual originally appeared in \textcite{terenin22}, and is reproduced here with permission.}
+
+
+To better understand how the behavior of Bayesian optimization algorithms on the three different synthetic benchmark functions might be affected by their geometric shape, \Cref{fig:synthetics_illustration} provides a visual illustration of their two-dimensional variants.\footnotemark[1]
+This allows us to visually see the multimodality of the Ackley function, multimodality and ridge-like regions in the Levy function, and banana shape of the Rosenbrock function.
+While we use higher-dimensional versions of these in our experiments, this illustration provides some intuition for what the resulting the optimization landscape might look like, helping contextualize results.
+
+\subsection{Comparison of behaviors between EI and PBGI}
+\begin{figure}[b]
+\includegraphics{figures/tex/appendix/pbgi_behavior.pdf}
+\caption{Comparison between three acquisition functions, namely Expected Improvement (EI), Pandora's Box Gittins Index (PBGI) with a large $\lambda$-value of $\lambda = 10^0$, and Pandora's Box Gittins Index with a small $\lambda$-value of $\lambda = 10^{-5}$.
+All three are computed using the same posterior distribution with four data points.
+The maximum is shown as a large dot.}
+\label{fig:PBGI_behavior}
+\end{figure}
+
+In \Cref{fig:PBGI_behavior}, we see that EI's maximum occurs at a point near $x \approx 0.365$, which is located closer to the observed data and is fairly close to the maximum of the posterior mean.
+Similarly, large-$\lambda$ PBGI's maximum occurs at a similar point near $x \approx 0.358$, indicating that the algorithm makes similar decisions in spite of the fact that the acquisition function's shape is different.
+In contrast, small-$\lambda$ PBGI's maximum occurs at a point near $x \approx 0.86$: it favors a riskier approach, preferring a location where the mean is smaller, but the variance is larger.
+
+This example shows potential differences in behavior between EI and PBGI, and illustrates how these differences are mediated by the parameter $\lambda$.
+
+\subsection{An example where expected improvement underperforms}
+
+In \Cref{par:qualitative}, we showed a cost-aware Bayesian optimization problem on which the logarithmic form of expected improvement per unit cost (LogEIPC) has poor performance.
+Here, we show that this problem can be modified so that the logarithmic form of ordinary expected improvement (LogEI), which ignores the cost function, also has poor performance---a somewhat obvious, but nonetheless important sanity check that we make to ensure that costs play a sufficiently-important role in problems of this class to merit their consideration.
+This is shown in \Cref{fig:EI_stuck}.
+It is not hard to construct a less-visualization-friendly variant of these problems on which both expected improvement per unit cost and ordinary expected improvement perform poorly, by considering cost functions which are appropriately-weighted sums of bump functions.
+
+
+\begin{figure}
+\includegraphics{figures/tex/appendix/variable_amplitude_ei}
+\caption{A Bayesian optimization problem with varying costs on which LogEI, a numerically stable implementation of EI---which by construction ignores costs---has poor performance. See \Cref{sec:experiments,apdx:log_ei} for additional details. Like \Cref{fig:EIPC_stuck}, this construction also mirrors \textcite[Section A]{astudillo2021multi}. The domain is $X = [-500,500]$, which we visualize on the subinterval $[-5,5]$. Left: illustration of the non-uniform prior variance, which is given by a Matérn-5/2 kernel scaled by a narrow bump function, plus a constant. Center: the cost function, which is a narrow bump-shaped function. Right: regret curves, shown as medians and~quartiles.}
+\label{fig:EI_stuck}
+\end{figure}
+
+
+\section{Theory and calculations}
+\label{apdx:theory}
+
+Below, we provide additional ideas to help understand the Pandora's Box problem and acquisition function that results from its considerations.
+
+\subsection{Additional intuition on Pandora's Box}
+\label{apdx:theory:intuition}
+
+In what follows, we sketch a viewpoint from which one can see the key idea behind why \Cref{thm:cost-per-sample} holds.
+Rather than considering the full Pandora's Box problem with a general set of open and closed boxes, consider first the case where there is exactly one closed and one open box.
+To slightly simplify notation, let $f$ denote the random reward inside the closed box, let $c$ denote the cost of opening the closed box, assumed deterministic, and let $g$ denote the visible reward of the open box.
+Our possible actions are as follows:
+\1 \emph{Open the closed box.} In this case, we pay a cost of $c$, but subsequently get to choose between taking the realized value $f$, or instead taking $g$ from the box that was originally open. In expectation, the total value obtained by taking this action is $\E(\max(f,g)) - c$.
+\2 Take the reward from the open box. The total value obtained is $g$.
+\0 
+We can therefore analytically solve for the optimal policy of this respective Markov decision process: we open the closed box if $\E(\max(f,g)) - c \geq g$, and take the reward from the open box if $\E(\max(f,g)) - c \leq g$, with both actions optimal in the case of equality.
+As consequence, if $g$ is such that both actions are optimal, the same value is obtained no matter whether one chooses to open the box or not.
+Rewriting the preceding expressions slightly, this occurs when 
+\[
+\label{eqn:gittins_indifference}
+\E\max(f-g,0) = c
+\]
+where in the case of multiple boxes the left-hand-side becomes the expected improvement function.
+The insight of \textcite{weitzman1979optimal}---and indeed of \textcite{gittins79} in a much more general setting---is that one can modify the Pandora's Box Markov decision process by replacing closed boxes with open boxes whose value $g$ satisfies \eqref{eqn:gittins_indifference} without changing the optimal policy.
+As a consequence, the optimal policy is precisely the Gittins index policy of \Cref{thm:cost-per-sample}.
+
+As a final point, note that the assumption that $c$ is deterministic is made without loss of generality: if $c$ is instead stochastic but has finite expectation, the same reasoning applies, but with the value $c$ in \eqref{eqn:gittins_indifference} replaced with its expected value.
+We will make use of this in \Cref{apdx:theory:unknown_cost}.
+
+\subsection{Gradient of the PBGI acquisition function}
+\label{apdx:theory:gradient}
+
+In most Bayesian optimization setups, gradient-based methods including multi-start stochastic gradient descent, BFGS, and L-BFGS-B, are used to effectively optimize analytical acquisition functions, such as EI and UCB. These methods can also be used to optimize the PBGI acquisition function. 
+To facilitate this, we provide the gradient formula for the PBGI acquisition function.
+In what follows, mirroring the preceding and following sections, if costs are stochastic then $c(x)$ should be replaced with its respective mean.
+We also omit time subscripts to ease notation.
+
+\begin{proposition}[Gradient of PBGI]
+Let $\mu(x)$ and $\sigma(x)$ be the mean and standard deviation of the posterior Gaussian process $(f\given x_{1:t}, y_{1:t})(x)$.
+With this notation, the gradient of the acquisition function $\alpha^{\f{PBGI}}(x)$ is given by
+\[
+\grad \alpha^{\f{PBGI}}(x) = \grad\mu(x) + \frac{\phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}\grad\sigma(x)-\lambda\grad c(x)}{\Phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}},
+\]
+where $\phi$ and $\Phi$ denote the density and cumulative distribution function of a standard normal distribution, respectively.
+\end{proposition}
+
+\begin{proof} 
+Recall that when $\psi(x)\~[N](\mu(x), \sigma(x))$ is Gaussian, the expected improvement with respect to the comparator $y$ is given as
+\[
+\label{eq:EI}
+\f{EI}_\psi(x; y) =(\mu(x)-y)\Phi\del{\frac{\mu(x)-y}{\sigma(x)}}+\sigma(x)\phi\del{\frac{\mu(x)-y}{\sigma(x)}}
+.
+\]
+Next, note by definition of $\alpha^{\f{PBGI}}$, we have 
+\[
+\label{eq:PBGI}
+\f{EI}_{f\given x_{1:t}, y_{1:t}}(x; \alpha^{\f{PBGI}}(x)) = \lambda c(x)    
+.
+\]
+Differentiating this with respect to $x$ on both sides gives
+\[
+\grad \f{EI}_{f\given x_{1:t}, y_{1:t}}(x; \alpha^{\f{PBGI}}(x))=\lambda\grad c(x)
+.
+\]
+Applying the product and chain rule to the left-hand-side gives
+\[ 
+&\grad \f{EI}_{f\given x_{1:t}, y_{1:t}}(x; \alpha^{\f{PBGI}}(x)) = (\grad \mu(x)-\grad \alpha^{\f{PBGI}}(x))\Phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\\
+&\qquad+ (\mu(x)-\alpha^{\f{PBGI}}(x))\phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} \grad \del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\label{eqn:ei_gradient_line_2}
+\\
+&\qquad+\grad\sigma(x)\phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\\
+&\qquad+ \sigma(x) \phi'\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} \grad \del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\label{eqn:ei_gradient_line_4}
+.
+\] 
+Recall the identity for the derivative of the Gaussian density, namely
+\[
+\phi'(x) = -x \phi(x)
+.
+\]
+Applying this identity to \eqref{eqn:ei_gradient_line_4} gives 
+\[
+&\sigma(x) \phi'\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} \grad \del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\\
+&\qquad= -(\mu(x)-\alpha^{\f{PBGI}}(x)) \phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} \grad \del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}}
+\]
+which is equal to the negation of \eqref{eqn:ei_gradient_line_2}, hence \eqref{eqn:ei_gradient_line_2} and \eqref{eqn:ei_gradient_line_4} cancel: we get 
+\[ 
+(\grad \mu(x)-\grad \alpha^{\f{PBGI}}(x))\Phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} +\grad\sigma(x)\phi\del{\frac{\mu(x)-\alpha^{\f{PBGI}}(x)}{\sigma(x)}} = \lambda \grad c(x)
+.
+\] 
+Rearranging this gives the expression in the claim.
+\end{proof}
+
+\subsection{Small-cost limit of PBGI acquisition function}
+\label{apdx:theory:PBGI_approximation}
+
+We now derive the small-$\lambda$ limiting expression for PBGI which was presented in \Cref{par:qualitative}.
+According to \eqref{eq:EI} and \eqref{eq:PBGI}, we have
+\[
+\alpha^{\text{PBGI}}_{t}(\.)=\mu_t(\.)-\sigma_t(\.)u(\.)
+\]
+where $\mu_t$ and $\sigma_t$ are the mean and the standard deviation of $f\given x_{1:t}, y_{1:t}$, and $u(\.)$ is the solution of 
+\[
+u(\.)\Phi(u(\.))+\phi(u(\.))=\frac{\lambda c(\.)}{\sigma_t(\.)}
+.
+\]
+When $\lambda\->0$, the solution satisfies $u(\.)\->-\infty$.
+This implies that both $\Phi(u(\.))\->0$ and $\phi(u(\.))\->0$. 
+Since $\phi(u(\.))$ dominates $\Phi(u(\.))$, we can approximate the solution $u(\.)$ by $\phi(u(\.))\approx\frac{\lambda c(\.)}{\sigma_t(\.)}$. 
+By substituting the probability density function of a standard normal distribution for $\phi$, we obtain 
+\[
+u(\.)\approx-\sqrt{2\log\del{\frac{\sigma_t(\.)}{\lambda c(\.)}}}
+.
+\]
+Thus, we can conclude that in the limit $\lambda\->0$, the Gittins index becomes
+\[
+\label{eq:small_lambda_approx}
+\alpha^{\text{PBGI}}_{t}(x;\lambda)\approx\mu_t(x)+\sigma_t(x)\sqrt{2
+\log\del{\frac{\sigma_t(x)}{\lambda c(x)}}}
+.
+\]
+As consequence, we expect PBGI-D, whose $\lambda$-parameter eventually decays to zero, to potentially inherit consistency and other properties known for UCB.
+Specifically, since PBGI-D decreases the value of $\lambda$ to zero over time by dividing it with a constant every time the Gittins stopping rule triggers, its behavior should eventually be well-described by the above limit.
+As a result of this limit, unexplored regions where $\sigma(x) \gg 0$ should eventually have acquisition values that are larger than regions where $\sigma(x) \approx 0$.
+We believe this should hold regardless of whether the costs are known---our main focus---or unknown, especially if the cost function $c(x)$ is uniformly bounded above and below.
+This because \eqref{eq:small_lambda_approx}'s dominant term in the $\lambda \to 0$ limit is $\sigma(x) \sqrt{2\log\frac{1}{\lambda}}$, which does not depend on the cost~$c(x)$.
+
+\subsection{Closed-form expression for the PBGI unknown-cost variant}
+\label{apdx:theory:unknown_cost}
+
+In the Lunar Lander and Robot Pushing empirical examples of \Cref{sec:experiments}, the cost function does not admit an analytic, automatically-differentiable form, and can only be evaluated in a black-box manner.
+To handle this, we model the logarithm of the costs as a Gaussian process, and condition this process on the costs observed at locations evaluated so far.
+This mirrors how unknown costs are handled in \textcite{astudillo2021multi} for other acquisition functions, such as EIPC and BMSEI.
+
+From the viewpoint of the Pandora's Box problem, stochastic costs make little difference: following the discussion in \Cref{apdx:theory:intuition}, the optimality results of \textcite{weitzman1979optimal} continue to hold even if costs are stochastic, so long as the costs in the formula for $\alpha^\star$ are replaced with expected costs.
+Mirroring this, if we plug in the mean of a log-normal random variable into the definition of $\alpha^{\f{PBGI}}$, we obtain the following acquisition function.
+
+\begin{definition}
+Let $c(x)$ be log-normal for all $x$.
+For a dataset $(x_1,y_1),..,(x_t,y_t)$, let $\mu_{\ln c}$ and $\sigma_{\ln c}$ be the posterior mean and posterior standard deviation of the log-costs.
+Define the \emph{unknown-cost Pandora's Box Gittins index acquisition function} by
+\[
+\label{eqn:gittins_unknown}
+\alpha^{\f{PBGI-U}}_{t}(x) &= g
+&
+&\t{where} g \t{solves}
+&
+\f{EI}_{f\given x_{1:t}, y_{1:t}}(x; g) = \lambda \exp\del{\mu_{\ln c}(x)+\frac{\sigma_{\ln c}(x)^2}{2}}
+.
+\]
+\end{definition}
+
+The interpretation of $\lambda$, namely as a hyperparameter that determines the expected budget the algorithm will use before reaching its respective stopping time, is the same as in the known-cost setting.
+One can define cost-per-sample and decay variants in the same manner as well.
+
+
+
+\subsection{Relationship between expected budget-constrained and cost-per-sample problems}
+\label{apdx:theory:equivalence}
+
+We now prove \Cref{thm:equivalence}.
+In what follows, recall that the assumptions of \Cref{thm:cost-per-sample} are (i) $X$ is discrete, (ii) $\E |f(x)| < \infty$ for all $x$, (iii) $f(x)$ and $f(x')$ are independent for $x\neq x'$, and (iv) the budget satisfies $B > \min_{x\in X} c(x)$.
+Further, \Cref{thm:cost-per-sample} was stated for deterministic costs: more generally, we allow for stochastic costs satisfying $0 < \E c(x) < \infty$, and in such cases instead define $\alpha^\star$ using the expected costs.
+
+We begin by defining the Markov decision process (MDP) under study and stating the properties of it that we will use.
+Define:
+\1 States: let $\c{S} = \c{S}^{\o} \u \pd\c{S}$ be the union of two disjoint sets, namely the set $\c{S}^{\o}$ of non-terminal states and set $\pd\c{S}$ of terminal states. These are described below:
+\1 Non-terminal states: let $\c{S}^{\o}$ consist of all finite sequences of length $|X|$ taking values in $\R\u\{\boxtimes\}$, where numbers represent the reward inside an open box, and $\boxtimes$ represents a closed box, along with terminal states described below.
+\2 Terminal states: let $\pd\c{S} = \R$ represent the reward of the box chosen by the learner.
+\0
+\2 Actions: let $\c{A} = X$, where actions represent either opening a closed box, or taking a reward from an open box.
+\3 Costs: define the non-terminal cost function $c : \c{S} \x \c{A} \-> \R$ by $c(s,a) = c(a)$.
+\4 Rewards: define the terminal reward function $\pd r : \pd\c{S} \-> \R$ by $\pd r(s) = s$.
+\4 Transition kernel: define a Markov transition kernel such that for a non-terminal state $s$ and an action $a$:
+\1 If box $i$ is closed, that is, $s_i=\boxtimes$, and $a$ corresponds to opening this closed box, then the MDP transitions to a new state $s'$, where $s'_i$ represents a random draw of the value in box $i$ and all other components $s'_j$ for $j\neq i$ remains the same as $s_j$;
+\2 If box $i$ is open, that is, $s_i\in\R$, and $a$ corresponds to taking the reward $s_i$ from this open box, then the MDP deterministically transitions to a terminal state $s'=s_i$.
+\0
+\0 
+This defines a class of time-homogeneous undiscounted Markov decision processes, parameterized by the reward distribution $f$, of bounded expected value, and cost function $c$.
+We consider Markov policies, which are probability kernels mapping states to probability measures over actions.
+For this class of MDPs, all such policies are guaranteed to terminate in finite time, because at most one can open all the boxes before being forced to select one and thereby enter a terminal state.
+As consequence, by standard MDP theory:
+\1 The value function $V^{(\pi,c)} : \c{S} \-> \R$ is well-defined, where the superscripts denote the policy and the cost with respect to which the MDP is defined.
+\2 The optimal value function $V^{(*,c)} : \c{S} \-> \R$ is also well-defined.
+\3 There exists an optimal policy $\pi^{(*,c)}$ which achieves the optimal value $V^{(*,c)}$.
+\4 The map $\R_+^{|X|} \-> \R$ defined by $c \|> V^{(\pi,c)}$ is affine for all $\pi$.
+\5 The map $\R_+^{|X|} \-> \R$ defined by $c \|> V^{(*,c)}$ is convex, since it is a supremum of affine functions.
+\0 
+We immediately note that this formulation extends to cover two variations of interest:
+\1 \emph{Stochastic costs}. One can handle this by replacing $c$ with a probability kernel.
+In this case, letting $m$ be the mean costs, we have $V^{(\pi,c)} = V^{(\pi,m)}$. Using this, we henceforth work with deterministic costs without loss of generality.
+\2 \emph{Simple regret as a terminal reward.} One can also consider an MDP with a stochastic terminal reward which subtracts the best-in-hindsight term $\sup_{x\in X} f(x)$ from the terminal rewards $\pd r$ given above---this gives an objective equal to simple regret up to a minus sign. Since this only changes the rewards up to a random constant which is independent of the chosen actions, by linearity of expectation, the value function of this modified MDP is equal to those of our MDP up to a constant. We therefore omit this term without loss of generality.
+\0
+The expected budget-constrained setting does not directly incorporate costs into the MDP itself: more precisely, it takes $c(s,a) = 0$ within the MDP formulation, which means the value function of this modified MDP is $V^{(\pi,0)}$.
+Instead, costs are incorporated as a constraint set on the policy class one considers.
+With this notation, the values of the optimization problems for Bayesian-optimal policy in the expected budget-constrained and cost-per-sample problems are
+\[
+V^{(*,c)}_{\f{ebc}} &= \sup_{\pi\in\Pi^{(c)}_B} V^{(\pi,0)}
+&
+V^{(*,c)} &= \sup_{\pi\in\Pi} V^{(\pi,c)}
+\] 
+where $\Pi$ is the set of all Markov policies, and the feasible set for the expected budget-constrained problem is
+\[
+\Pi^{(c)}_B &= \cbr{\pi \in \Pi : \E \sum_{t=1}^{T^{(\pi)}} c(x_t) \leq B}
+\]
+and $T^{(\pi)}$ is policy $\pi$'s stopping time, that is
+\[
+T^{(\pi)} = \inf\{t \geq 1 : s_t \in \pd S\}
+\]
+which is bounded above by $|X| < \infty$.
+This defines the optimization problems under study.
+Define the set of maximizers 
+\[
+\Pi^{(*,c)} = \cbr{\pi\in\Pi : V^{(\pi,c)} = V^{(*,c)}}
+\]
+which is non-empty, since, as said above, by MDP theory the supremum defining $V^{(*,c)}$ is achieved.
+Define also the set of feasible policies which satisfy the constraints in a tight manner, namely
+\[
+\Pi^{(c)}_{B,\f{eq}} &= \cbr{\pi \in \Pi^{(c)}_B : \E \sum_{t=1}^{T^{(\pi)}} c(x_t) = B}
+.
+\]
+
+We are now ready to prove the claim in question.
+For this, we employ a Lagrangian duality argument: loosely speaking, this will reveal the cost-per-sample $\lambda$ to be the Lagrange multipliers associated with the expected budget constraint.
+We prove the main claim via a series of lemmas, starting from handling the Lagrange-multiplier-part of the argument.
+
+\begin{lemma}
+\label{lem:lagrange_multipliers}
+Define the function
+\[
+\c{A} &: [0,\infty) \-> \R 
+&
+\c{A}(\lambda) &= V^{(*,\lambda c)} + \lambda B
+.
+\]
+Suppose that the infimum of $\c{A}$ is achieved, and denote it by $\lambda^*_B\in[0,\infty)$.
+Suppose further that there exists an optimal policy for the cost-per-sample MDP for which the expected budget constraint is tight, namely $\h\pi\in\Pi^{(*,\lambda^*_B c)}\^\Pi^{(c)}_{B,\f{eq}}$.
+Then we have
+\[
+V^{(\h\pi,c)}_{\f{ebc}} = V^{(*,c)}_{\f{ebc}}
+.
+\]
+\end{lemma}
+
+\begin{proof}
+We start by expressing the expected budget-constrained optimization problem in an unconstrained form via Lagrange multipliers, obtaining 
+\[
+V^{(*,c)}_{\f{ebc}} = \sup_{\pi\in\Pi^{(c)}_B} V^{(\pi,0)} &= \sup_{\pi\in\Pi} \inf_{\lambda\geq0} \del{V^{(\pi,0)} - \lambda \del{\E \sum_{t=1}^{T^{(\pi)}} c(x_t) - B}}
+\\
+&= \inf_{\lambda\geq0} \sup_{\pi\in\Pi} \del{V^{(\pi,0)} - \lambda \del{\E \sum_{t=1}^{T^{(\pi)}} c(x_t) - B}}
+\\
+&= \inf_{\lambda\geq0} \del{V^{(*,\lambda c)} + \lambda B} = \inf_{\lambda\geq0} \c{A}(\lambda)
+\]
+where the second line follows from the \Cref{lem:lmt_inf_sup} since the respective Lagrangian equals $V^{(\pi,\lambda c)}$ up to a constant, and the third line follows by definition of $V^{(*,\lambda c)}$ is by definition the terminal reward minus the cumulative costs.
+
+Now, suppose the infimum of $\c{A}$ is achieved, and let $\lambda^*_B\in[0,\infty)$ be any minimizer.
+Then $V^{(*,\lambda^*_B c)}_{\f{ebc}} = V^{(*,\lambda^*_B c)} + \lambda^*_B B$.
+Using this, and the fact that the policy $\h\pi$ by assumption achieves the supremum over $\sup_{\pi\in\Pi} V^{(\pi,\lambda^*_B c)}$ and satisfies $\h\pi\in\Pi^{(c)}_B$, we get
+\[
+\sup_{\pi\in\Pi^{(c)}_B} V^{(\pi,0)} = \sup_{\pi\in\Pi} V^{(\pi,\lambda^*_B c)} + \lambda^*_B B = \sup_{\pi\in\Pi^{(c)}_B} V^{(\pi,\lambda^*_B c)} + \lambda^*_B B
+.
+\]
+Thus, the optimization objectives, defining the expected budget-constrained problem and the cost-per-sample problem with costs $\lambda^*_B c$, are equal up to a constant.
+Therefore, their minimizer sets coincide, and the claim follows.
+\end{proof}
+
+\Cref{lem:lagrange_multipliers} reveals that as long as the optimization problems arising from Lagrange multipliers are achieved, and the resulting policy $\h\pi$ is feasible, the expected budget-constrained problem will admit the same optimum as its associated cost-per-sample problem.
+By MDP theory, we know the supremum over $\Pi$ is achieved: we now show the infimum involving $\lambda$ is achieved as well, which essentially amounts to ruling out arbitrarily large $\lambda$ values.
+
+\begin{lemma}
+\label{lem:lambda_obj_properties}
+The map $\c{A}$ is convex. 
+Moreover, the infimum $\inf_{\lambda\geq0} \c{A}(\lambda)$ is achieved.
+\end{lemma}
+
+\begin{proof}
+First, note that convexity follows straightforwardly from convexity of $c \|> V^{(*,c)}$ and the fact that the sum of convex functions is convex.
+Next, since the feasible set is $\lambda \in [0,\infty)$ and the objective is convex, either the infimum is achieved, or the objective is non-increasing.
+We prove the latter property cannot hold.
+For this, first consider the policy $\pi'$ that deterministically opens some box $x'\in X$ whose cost is $c(x') < B$---note that our assumptions guarantee the existence of at least one such box---and selects the value in it.
+Therefore if we define $\c{A}'(\lambda) = V^{(\pi', \lambda c)} + \lambda B$, we have 
+\[
+\c{A}'(\lambda) = ~V^{(\pi', \lambda c)} + \lambda B \leq V^{(*, \lambda c)} + \lambda B = \c{A}(\lambda)
+.
+\]
+At the same time, we have $V^{(\pi', \lambda c)} = \E f(x') - \lambda c(x')$ therefore 
+\[
+    \c{A}'(\lambda) = \E f(x') - \lambda \ubr{(c(x') - B)}_{\t{negative}}
+\]
+which means the map $\c{A}'$ is affine and strictly increasing with respect to $\lambda$.
+Thus, the map $\c{A}$ is lower-bounded by a strictly increasing affine function, and therefore cannot be non-increasing.
+We conclude that the infimum is achieved.
+\end{proof}
+
+The next part is to show that the optimal cost-per-sample policy is feasible for the expected budget-constrained problem.
+Then to do so, we need to verify a certain convergence criterion, given below.
+In the following, note that $\lambda'$---which can be negative---is never used in the definition of any optimal policy, only to compute the value of a given policy, which still makes sense even with negative costs.
+
+\begin{lemma}
+\label{lem:conv}
+For any monotone sequence $\lambda_n \-> \lambda$ where $\lambda_n > 0$ and $\lambda > 0$, and any $\lambda'\in\R$, there exist policies $\pi^*_n\in\Pi^{(*,\lambda_n c)}$ and $\pi^*\in\Pi^{(*,\lambda c)}$ such that
+\[
+V^{(\pi^*_n,\lambda' c)} \-> V^{(\pi^*, \lambda' c)}
+.
+\]
+\end{lemma}
+
+\begin{proof}
+First, note that 
+\[
+V^{(\pi_n^*,\lambda'c)} = \ubr{\vphantom{\sum_{t=1}} V^{(\pi_n^*,\lambda c)}}_{\t{(a)}} + (\lambda' - \lambda_n) \ubr{\E \sum_{t=1}^{T^{(\pi_n^*)}} c(x_t)}_{\t{(b)}}
+.
+\]
+Using this, by passing limits through the respective sums and products, it suffices to prove convergence of (a) and (b) separately, with the same sequence choice $\pi^*_n$ in both cases.
+By \textcite{weitzman1979optimal}---see \textcite[Theorem 1]{kleinberg2016descending}, for an alternative proof---any policies $\pi_n^*,\pi^*$ which maximize the respective Gittins indices $\alpha^*_n, \alpha^*$ are optimal: we will therefore choose $\pi^*_n,\pi^*$ from this set of policies.
+This choice is not unique due to the possibility of ties, both in terms of which boxes to open, and when to stop: we will show that tie-breaking choices do not affect convergence of (a), and will make a suitable choice of tie-breaking rules, depending on the sequence $\lambda_n$ in the claim's assumptions, to prove convergence of~(b).
+
+\emph{Part I: convergence of (a).}
+Define $\kappa_n(x) = \min(f(x),\alpha_n^*(x))$, and define $\kappa$ analogously.
+By \textcite[Theorem 1]{kleinberg2016descending}, we have
+\[
+V^{(\pi^*,\lambda_n c)} = \E \max_{x\in X} \kappa_n(x)
+\]
+and analogously for $\lambda$, $\alpha^*$, and $\kappa$.
+We now argue that $\alpha_n^* \-> \alpha^*$ monotonically pointwise. 
+Since $\lambda_n\->\lambda$ converges monotonically, consider
+\[
+\f{EI}_f(x,g) = \lambda_n c(x).
+\]
+Recall that $\f{EI}_f(x,g)$ is continuous and strictly decreasing in $g$: hence, its inverse in $g$ exists and is also strictly decreasing and continuous.
+We conclude that $\alpha^*_n\->\alpha^*$ monotonically pointwise.
+From this, convergence of the respective expectations $\E \max_{x\in X} \kappa_n(x)$, and therefore convergence of (a), follows by the Monotone Convergence Theorem.
+
+\emph{Part II: convergence of (b).}
+We will need an identity involving the order in which boxes are opened: for this, we first prove that once a tie-breaking rule is chosen, for large enough $n$, $\pi^*_n$ and $\pi^*$ open boxes in the same order.
+Since the number of boxes is finite, and $\alpha^*_n \-> \alpha^*$ monotonically pointwise from (a): it follows for $n$ large enough that, if there are no ties in $\alpha^*(x)$, then $\pi^*_n$ opens boxes in the same order as $\pi^*$.
+If there are ties in $\alpha^*$, we choose a tie-breaking rule so that $\pi^*_n$ and $\pi^*$ open boxes in the same order.
+It follows that, once this choice is made, for $n$ large enough, all policies open boxes in the same order $x_1,..,x_{|X|}$, with different $\pi_n$ and $\pi^*$ possibly stopping at different times.
+
+The identity we seek will differ depending on how tie-breaking rules regarding when to stop are handled: recall that ties can occur when opening the box $x_t\in X$ at time $t$, we have $\alpha^*(x_t) = f^*_t$, where $f^*_t$ is the best observed value up to time $t$.
+We adopt the following tie-breaking rule for stopping, depending on whether or not $\lambda_n$ is an increasing or decreasing sequence:
+\1* If $\lambda_n$ is increasing: let $\pi^* = \pi^*_+$ be the policy that opens the best closed box in the event of a tie.
+\2* If $\lambda_n$ is decreasing: let $\pi^* = \pi^*_-$ be the policy that stops in the event of a tie.
+\0*
+Note also that if $\lambda_n$ is both increasing and decreasing, it is constant, and the claim we want to prove holds: therefore, we suppose it is not, which makes the choice between $\pi^*_+$ and $\pi^*_-$  uniquely determined.
+We make the same tie-breaking choices for $\pi^*_n$, letting $\pi^*_{n,+}$ and $\pi^*_{n,-}$ be the respective policies.
+Let $x_1, .., x_{|X|}$ denote boxes in the order they are opened. 
+Then the expected total costs are
+\[
+\E \sum_{t=1}^{\mathclap{T^{(\pi^*_+)}}} c(x_t) \overset{\text{(i)}}&= \sum_{i=1}^{|X|} \P(T^{(\pi^*_+)} \geq i) c(x_i) \overset{\text{(ii)}}{=} \sum_{i=1}^{|X|} \P(f^*_j\leq\alpha^*(x_j), 1\leq j \leq i) c(x_i)
+\\
+\overset{\text{(iii)}}&= \sum_{i=1}^{|X|} \P(f(x_j)\leq\alpha^*(x_i), 1\leq j \leq i) c(x_i) \overset{\text{(iv)}}{=} \sum_{i=1}^{|X|} \prod_{j=1}^{i-1} \P(f(x_j) \leq \alpha^*(x_i)) c(x_i)
+\]
+where (i) follows by writing the probability as an expectation of an appropriate indicator, (ii) follows by noting that under the policy $\pi^*_+$, the event $T^{(\pi^*_+)} \geq i$ occurs if and only if at each time $j=1,..,i$, the best observed value $f^*_j$ is not higher than the Gittins index of $x_j$, (iii) follows by expanding the maximum which defines $f^*_j$ and using monotonicity of $\alpha^*(x_j)$ in $j$ to simplify the resulting events, and (iv) follows by independence of $f(x_j)$ and $f(x_{j'})$ for $j\neq j'$.
+Using this, it suffices to show
+\[
+\P(f(x_j) \leq \alpha^*_n(x_i)) &\-> \P(f(x_j) \leq \alpha^*(x_i)) 
+&
+&\t{if} \pi^* = \pi^*_+,\,\t{and}
+\\
+\P(f(x_j) < \alpha^*_n(x_i)) &\-> \P(f(x_j) < \alpha^*(x_i)) 
+&
+&\t{if} \pi^* = \pi^*_-
+.
+\]
+The former equals the cumulative distribution function of $f(x_j)$, which is right-continuous, evaluated at $\alpha^*_n(x_i)$.
+The latter is similar but is instead left-continuous.
+For $\pi^*_{n,+}$, since $\lambda_n$ is increasing, we have that $\alpha_n(x)$ is decreasing, and the claim follows by right-continuity.
+For $\pi^*_{n,-}$ since $\lambda_n$ is decreasing, we have that $\alpha_n(x)$ is increasing, and the claim follows by left-continuity.
+\end{proof}
+
+We are now ready to prove the key property needed to apply \Cref{lem:lagrange_multipliers}.
+
+\begin{lemma}
+\label{lem:constraints}
+If $\lambda^*_B > 0$, then there exists a $\h\pi\in\Pi^{(*,\lambda_B^* c)}\^\Pi^{(c)}_{B,\f{eq}}$.
+\end{lemma}
+
+\begin{proof}
+By the Envelope Theorem---specifically, \Cref{lem:envelope_sharp}---we have for $\lambda\in[0,\infty)$ that
+\[
+\pd_v \c{A}(\lambda) &= \pd_v \del{V^{(*,\lambda c)} + \lambda B }
+\\
+&= \pd_v \del{\sup_{\pi\in\Pi} \del{V^{(\pi, 0)} - \lambda \del{\E \sum_{t=1}^{T^{(\pi)}} c(x_t) - B}}}
+\\
+&= \max_{\pi'\in\Pi^{(*,\lambda c)}} \eval{\pd_v \del{V^{(\pi, 0)} - \lambda \del{\E \sum_{t=1}^{T^{(\pi)}} c(x_t) - B}}}_{\pi = \pi'}
+\\
+&= v B - \min_{\pi\in\Pi^{(*,\lambda c)}} v \E \sum_{t=1}^{T^{(\pi)}} c(x_t)
+\]
+where all Gâteaux derivatives---see \Cref{def:gateaux}---are taken with respect to $\lambda$ and exist by convexity, and the pointwise convergence condition of \Cref{lem:envelope_sharp} follows by first noting that 
+\[
+V^{(\pi, 0)} - \lambda \del{\E \sum_{t=1}^{T^{(\pi)}} c(x_t) - B} = V^{(\pi, \lambda c)} + \lambda B
+\]
+and applying \Cref{lem:conv}.
+By the first-order optimality conditions, we have 
+\[
+\pd_v \c{A}(\lambda^*_B) \geq 0
+.
+\]
+Combining this with the above, we conclude 
+\[
+\min_{\pi\in\Pi^{(*,\lambda c)}} v \E \sum_{t=1}^{T^{(\pi)}} c(x_t) \leq vB
+.
+\]
+Since $\lambda^*_B > 0$, this expression holds for $v$ equal to $\pm 1$: plugging this in, we get
+\[
+\min_{\pi\in\Pi^{(*,\lambda_B^* c)}} \E \sum_{t=1}^{T^{(\pi)}} c(x_t) &\leq B
+&
+B &\leq \max_{\pi\in\Pi^{(*,\lambda_B^* c)}} \E \sum_{t=1}^{T^{(\pi)}} c(x_t)
+.
+\]
+Now, let $\h\pi_-$ be a policy from the minimizer set, and let $\h\pi_+$ be a policy from the maximizer set.
+Define a third policy $\h\pi_\alpha$ which randomizes between the two, choosing $\h\pi_-$ with probability $\alpha$ and $\h\pi_+$ with probability $1-\alpha$.
+Since $\h\pi_+$ and $\h\pi_-$ are optimal, they achieve the same value, so by convexity $\h\pi_\alpha$ also achieves the same value: therefore, $\h\pi_\alpha\in\Pi^{(*,\lambda_B c)}$.
+On the other hand, the expected total costs of $\h\pi_\alpha$ are a convex combination of the expected costs of $\h\pi_-$ and $\h\pi_+$: since the former lower-bounds $B$ and the latter upper-bounds $B$, there exists an $\alpha\in[0,1]$ for which the costs of $\pi_\alpha$ are exactly $B$.
+Taking $\h\pi = \h\pi_\alpha$ for this value of $\alpha$, we obtain $\h\pi\in\Pi^{(c)}_{B,\f{eq}}$ and the claim follows.
+\end{proof}
+
+To complete the proof, we show the minimizer set of $\c{A}$ does not contain zero.
+
+\begin{lemma}
+\label{lem:non_zero}
+Let $\lambda^*_B \in [0,\infty)$ be any minimizer of $\c{A}$, then $\lambda^*_B > 0$.
+\end{lemma}
+
+\begin{proof}
+From the derivative calculation used in proof of \Cref{lem:constraints}, plugging in $v = 1$ into the respective Gâteaux derivative, we obtain 
+\[
+\od{}{\lambda} \c{A}(\lambda) = B - \min_{\pi\in\Pi^{(*,\lambda c)}} \E \sum_{t=1}^{T^{(\pi)}} c(x_t)
+.
+\]
+If $\lambda = 0$, then the costs are zero: thus, any policy that opens every box, then selects the highest reward among opened boxes, is optimal.
+Therefore, we have $T^{(\pi)} = |X|$, and every optimal policy's cost is equal to the total cost of all the boxes. 
+This gives
+\[
+\od{}{\lambda} \c{A}(0) = B - \sum_{x\in X} c(x) < 0
+\]
+where the inequality follows by the assumption that the expected budget constraint is active. The claim follows.
+\end{proof}
+
+With these results at hand, we are now ready to prove the main claim.
+
+\ThmBudgetConstrained*
+
+\begin{proof}
+Combine \Cref{lem:lagrange_multipliers} with \Cref{lem:lambda_obj_properties,lem:constraints,lem:non_zero}.
+\end{proof}
+
+We conclude by comparing this claim and proof with the results of \textcite{aminian2023markovian}:
+\1 The objective of their expected budget-constrained problem is more general: while we focus on minimizing simple regret, \textcite{aminian2023markovian} study how to maximize utility, which is defined in a broader context---one example being the difference between the best observed value and cumulative costs, which we study here. 
+Our expected budget constraint is similarly a special case, which, in their terminology, takes all weights on indicators denoting inspection to be identical, and takes all selection weights to be zero. 
+
+\2 We do not assume that $f(x)$ has finite support for all $x$.
+This results in a significant technical difference: we must apply a sharp envelope theorem with an explicit supremum to conclude that the expected budget constraint is satisfied.
+More-straightforward results such as those presented by \textcite{milgrom2002envelope}, or their subdifferential-formulated analogues as found in the proof of \textcite[Proposition 1 (iii)]{aminian2023markovian}, would not suffice: due to an explicit counterexample involving upside-down-absolute-value functions, without suitable structure, one cannot conclude that the supremum is achieved and the resulting inequality is tight.
+As an alternative to our approach, one could instead appeal to finiteness of the class of deterministic policies---which \textcite{aminian2023markovian} assume, leading to piecewise-linear value functions.
+We avoid these assumptions, leading to a more technical but more general argument.
+\0
+
+We conclude by noting that one can also consider variants of the problems we have studied under an almost-sure budget constraint, for instance 
+\[
+\Pi^{(c)}_{B,\f{as}} &= \cbr{\pi \in \Pi : \P \left(\sum_{t=1}^{T^{(\pi)}} c(x_t) \leq B\right) = 1}
+&
+V_{\f{asbc}}^{(*,c)} &=\sup_{\pi\in\Pi^{(c)}_{B,\f{as}}} V^{(\pi,0)}.
+\]
+For this problem, this optimal value is upper-bounded by the optimal value of the expected budget-constrained optimization---specifically, $V_{\f{asbc}}^{(*,c)}\leq V_{\f{ebc}}^{(*,c)}$, since $\Pi^{(c)}_{B,\f{as}}\subseteq\Pi^{(c)}_B$.
+
+
+
+\subsection{Auxillary results from optimization theory}
+
+Below we state and prove three results from optimization theory: a Lagrange Multiplier Theorem for optimization problems with inequality constraints, and two Envelope Theorems.
+These results are not new, but are difficult to find at the level of generality we need them at: most references begin by assuming the domain of optimization is $\R^d$, or, if not that, that it is a Banach space, whereas we need results that hold when the domain of optimization is an arbitrary set, without a linear structure or a topology.
+In light of this, we have found it easier to simply prove the claims we need.
+
+\begin{lemma}
+\label{lem:lmt_inf_sup}
+Let $X$ be an arbitrary set, let $f : X \-> \R$ and let $g : X \-> \R$.
+Then defining $\c{L}(x,\lambda) = f(x) - \lambda(g(x) - y)$ for $\lambda\geq0$, we have
+\[
+\sup_{\substack{x\in X\\g(x) \leq y}} f(x) = \sup_{x\in X} \inf_{\lambda\geq0} \c{L}(x,\lambda)
+.
+\]
+Moreover, suppose there exist $x^*,\lambda^*$ which satisfy $\c{L}(x^*,\lambda^*) = \inf_{\lambda\geq0} \sup_{x\in X} \c{L}(x,\lambda)$ and $g(x^*) = y$. 
+Then we have
+\[
+\sup_{x\in X} \inf_{\lambda\geq0} \c{L}(x,\lambda) = \inf_{\lambda\geq0} \sup_{x\in X} \c{L}(x,\lambda)
+.
+\]
+\end{lemma}
+
+\begin{proof}
+First, we show that for all $x$, we have 
+\[
+\inf_{\lambda\geq0} \c{L}(x,\lambda) = \begin{cases}
+f(x) & g(x) \leq y  
+\\
+-\infty & g(x) > y
+.
+\end{cases}
+\]
+To show this, suppose first that $g(x) \leq y$. Then $\lambda (g(x) - y) \leq 0$, hence its negation is non-negative, and minimized at $\lambda = 0$.
+Now, suppose the converse. Then $\lambda(g(x) - y) > 0$, so its negation is negative, and the objective can be made arbitrarily close to $-\infty$ by scaling $\lambda$.
+Using this, write 
+\[
+\sup_{x\in X} \inf_{\lambda\geq0} \c{L}(x,\lambda) &= \max\del{\sup_{\substack{x\in X\\g(x)\leq y}} \inf_{\lambda\geq0} \c{L}(x,\lambda) , \sup_{\substack{x\in X\\g(x)>y}} \inf_{\lambda\geq0} \c{L}(x,\lambda)}
+\\
+&= \max\del{\sup_{\substack{x\in X\\g(x)\leq y}} f(x), -\infty} = \sup_{\substack{x\in X\\g(x)\leq y}} f(x)
+.
+\]
+We now argue that, under the claim's additional assumption, one can swap the order of the supremum and infimum.
+Let $x^*,\lambda^*$ be a pair for which the constraints are tight.
+Then
+\[
+\inf_{\lambda\geq0} \sup_{\substack{x\in X\\g(x)\leq y}} \c{L}(x,\lambda) \overset{\text{(i)}}&= \sup_{\substack{x\in X\\g(x)\leq y}} \c{L}(x,\lambda^*) \overset{\text{(ii)}}{=} \sup_{\substack{x\in X\\g(x)= y}} \c{L}(x,\lambda^*) 
+\\
+\overset{\text{(iii)}}&= \sup_{\substack{x\in X\\g(x)=y}} \inf_{\lambda\geq0} \c{L}(x,\lambda) \overset{\text{(iv)}}{\leq} \sup_{\substack{x\in X\\g(x)\leq y}} \inf_{\lambda\geq0} \c{L}(x,\lambda)
+\]
+where (i) follows by definition of $\lambda^*$, (ii) follows by the fact that $x^*$ achieves the supremum and satisfies $g(x^*) = y$, (iii) follows by the fact that, when restricted to the set $\{x\in X : g(x) = y\}$, $\c{L}(x,\lambda)$ is constant in $\lambda$ for all $x$-values, hence the infimum is taken over constant functions, (iv) follows by making the feasible set larger.
+Combining this with the sup-inf inequality \cite{boyd2004convex}
+\[
+\sup_{\substack{x\in X\\g(x)\leq y}} \inf_{\lambda\geq0} \c{L}(x,\lambda) \leq \inf_{\lambda\geq0} \sup_{\substack{x\in X\\g(x)\leq y}} \c{L}(x,\lambda)
+\]
+gives the claim.
+\end{proof}
+
+It is easy to see that this argument holds even if one lets $y$ take values in an infinite-dimensional vector space, as long as $\lambda$ takes values within a convex cone which is suitably paired with the aforementioned vector space, but we will not need this level of generality.
+The arguments we employ will be cleanest if we work with directional derivatives in the sense of Gâteaux, as opposed to left-derivatives and right-derivatives of real-valued functions, which in our setting are equivalent but require more management of minus signs.
+For this, we adopt the following notation.
+
+\begin{definition}
+\label{def:gateaux}
+Let $\c{X}$ be a topological vector space, let $X \subseteq \c{X}$, and let $f : X \-> \R$ be a function.
+The \emph{Gâteaux derivative} $\pd_v f(x) \in \R$ of a function $f$ at a point $x\in X$ in the direction $v \in \c{X}$, if it exists, is defined as
+\[
+\pd_v f(x) = \lim_{\eps\->0^+} \frac{f(x+\eps v) - f(x)}{\eps}
+.
+\]
+\end{definition}
+
+Note that we require no properties of our Gâteaux derivatives: in particular, $\pd_v f(x)$ can be non-linear in $v$, though one can easily see that it will always satisfy $\pd_{\alpha v} f(x) = \alpha \pd_v f(x)$ for $\alpha\geq0$.
+If $f$ is a convex function, one can show by monotonicity of finite differences that $\pd_v f(x)$ always exists---in the non-extended-valued sense defined above---on the relative interior of the effective domain of $f$.
+
+Our arguments need an appropriate Envelope Theorem.
+The first statement we need is essentially equivalent to \textcite[Theorem 1]{milgrom2002envelope}, which is formulated in the language of left-derivatives and right-derivatives: \textcite{milgrom2002envelope} state in a footnote that their claim also holds in a general normed vector space, provided one works with directional differentiation.
+In fact, the claim is even more general than that, and does not require a norm.
+Since we find this variant to be particularly clean, elegant, and instructive, we prove the claim in full generality below.
+
+\begin{lemma}
+\label{lem:envelope}
+Let $\Theta$ be a subset of a topological vector space, and let $X$ be an arbitrary set.
+Let $f : X \x \Theta \-> \R$ be bounded above in its first argument, and define $\c{V}$ to be
+\[
+\c{V}(\theta) = \sup_{x\in X} f(x,\theta)
+\]
+Suppose that, for every $\theta\in\Theta$, the supremum is achieved, and let $X^*(\theta)$ be the maximizer set.
+For any $v$, suppose that the Gâteaux derivatives $\pd_v \c{V}(\theta)$ and $\pd_v f(x,\theta)$ exist and are finite-valued, with the convention that the Gâteaux derivative of $f$ is taken in its second argument.
+Then
+\[
+\sup_{x^*\in X^*(\theta)} \pd_v f(x^*, \theta) \leq \pd_v \c{V}(\theta)
+.
+\]
+\end{lemma}
+
+\begin{proof}
+Fix $\theta\in\Theta$, and let $x^*(\theta) \in X^*(\theta)$ be an arbitrary maximizer. 
+Note that, for all $\theta'\in\Theta$ and all $x^*(\theta')\in X^*(\theta')$, by optimality we have
+\[
+f(x^*(\theta),\theta') \leq f(x^*(\theta'),\theta') = \c{V}(\theta')
+\]
+with equality for $\theta' = \theta$.
+Letting $\eps>0$ be sufficiently small, taking $\theta' = \theta + \eps v$, subtracting $f(x^*(\theta), \theta) = \c{V}(\theta)$ from both sides, and dividing by $\eps$, we get 
+\[
+\frac{f(x^*(\theta),\theta + \eps v) - f(x^*(\theta), \theta)}{\eps} \leq \frac{\c{V}(\theta + \eps v) - \c{V}(\theta)}{\eps}
+\]
+thus taking limits as $\eps\->0$ gives
+\[
+\pd_v f(x^*(\theta),\theta) \leq \pd_v \c{V}(\theta)
+.
+\]
+This holds for all choices $x^*(\theta)\in X^*(\theta)$, and the claim follows.
+\end{proof}
+
+For our arguments to go through, we need a sharper version of this result, with the inequality replaced with an equality.
+Results like this go back at least to \textcite{danskin67}, and are proven by \textcite[Proposition 4.12]{bonnans13}, \textcite[Theorem 10.1]{basar08}, and \textcite{bertsekas99}: however, all of their claims require topological assumptions on the domain of optimization.
+Moreover, it is easy to see---for instance by considering an envelope made up of upside-down absolute value functions, where $\c{V}(\theta)$ is constant but $f(x,\theta)$ is not---that the inequality cannot be tight without similar assumptions.
+Below, we show that being affine in $\theta$ and a certain convergence criterion suffice, even if $X$ is an arbitrary set.
+The argument is similar to that of the aforementioned references.
+
+\begin{lemma}
+\label{lem:envelope_sharp}
+With the assumptions and notations in \Cref{lem:envelope}, suppose further that $f(x,\theta)$ is affine in $\theta$ for all $x$, and that for any monotone $\theta_n\->\theta$ there exist $x^*(\theta_n)\in X^*(\theta_n)$ and $x^*(\theta)\in X^*(\theta)$ such that $f(x^*(\theta_n),v) \-> f(x^*(\theta),v)$.
+Then we have
+\[
+\sup_{x^*\in X^*(\theta)} \pd_v f(x^*, \theta) = \max_{x^*\in X^*(\theta)} \pd_v f(x^*, \theta) = \pd_v f(x^*(\theta),\theta) = \pd_v \c{V}(\theta)
+.
+\]
+\end{lemma}
+
+\begin{proof}
+For any $\eps$, note that
+\[
+\frac{\c{V}(\theta + \eps v) - \c{V}(\theta)}{\eps} &= \frac{f(x^*(\theta + \eps v),\theta + \eps v) - f(x^*(\theta),\theta)}{\eps}
+\\
+&= \frac{f(x^*(\theta + \eps v),\theta + \eps v) - f(x^*(\theta + \eps v),\theta)}{\eps}
+\\
+&\quad+ \obr{\frac{f(x^*(\theta + \eps v),\theta) - f(x^*(\theta),\theta)}{\eps}}^{\t{negative}}
+\\
+&\leq \frac{f(x^*(\theta + \eps v),\theta + \eps v) - f(x^*(\theta + \eps v),\theta)}{\eps}
+\\
+&= f(x^*(\theta + \eps v),v)
+\]
+where the respective term is negative because $f(x^*(\theta + \eps v),\theta) \leq f(x^*(\theta),\theta)$, which holds by optimality of $x^*(\theta)$.
+Taking limits gives
+\[
+\pd_v \c{V}(\theta) \leq f(x^*(\theta), v) = \pd_v f(x^*(\theta), \theta)
+\]
+where the final equality follows from the expression for the Gâteaux derivative of a linear function.
+Combining this expression with the \Cref{lem:envelope} shows that the respective supremum is achieved, and gives the claim.
+\end{proof}
+
+\section{Experimental setup}
+\label{apdx:experiments}
+
+We implement all experiments in \textsc{BoTorch} \cite{balandat2020botorch}.
+Following standard practice, we initialize each optimization algorithm with $2(d + 1)$ values drawn using a quasirandom Sobol sequence, where $d$ is the dimension of the domain.
+All computations were run on CPU, with individual experiments ran in parallel on various nodes of the Cornell G2 cluster, each allocated up to 4GB of memory, except for certain exceptions. These exceptions include KG, MSEI, and BMSEI for higher dimensions, which required substantially more memory, up to 32GB.
+Most individual runs took several minutes at most, with exception of the more-expensive KG, MSEI and BMSEI baselines: more information with a direct runtime comparison is given in \Cref{apdx:timing}.
+
+\paragraph*{Gaussian process models.}
+In the Bayesian regret experiments shown in \Cref{fig:bayesian_regret}, we use Matérn kernels with identical fixed hyperparameters---namely smoothness $5/2$ and length scale $10^{-1}$---for both the Gaussian process prior used to sample the objective function, and the Gaussian process used for Bayesian optimization.
+To maintain consistency, we do not standardize data in this variant.
+For the synthetic and empirical experiments shown in \Cref{fig:synthetic} and \Cref{fig:empirical}, we use Matérn kernels with smoothness $5/2$ and length scales learned from data via maximum marginal likelihood optimization, and standardize input variables to be in $[0,1]^d$ along with output variables to be zero-mean and unit-variance, following BoTorch defaults.
+In the unknown-cost experiments, we model the objective and the logarithm of the cost function using independent Gaussian processes.
+Additional Bayesian regret experiment results, showing the effect of varying the kernel smoothness and length scale hyperparameters, are provided in \Cref{apdx:kernel}.
+
+\paragraph*{Acquisition function optimization.}
+This is done as follows.
+We begin by computing acquisition values at $200d$ points spread across the domain $X$, where $d$ is the dimension of $X$.
+For all acquisition functions except MSEI and BMSEI, which use a modification described below, the initial $200d$ points are generated using a Sobol sequence design.
+From these, $10d$ points are selected according to the initialization heuristic used by BoTorch, detailed in \textcite[Appendix F.1]{balandat2020botorch}. 
+We then use multi-start L-BFGS-B to optimize the acquisition function from each selected point. 
+The point with highest acquisition value among the $10d$ optimized points is chosen as the next evaluation~point.
+
+We now detail the modified strategy used for MSEI and BMSEI: here, the initial $200d$ points are selected using the warm-start initialization strategy described in \textcite[Appendix D]{jiang2020efficient} and \textcite[Appendix F]{astudillo2021multi}. 
+This strategy uses the optimal solution from the previous iteration, targeting the branch that originates from the tree's root and whose fantasy sample most closely matches the actual observed value of the previously suggested candidate on the true function.
+This modification favors MSEI and BMSEI, slightly disadvantaging PBGI and other baselines.
+
+\paragraph*{Acquisition function hyperparameters.}
+For PBGI, we choose the constant hyperparameter to be $\lambda = 10^{-4}$. For PBGI-D, we choose the initial value to be $\lambda_0=10^{-1}$ and the constant decay factor $\beta=2$. 
+For both variants, we compute the Gittins indices using $100$ iterations of bisection search without any early stopping or other performance and reliability optimizations.
+
+For LogEICC, we follow \textcite{lee2020cost} to use $\alpha_t=\frac{B-t}{B}$ as the cost exponent where $B$ is set to be the cumulative cost cap shown on our plots.
+For UCB, we follow the schedule of \textcite{srinivas2009gaussian} given by $\eta_t=2\log(d t^2\pi^2/6\delta)$, where $d$ is the dimension. 
+We also adopt the choice of $\delta=10^{-1}$ and a scale-down factor of $5$, as used in that work's experiments. 
+For MSEI and BMSEI, we use 4 lookahead steps, each with a batch size of 1 and a single fantasy point.
+
+\paragraph*{Omitted baselines.}
+
+We omit MSEI from the Bayesian regret plots for $d=16$ with $\kappa = 10^{-1}$ and for $d=32$ with all length scale choices because we were unable to get it to work reliably in these settings: the implementation of \textcite{jiang2020efficient} results in frequent crashes due to running out of memory and related issues when used on higher-difficulty problems.
+We also omit KG from $d=32$, BMSEI from the cost-aware Pest Control and Robot Pushing experiments, and MES from the Bayesian regret experiment with $d=32$, for the same reasons.
+
+In addition to the baselines mentioned in \Cref{sec:experiments}, we also implemented the \emph{predictive entropy search (PES)} acquisition function of \textcite{hernandez2014predictive}, but could not get its computations to run reliably in an automatic-differentiation-based environment without resulting in NaN gradients.
+\textcite{hernandez2014predictive} document this behavior, and suggest using finite-differencing in situations where it occurs: however, from initial examination, we found this to decrease performance on higher-dimensional problems.
+We therefore opted to restrict ourselves to automatically-differentiable baselines and omit PES, to ensure that performance differences seen can reliably be attributed to the acquisition functions used, and not to gradient computation.
+
+\paragraph*{Objective functions: Bayesian regret.}
+For Bayesian regret, this is straightforward: the objective is simply a draw from a Fourier feature approximation of the respective Gaussian process prior, drawn in such a way that different baselines with the same random number seed share the same objective, but objectives for different seeds are different draws from the same prior.
+We use a total of 1024 Fourier features.
+
+\paragraph*{Objective functions: synthetic benchmarks.}
+The synthetic benchmark functions we use are as follows.
+We use variants with dimension $d=4, 8, 16$ in our experiments.
+
+\emph{Ackley}: this is  
+\[
+f_{\f{A}}(x_1,.., x_d) = 20 - 20 \exp\del{-0.2 \sqrt{\frac{1}{d} \sum_{i=1}^d x_i^2}} - \exp\del{\frac{1}{d} \sum_{i=1}^d \cos(2\pi x_i)} + e
+\]
+with search domain $X=[-1,1]^d$.
+
+\emph{Levy}: this is $f_{\f{L}} = 100 \h{f}_{\f{L}}$ where
+\[ 
+\h{f}_{\f{L}}(x_1,.., x_d) = s_1 + \sum_{i=1}^{d-1} (w_i - 1)^2 \del{1 + 10 \sin(\pi w_i + 1)^2} + (w_d - 1)^2 \del{1 + \sin(2\pi w_d)^2}
+\]
+with $w_i = 1 + \frac{x_i - 1}{4}$ and $s_1 = \sin(\pi w_1)^2$, and search domain $X=[-10,10]^d$.
+
+\emph{Rosenbrock}: this is $f_{\f{R}} = 10^5 \h{f}_{\f{R}}$ where
+\[
+\h{f}_{\f{R}}(x_1,.., x_d) = \sum_{i=1}^{d-1} \del{100 (x_{i+1} - x_i^2)^2 + (x_i - 1)^2}
+\]
+with search domain $X=[-5,10]^d$.
+
+
+\paragraph*{Cost function.}
+In the cost-aware Bayesian regret and synthetic benchmark experiments, we use the cost function
+\[
+c(x)=20 \norm{S(x)}_1 + 1  
+\]
+where $S$ is an affine map used to standardize the input domain: specifically, $S(x) = Ax + b$ where $A$ is a diagonal matrix and $b$ is a vector, both chosen so that the image of $X$ under $S$ is $[0,1]^d$.
+
+\paragraph*{Objective functions: empirical.}
+We now detail the empirical objective functions.
+
+\emph{Pest Control ($d = 25$).} 
+The pest control problem, as described in \textcite{oh2019combinatorial} aims to minimize the spread of pests as well as the costs of prevention treatment. 
+We adopt the experiment setup from \textcite{li2023study}, framing this as a categorical optimization problem with 25 variables, each representing a stage of intervention with 5 values reflecting different treatments. 
+The objective function combines the spread of pests and the costs of prevention. 
+
+In our cost-aware experiment, we use the cost of prevention as the cost function.
+This can be computed in an automatically-differentiable manner, thus this problem is a known-cost problem.
+
+\emph{Lunar Lander ($d = 12$).} 
+Following the setup in \textcite{eriksson2019scalable}, we consider a reinforcement learning problem optimizing a controller for the lunar lander as implemented in OpenAI Gym, which includes 12 continuous input dimensions for engine throttle adjustments.
+The state space captures the lander's position, angle, time derivatives, and leg contact status. The controller's actions allow for directional booster firings or inaction.
+The objective is to maximize the average final reward over 50 randomly generated environments.
+
+For cost-aware experimentation, we choose the cost to be the average number of simulation time steps, assuming batch processing in groups of 16. This assumption is based on the implementation found in the code associated with \textcite{li2023study}.
+Note that this objective involves the number of actual simulation steps used, and is therefore not automatically-differentiable: we thus consider this problem to be an unknown-cost problem.
+
+\emph{Robot Pushing ($d = 14$).} 
+In this work, we adapt one of the three versions of the robot pushing problem designed by \textcite{wang2017max}, where two robots work to push two objects to their specified targets. 
+The problem's complexity is captured through 14 control parameters, including each robot's initial placement and motion settings. 
+The objective minimizes the sum of the distances from the final position of each object to its respective target.
+
+In our cost-aware experiments, we test both known-cost and unknown-cost variants.
+The known-cost variant is the maximum of the two robots' operational duration representing the evaluation time, and the unknown-cost variant is the sum of their traversal distances representing the total energy use, similar to the cost function used for energy-aware robot pushing benchmark of \textcite{astudillo2021multi}, but with one modification: we use the distance traversed by the robot arms instead of the distance the objects are moved. 
+To understand the effect of this difference, we include the results for both the unknown-cost and known-cost versions in \Cref{apdx:robot_pushing_cost_aware}.
+
+\section{Additional experimental results}
+
+Here, we provide additional experimental results to better understand performance differences and other aspects of policy behavior, including the effect of various problem hyperparameters.
+
+\subsection{Impact of log-scaling and numerical stability on EI and PBGI}
+\label{apdx:log_ei}
+
+\textcite{ament2023unexpected} introduce the LogEI variant of Expected Improvement (EI), which is equal to the logarithm of EI but incorporates improved numerical properties. 
+Their work demonstrates that LogEI significantly outperforms EI in practice. 
+In this appendix, we aim to investigate two key questions: 
+\1 What specific properties of LogEI contribute to its improved performance over ordinary EI? 
+\2 Can the stable numerical primitives proposed by \textcite{ament2023unexpected} also benefit PBGI?
+\0
+
+\begin{figure}[t]
+\includegraphics{figures/tex/appendix/impact_of_log}
+\caption{Experimental results comparing the impact of log-scaling and numerical stability on the performance of EI and PBGI, tested on Bayesian regret with $d=16$ and shown using quartiles. We see that Exp(LogEI) is close to Unst. EI, and similarly for S-PBGI vs PBGI. However, Log(Unst.~EI) improves significantly over EI, and LogEI improves even more.}
+\label{fig:impact_of_log}
+\end{figure}
+
+The LogEI acquisition function, denoted as $\alpha^{\f{LogEI}}(x)$, is defined as the logarithm of the EI acquisition function, $\alpha^{\f{EI}}(x)$, but is computed using a numerical helper function $\logh$ designed to provide better numerical stability. 
+This introduces two potential sources of improvement for LogEI over EI: (a)~the enhanced numerical stability due to the use of $\logh$, and (b)~the effect of logarithmic scaling, which alters the gradients of the acquisition function and may lead to more effective optimization of $\alpha^{\f{LogEI}}(x)$. 
+To disentangle these two factors, we compare not only LogEI and ordinary EI---the latter of which we refer to as \emph{unstable EI (Unst.~EI)} in this section for disambiguation---but also two additional variants: Log(Unst.~EI), which directly applies a logarithmic transformation to unstable EI ($\log(\alpha^{\f{EI}}(x))$) without using $\logh$ or other numerical stability tricks, and Exp(LogEI) ($\exp(\alpha^{\f{LogEI}}(x))$), which applies the numerical helper function from LogEI, but then undoes the logarithmic transformation.
+For Log(Unst.~EI), we compute $\log(\alpha^{\f{EI}}(x) + 10^{-6})$ to avoid infinite floating-point evaluations.
+
+To test whether PBGI can benefit from the improved numerical stability, we also test PBGI and the following variant, which we call \emph{stable PBGI (S-PBGI)}, which uses the following gradient formula:
+\[
+\nabla_x \alpha^{\f{S-PBGI}}(x) &= \nabla_x \mu(x) + \frac{\nabla_x \sigma(x) - \sigma(x) \, \nabla_x {\log c(x)} - z \logh'(z) \, \nabla_x \sigma(x)}{\logh(z)}
+\]
+where $\logh(z)$ is given by (9) of \textcite{ament2023unexpected}.
+We do not consider logarithmic scaling of the PBGI acquisition function value because it can be negative.
+
+From \Cref{fig:impact_of_log} we see that the improved performance of LogEI over EI appears to be mostly attributable to the log-scaling, though the numerically stable computation provides significant benefit, too.
+In contrast, there appears to be little-to-no difference between PBGI and S-PBGI.
+
+\subsection{Runtime comparison}
+\label{apdx:timing}
+
+Here, we provide a runtime comparison between PBGI with $100$ bisection iterations and various baselines, including inexpensive baselines such as LogEI and TS, and expensive ones such as MSEI.
+We do so in the Ackley function setting, using the same hyperparameter settings as the main experiments.
+We do not perform any explicit caching in computing $\mu$ or $\sigma$ or their gradients, and simply rely on standard BoTorch routines to obtain these at each iteration.
+We measure the CPU time (in seconds) to compute and optimize the acquisition~function.
+
+Results are in \Cref{fig:timing}.
+We see that PBGI is slightly slower than LogEI and TS, but significantly faster than either KG or MSEI, though the runtime of the latter decreases substantially as it accumulates more data.
+Overall, we conclude that PBGI's runtime is closer to that of classical acquisition functions than sophisticated lookahead-based variants.
+If necessary, PBGI's runtime can potentially be reduced further by optimizing the computation of $\grad\mu$ and $\grad\sigma$, or using fewer bisection iterations.
+
+\begin{figure}[t]
+\includegraphics{figures/tex/appendix/timing}
+\caption{Runtime comparison of PBGI against baselines for computing the acquisition function on the Ackley benchmark across different dimensions ($d=4, 8, 16$). We see that runtime of PBGI is slower than LogEI and TS, but faster than KG and MSEI.}
+\label{fig:timing}
+\end{figure}
+
+\subsection{Hyperparameter choice for PBGI-D}
+\label{apdx:PBGI-D}
+
+Next, we examine the behavior of different hyperparameter choices for $\lambda_0$ and $\beta$ in PBGI-D.
+Recall that this variant sets $\lambda_t = \frac{\lambda_{t-1}}{\beta}$ at times when the Gittins stopping rule triggers, and $\lambda_t = \lambda_{t-1}$ at all other times.
+To understand this, we examine regret curves in the Bayesian regret setting of \Cref{sec:experiments} with $d=8$ under different choices.
+Results are in \Cref{fig:pbgi_decay_hyperparameters}.
+We see that behavior of different $\lambda_0$-values is qualitatively similar to that of different $\lambda$-values in PBGI, but with substantially smaller differences between variants, which are detectable primarily due to the relatively-large number of seeds in each experiment.
+Smaller values of $\lambda_0$ tend to lead to very slightly higher regret on small time scales, but very slightly lower regret on larger time scales.
+Behavior for $\beta$ is similar: larger values lead to a more gradual decay of $\lambda$, but with minimal overall impact on performance, especially in comparison to between-seed variability.
+We conclude that, in terms of regret, PBGI-D is less sensitive to hyperparameter choice compared to PBGI, whose behavior was previously shown in~\Cref{fig:contour}.
+
+
+\begin{figure}[t]
+\includegraphics{figures/tex/appendix/gittins_step_divide}
+\caption{Behavior of PBGI-D under different choices of the initial value $\lambda_0$, and the coefficient of decay $\beta$, on the Bayesian regret experiment with $d=8$ and other parameters set the same way as in \Cref{sec:experiments}. We show medians under $n=256$ samples, along with quartiles to assess variability. We see that smaller $\lambda_0$-values act similarly to the behavior seen in \Cref{fig:contour} for PBGI, trading off risk-seeking vs. risk-averse behavior, but with a substantially smaller gap between the two variants. Larger $\beta$-values lead to more-abrupt decay curves for $\lambda$, with an effect qualitatively similar to $\lambda_0$. In both cases, though our relatively-large sample size allows us to see small differences between methods, their overall impact on performance is close-to-nonexistent on the scale of variability.}
+\label{fig:pbgi_decay_hyperparameters}
+\end{figure}
+
+\subsection{Effect of unknown costs}
+\label{apdx:robot_pushing_cost_aware}
+
+The Robot Pushing empirical benchmark involves two cost functions: a known-cost variant based on the maximum operational duration, reflecting the evaluation time, and an unknown-cost variant based on the total distance traversed, a proxy for energy use similar to the variant considered by \textcite{astudillo2021multi}.
+One can therefore ask: is the resulting algorithm behavior similar in these two settings?
+\Cref{fig:robot_pushing_cost_aware} shows that the answer is \emph{yes}: for both the known-cost and the unknown-cost settings, LogEIPC, LogEICC, and PBGI-D outperform MFMES and the non-myopic BMSEI baseline.
+
+\subsection{Alternative visualization of experimental results: means and standard errors}
+
+\Cref{fig:standard_errors} gives an alternative version of \Cref{fig:bayesian_regret,fig:synthetic,fig:empirical}: instead of showing the median and quartiles, it shows the mean and standard error under 95\% confidence, without Bonferroni correction.
+This can be used, for instance, to assess the influence of the number of random seeds used on our results.
+
+
+\subsection{Kernel and problem hyperparameters}
+\label{apdx:kernel}
+
+\paragraph*{Choice of kernel.}
+
+To check whether our results are sensitive to the kernel used for the Gaussian process model, we replicated the Bayesian regret experiments with Matérn kernels with smoothness parameters $\nu = 3/2, 5/2$, as well as the squared exponential kernel, which is the limit of Matérn kernels as $\nu\->\infty$ \cite{rasmussen06}.
+
+Similar to the original results of \Cref{fig:bayesian_regret}, we can clearly see from \Cref{fig:fixed_amplitude_kernel} and \Cref{fig:fixed_amplitude_cost_aware_kernel} that behavior splits into three regimes:
+\1 \emph{Easy:} $d$ sufficiently-small, most policies achieve similar performance.
+\2 \emph{Medium-hard:} $d$ moderate-to-large, both PBGI variants match or outperform baselines.
+\3 \emph{Very hard:} $d$ sufficiently large, no policy outperforms random search.
+\0
+We also see that $d=32$ lands in the very-hard regime for the uniform-cost case but not for the cost-aware case: intuitively, this occurs because costs can reduce the effective volume of the search space, since high-cost regions without promising points can be excluded from search.
+
+This behavior is consistent among different kernels, but where the exact threshold at which regimes switch differs. 
+In particular, for the squared exponential kernel, the separation between the medium and the hard regime appears earlier than for the other variants: all policies there have similar performance to random search when $d=16$.
+
+\begin{figure}[t]
+\includegraphics{figures/tex/appendix/robot_pushing_cost_aware}
+\caption{Experimental results for the Robot Pushing empirical benchmark, with the known-cost variant (left) and unknown-cost variant (right). We see that LogEIPC, LogEICC, and PBGI-D performing best in both cases.
+% Their relative performance is similar in the known-cost variant, whereas in the unknown-cost variant PBGI-D outperforms EIPC on sufficiently-large horizons, and vice-versa on sufficiently small horizons.
+}
+\label{fig:robot_pushing_cost_aware}
+\end{figure}
+
+\paragraph*{Choice of length scale.}
+
+To check whether our results are sensitive to the Gaussian process model's length scale, we compare $\kappa=10^{-1}$ with $\kappa = 5\. 10^{-1}$ and $\kappa = 10^0$.
+From \Cref{fig:fixed_amplitude_ls} and \Cref{fig:fixed_amplitude_cost_aware_ls}, which show uniform-cost and cost-aware results, respectively, we can see that PBGI variants' performance tends to improve relative to most baselines as dimension increases in both scenarios.
+Since $\kappa=10^0$ and $\kappa=5\x 10^{-1}$ result in easier problems than $\kappa=10^{-1}$, in the uniform-cost case under $d=32$, these two length scales land into the medium-hard regime rather than the very-hard regime.
+
+\paragraph*{Synthetic benchmark dimension.}
+
+To better understand the effect of problem dimension in settings outside of Bayesian regret, we repeat the synthetic benchmark experiments with $d=4$, $d=8$ and $d=16$.
+Results in \Cref{fig:synthetic_cost_aware_dim}. 
+Since $d=4$ and $d=8$ are less-difficult, PBGI-D usually performs comparably to baselines, while PBGI either under-performs or over-performs, depending on the objective.
+This behavior might be explainable by PBGI's sensitivity to hyperparameters in comparison with PBGI-D, whose performance is more-uniform.
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/bayesian_regret_se}
+\\[20pt]
+\includegraphics{figures/tex/appendix/synthetic_benchmark_se}
+\\[20pt]
+\includegraphics{figures/tex/appendix/empirical_se}
+\caption{Regret curves for the Bayesian regret and synthetic benchmark experiments, as well as best observed values for the empirical experiments, showing using means (solid lines) and two times standard errors (shaded regions). See \Cref{fig:bayesian_regret,fig:synthetic,fig:empirical} for details.}
+\label{fig:standard_errors}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/fixed_amplitude_kernel}
+\caption{Comparison of Bayesian regret across Gaussian process priors with different kernels over different dimensions, in the uniform-cost setting. All length scales are $\kappa = 10^{-1}$. We see that overall behavior is similar, but the precise thresholds at which each example switches between the easy, medium-hard, and very hard regimes differ.}
+\label{fig:fixed_amplitude_kernel}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/fixed_amplitude_cost_aware_kernel}
+\caption{Comparison of Bayesian regret across Gaussian process priors with different kernels over different dimensions, in the cost-aware setting. All length scales are $\kappa = 10^{-1}$. We see that overall behavior is similar, but the precise thresholds at which each example switches between the easy, medium-hard, and very hard regimes differ.}
+\label{fig:fixed_amplitude_cost_aware_kernel}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/fixed_amplitude_ls}
+\caption{Comparison of Bayesian regret across different length scales and dimensions, with a Matérn-5/2 kernel, in the uniform-cost setting. We see similar overall behavior, but each example switches between the easy, medium-hard, and very hard regimes at different precise thresholds.}
+\label{fig:fixed_amplitude_ls}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/fixed_amplitude_cost_aware_ls}
+\caption{Comparison of Bayesian regret across different length scales and dimensions, with a Matérn-5/2 kernel, in the cost-aware setting. We see similar overall behavior, but each example switches between the easy, medium-hard, and very hard regimes at different precise thresholds.}
+\label{fig:fixed_amplitude_cost_aware_ls}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/synthetic_uniform_cost}
+\caption{Comparison of regret for synthetic benchmark functions under different dimensions, in the uniform-cost setting. We see that most methods perform similarly for $d=4$, with differences between the most-competitive methods emerging as dimension increases to $d=8$ and $d=16$.}
+\label{fig:synthetic_dim}
+\end{figure}
+
+\begin{figure}[p]
+\includegraphics{figures/tex/appendix/synthetic_cost_aware}
+\caption{Comparison of regret for synthetic benchmark functions under different dimensions, in the cost-aware setting.  We see that most methods perform similarly for $d=4$, with differences between the most-competitive methods emerging as dimension increases to $d=8$ and $d=16$.}
+\label{fig:synthetic_cost_aware_dim}
+\end{figure}
+
+\IfFileExists{checklist.tex}{\include{checklist}}{}
+
+\end{document}
