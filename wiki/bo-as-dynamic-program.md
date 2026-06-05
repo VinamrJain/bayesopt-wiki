@@ -4,6 +4,9 @@ slug: bo-as-dynamic-program
 tags: [decision-theoretic, lookahead, non-myopic, theory]
 requires: [problem-setup, gaussian-process-regression, acquisition-functions, value-of-information, expected-improvement]
 sources: [lam2016, frazier2018, frazier2009kg, astudillo2021]
+summary: "BO as a finite-horizon sequential decision process; parent frame of myopic rules."
+grade: derivation
+reviewed: null
 ---
 
 # Bayesian Optimization as a Dynamic Program

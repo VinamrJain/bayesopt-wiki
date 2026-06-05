@@ -4,6 +4,9 @@ slug: nonmyopic-cost-constrained-bo
 tags: [cost-aware, non-myopic, lookahead, decision-theoretic]
 requires: [bo-as-dynamic-program, cost-aware-bo, ei-per-unit-cost, budget-constrained-dp]
 sources: [lee2021, lam2016, astudillo2021]
+summary: "Cost-constrained BO as a fixed-horizon CMDP solved by rollout."
+grade: derivation
+reviewed: null
 ---
 
 # Nonmyopic Cost-Constrained BO (CMDP Rollout)

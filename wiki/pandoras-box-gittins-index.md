@@ -4,6 +4,9 @@ slug: pandoras-box-gittins-index
 tags: [cost-aware, acquisition, decision-theoretic]
 requires: [cost-aware-bo, ei-per-unit-cost, expected-improvement, budget-constrained-dp]
 sources: [xie2024, astudillo2021]
+summary: "Pandora's-box Gittins fair-value acquisition (PBGI); optimal index, small-lambda to UCB limit."
+grade: derivation
+reviewed: null
 ---
 
 # Pandora's Box Gittins Index (PBGI)

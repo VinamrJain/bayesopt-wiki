@@ -4,6 +4,9 @@ slug: problem-setup
 tags: [foundations, problem-formulation]
 requires: []
 sources: [frazier2018, jones98]
+summary: "Black-box derivative-free global optimization: the problem BO solves."
+grade: concept
+reviewed: null
 ---
 
 # Problem Setup

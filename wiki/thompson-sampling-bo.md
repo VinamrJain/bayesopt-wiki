@@ -4,6 +4,9 @@ slug: thompson-sampling-bo
 tags: [acquisition, randomized, information-theoretic]
 requires: [problem-setup, gaussian-process-regression]
 sources: [shahriari2016]
+summary: "Randomized acquisition: act greedily on a posterior sample of the objective."
+grade: derivation
+reviewed: null
 ---
 
 # Thompson Sampling (Bayesian Optimization)

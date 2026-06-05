@@ -4,6 +4,9 @@ slug: cost-aware-bo
 tags: [cost-aware, acquisition, taxonomy]
 requires: [acquisition-functions, expected-improvement]
 sources: [lee2020, shahriari2016, snoek2012, xie2025, xie2024]
+summary: "Budgeting real evaluation cost, not iteration count; the cost-aware formulations and family map."
+grade: concept
+reviewed: null
 ---
 
 # Cost-Aware Bayesian Optimization

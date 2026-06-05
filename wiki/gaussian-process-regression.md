@@ -4,6 +4,9 @@ slug: gaussian-process-regression
 tags: [surrogate, bayesian-model, foundation]
 requires: [problem-setup]
 sources: [frazier2018, jones98, srinivas2010]
+summary: "The Bayesian surrogate underneath BO: GP prior to posterior over the objective."
+grade: derivation
+reviewed: null
 ---
 
 # Gaussian Process Regression

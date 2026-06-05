@@ -4,6 +4,9 @@ slug: cost-cooling-carbo
 tags: [cost-aware, acquisition, myopic]
 requires: [ei-per-unit-cost, expected-improvement, cost-aware-bo]
 sources: [lee2020]
+summary: "Annealing the cost penalty over the budget (cost-cooling) and CArBO initialization."
+grade: derivation
+reviewed: null
 ---
 
 # Cost Cooling and CArBO

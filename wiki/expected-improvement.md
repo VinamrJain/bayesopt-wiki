@@ -4,6 +4,9 @@ slug: expected-improvement
 tags: [acquisition, myopic, decision-theoretic]
 requires: [gaussian-process-regression, problem-setup]
 sources: [frazier2018, jones98, mockus1978, snoek2012]
+summary: "The default acquisition: expected gain over the incumbent, closed-form under a GP."
+grade: derivation
+reviewed: null
 ---
 
 # Expected Improvement

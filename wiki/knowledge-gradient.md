@@ -4,6 +4,9 @@ slug: knowledge-gradient
 tags: [acquisition, lookahead, decision-theoretic, value-of-information]
 requires: [problem-setup, gaussian-process-regression, expected-improvement, value-of-information]
 sources: [frazier2009kg, frazier2018]
+summary: "One-step value-of-information on the global max; EI's lookahead cousin."
+grade: derivation
+reviewed: null
 ---
 
 # Knowledge Gradient

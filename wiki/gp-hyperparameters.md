@@ -4,6 +4,9 @@ slug: gp-hyperparameters
 tags: [surrogate, bayesian-model, inference]
 requires: [gaussian-process-regression, problem-setup]
 sources: [snoek2012, frazier2018]
+summary: "Fitting GP kernel/mean hyperparameters: MLE, MAP, fully-Bayesian marginalization."
+grade: derivation
+reviewed: null
 ---
 
 # GP Hyperparameters

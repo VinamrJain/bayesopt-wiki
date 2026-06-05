@@ -4,6 +4,9 @@ slug: notation
 tags: [reference]
 requires: []
 sources: [frazier2018, snoek2012]
+summary: "Canonical symbol table for the whole wiki."
+grade: reference
+reviewed: null
 ---
 
 # Notation

@@ -4,6 +4,9 @@ slug: value-of-information
 tags: [acquisition, decision-theoretic, myopic, lookahead]
 requires: [problem-setup, gaussian-process-regression, expected-improvement, acquisition-functions]
 sources: [frazier2018, frazier2009kg]
+summary: "The decision-theoretic quantity underneath every acquisition; the VoI frame."
+grade: derivation
+reviewed: null
 ---
 
 # Value of Information
