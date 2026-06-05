@@ -81,11 +81,14 @@ Shared by the cost-aware tier ([[cost-aware-bo]], [[ei-per-unit-cost]], [[cost-c
 |---|---|
 | $c(x)$ | evaluation cost at $x$, $c(x)>0$; black-box like $f$, modeled by a **separate** GP |
 | $\log c(x)$ | GP-modeled log-cost (warped-GP target, guaranteeing positivity); `lee2020`'s $\gamma(x)$, renamed here to avoid collision with $\gamma_T$ |
-| $\tau$ | total cost budget; feasibility is $\sum_n c(x_n)\le\tau$ (not an iteration count) |
+| $\tau$ | **hard** total cost budget; feasibility is $\sum_n c(x_n)\le\tau$ (not an iteration count). The cost-per-sample formulation instead stops at an adaptive time $T$ (below), never at a fixed $\tau$ |
 | $\tau_{\mathrm{init}}$ | warm-start / initial-design sub-budget, $\tau_{\mathrm{init}}<\tau$ |
 | $\tau_k$ | cumulative cost spent by the $k$th iteration; $\tau_0=\tau_{\mathrm{init}}$ |
 | $\alpha_k$ | cost-cooling exponent, $\alpha_k=(\tau-\tau_k)/(\tau-\tau_{\mathrm{init}})$, decaying $1\to0$ (see [[cost-cooling-carbo]]); **distinct** from the generic acquisition $\alpha_n(x)$ — no $x$-argument, indexed by iteration $k$ |
 | $\mathrm{EIpu}_n,\ \mathrm{EI\text{-}cool}_k$ | cost-aware acquisitions: EI per unit cost and cost-cooled EI (see their notes) |
+| $B$ | **expected** cost budget (random-cost setting): feasibility $E[\sum_n c(x_n)]\le B$; the soft counterpart of $\tau$ (see [[budget-constrained-dp]]) |
+| $N_B$ | random **budget-depletion** horizon, $N_B=\sup\{k:\sum_{i\le k}c(x_i)\le B\}$ — the last step with budget left; finite a.s. when $\log c$ is a GP (see [[budget-constrained-dp]], [[multistep-budgeted-bo]]) |
+| $T$ | adaptive **stopping time** in the cost-per-sample formulation: chosen by a stopping *rule*, not by budget exhaustion (see [[cost-aware-stopping]]). Distinct from $\tau$ (budget) and $N_B$ (budget runs out) |
 
 ## Standard normal
 

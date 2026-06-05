@@ -3,7 +3,7 @@ title: EI Per Unit Cost
 slug: ei-per-unit-cost
 tags: [cost-aware, acquisition, myopic]
 requires: [expected-improvement, cost-aware-bo]
-sources: [snoek2012, lee2020, xie2025]
+sources: [snoek2012, lee2020, xie2024]
 ---
 
 # EI Per Unit Cost
@@ -138,14 +138,15 @@ conditions must hold simultaneously.
   inside the DP objective directly.
 - **[[cost-aware-stopping]] (LogEIPC, PBGI).** The modern practical form of EIpu is
   **LogEIPC** $=\log(\mathrm{EI}_n(x)/c(x))$ — the same ratio in the log domain, where EI's
-  numerical underflow far from the incumbent is far less damaging (`xie2025`, after the
-  log-EI reparameterization of Ament et al. (2023)). The order of $\operatorname*{arg\,max}$ is
-  unchanged ($\log$ is monotone), so LogEIPC selects exactly where EIpu does; it is a
-  numerical, not a decision-theoretic, refinement. A genuinely different cost-aware rule is
-  the **Pandora's-box Gittins index (PBGI)**, which scores $x$ by the threshold $g$ solving
-  $\mathrm{EI}_n(x;g)=c(x)$ rather than by a ratio (`xie2025`); both pair with cost-aware
-  stopping, where the EIpu-style comparison "expected improvement vs. cost" *becomes* the
-  stop condition.
+  numerical underflow far from the incumbent is far less damaging (`xie2024`, applying the
+  log-EI reparameterization of Ament et al. (2023) to EIpu). The order of
+  $\operatorname*{arg\,max}$ is unchanged ($\log$ is monotone), so LogEIPC selects exactly where
+  EIpu does; it is a numerical, not a decision-theoretic, refinement. A genuinely different
+  cost-aware rule is the [[pandoras-box-gittins-index|Pandora's-box Gittins index (PBGI)]]
+  (`xie2024`), which scores $x$ by the threshold $g$ solving $\mathrm{EI}_n(x;g)=c(x)$ rather than
+  by a ratio — exact solution of a *spatially* simplified DP, where EIpu/EI are temporal one-step
+  rules; both pair with [[cost-aware-stopping|cost-aware stopping]], where the EIpu-style comparison
+  "expected improvement vs. cost" *becomes* the stop condition.
 
 ## Crosswalk
 

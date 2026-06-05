@@ -3,7 +3,7 @@ title: Cost-Aware Bayesian Optimization
 slug: cost-aware-bo
 tags: [cost-aware, acquisition, taxonomy]
 requires: [acquisition-functions, expected-improvement]
-sources: [lee2020, shahriari2016, xie2025]
+sources: [lee2020, shahriari2016, snoek2012, xie2025, xie2024]
 ---
 
 # Cost-Aware Bayesian Optimization
@@ -24,13 +24,13 @@ $$
 
 (or, when costs are random, the *expected*-budget version $E[\sum_n c(x_n)] \le B$, `xie2025`). The feasibility constraint is on **cumulative cost**, not iteration count; when $c$ is constant the two coincide and cost-aware methods reduce to their standard counterparts.
 
-**Cost-per-sample (cost-adjusted regret).** Alternatively, fold cost into the objective additively and let the horizon be a *stopping time* $\tau$ chosen adaptively. In the maximization convention, minimize the expected **cost-adjusted simple regret** (`xie2025`)
+**Cost-per-sample (cost-adjusted regret).** Alternatively, fold cost into the objective additively and let the horizon be an adaptive *stopping time* $T$ (distinct from the budget $\tau$ — see [[notation]]). In the maximization convention, minimize the expected **cost-adjusted simple regret** (`xie2025`)
 
 $$
-\mathcal{R}_c = E\Big[\underbrace{f^* - \max_{1\le n\le \tau} f(x_n)}_{\text{simple regret}} \;+\; \underbrace{\textstyle\sum_{n=1}^{\tau} c(x_n)}_{\text{cumulative cost}}\Big],
+\mathcal{R}_c = E\Big[\underbrace{f^* - \max_{1\le n\le T} f(x_n)}_{\text{simple regret}} \;+\; \underbrace{\textstyle\sum_{n=1}^{T} c(x_n)}_{\text{cumulative cost}}\Big],
 $$
 
-which prices an evaluation directly against the regret it is expected to remove. Because $\tau$ is not fixed, this formulation raises a question the budget-constrained view suppresses — **when to stop** — and is the natural setting for cost-aware stopping rules and Pandora's-box acquisitions ([[cost-aware-stopping]]).
+which prices an evaluation directly against the regret it is expected to remove. Because $T$ is not fixed, this formulation raises a question the budget-constrained view suppresses — **when to stop** — and is the natural setting for cost-aware stopping rules and Pandora's-box acquisitions ([[cost-aware-stopping]]).
 
 The two views agree in the constant-cost limit but diverge on how cost enters: a hard constraint (budget-constrained) versus a Lagrangian-style additive penalty (cost-per-sample). The myopic EI÷cost family below is most naturally read in the budget-constrained view; the stopping/Pandora's-box family lives in the cost-adjusted-regret view.
 
@@ -76,7 +76,7 @@ The cost-aware acquisition family splits along two axes:
 
 The shared dependency of both: **[[cost-models]]** — the GP surrogate for $c(x)$, which both EIpu and cost-cooling consume and which must itself be learned from evaluations.
 
-A third strand belongs to the **cost-adjusted-regret** formulation above rather than the budget-constrained one: acquisitions built on the **Pandora's-box / Gittins-index** principle (PBGI), which sets the score at $x$ to the value $g$ solving $\mathrm{EI}(x;g)=c(x)$, and the log-domain variant **LogEIPC** $=\log(\mathrm{EI}/c)$ (`xie2025`; the latter the numerically-stable log form of EIpu, after Ament et al. 2023). These pair naturally with cost-aware **stopping** rules — when the per-sample cost exceeds the expected improvement it buys, stop — and are developed in [[cost-aware-stopping]]. The present note's EI÷cost family is the myopic, budget-constrained branch; PBGI/LogEIPC and stopping are its cost-per-sample counterpart.
+A third strand belongs to the **cost-adjusted-regret** formulation above rather than the budget-constrained one: acquisitions built on the **Pandora's-box / Gittins-index** principle ([[pandoras-box-gittins-index|PBGI]]), which sets the score at $x$ to the value $g$ solving $\mathrm{EI}(x;g)=c(x)$, and the log-domain variant **LogEIPC** $=\log(\mathrm{EI}/c)$ (`xie2024`; LogEIPC the numerically-stable log form of EIpu, after Ament et al. 2023). These pair naturally with cost-aware **stopping** rules — when the per-sample cost exceeds the expected improvement it buys, stop — and are developed in [[pandoras-box-gittins-index]] (acquisition) and [[cost-aware-stopping]] (stopping). The present note's EI÷cost family is the myopic, budget-constrained branch; PBGI/LogEIPC and stopping are its cost-per-sample counterpart.
 
 ### EI per unit cost
 
