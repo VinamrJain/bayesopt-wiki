@@ -10,6 +10,7 @@ Project ops and in-progress work. Wiki build handoff: `~/.claude/handoffs/Bayesi
 | `MEMORY.md` | Agents | Project ops: doc roles, git, sources, context-rot. **Not** the build plan. |
 | `CLAUDE.md` | Agents | Repo conventions. |
 | `wiki/map.md` | Agents + humans | The index: concept registry, prerequisite graph, learning tracks, planned concepts. **Authoritative for routing and per-note source coverage.** |
+| `site/` | Humans + agents | Astro site publishing the wiki (interactive graph, note pages, tracks). `site/README.md` = architecture + deploy. Reads `wiki/*.md`; never writes notes. |
 
 Writing style: same bar as `~/.claude/memory/feedback_skill-writing-generic.md` and concept-wiki pattern in `~/.claude/memory/reference_concept-wiki-synthesis.md`.
 
