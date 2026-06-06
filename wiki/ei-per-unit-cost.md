@@ -2,6 +2,7 @@
 title: EI Per Unit Cost
 slug: ei-per-unit-cost
 tags: [cost-aware, acquisition, myopic]
+subtopic: cost-aware
 requires: [expected-improvement, cost-aware-bo]
 sources: [snoek2012, lee2020, xie2024]
 summary: "The simplest cost-aware acquisition: expected improvement divided by cost."

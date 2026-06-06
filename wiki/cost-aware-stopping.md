@@ -2,6 +2,7 @@
 title: Cost-Aware Stopping (PBGI / LogEIPC)
 slug: cost-aware-stopping
 tags: [cost-aware, acquisition, stopping, decision-theoretic]
+subtopic: cost-aware
 requires: [cost-aware-bo, pandoras-box-gittins-index, ei-per-unit-cost, expected-improvement]
 sources: [xie2025, xie2024, astudillo2021]
 summary: "When to stop under cost-per-sample: the PBGI/LogEIPC rule plus cost-adjusted-regret theory."

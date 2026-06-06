@@ -2,6 +2,7 @@
 title: Cost Models
 slug: cost-models
 tags: [cost-aware, surrogate]
+subtopic: cost-aware
 requires: [gaussian-process-regression, cost-aware-bo]
 sources: [lee2020, lee2021, snoek2012]
 summary: "Modeling unknown evaluation cost c(x), typically a log-GP, as a second surrogate."

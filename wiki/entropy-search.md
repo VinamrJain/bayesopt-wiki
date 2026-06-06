@@ -2,6 +2,7 @@
 title: Entropy Search
 slug: entropy-search
 tags: [acquisition, information-theoretic, lookahead]
+subtopic: information-theoretic
 requires: [problem-setup, gaussian-process-regression, acquisition-functions, value-of-information, thompson-sampling-bo]
 sources: [hennig2012, frazier2018]
 summary: "Information-theoretic acquisition: sample to reduce entropy of the optimizer location."

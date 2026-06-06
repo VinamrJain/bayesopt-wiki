@@ -21,8 +21,17 @@ const notes = defineCollection({
     title: z.string(),
     slug: z.string(),
     summary: z.string(),
-    // Theme tags (free-form). Curated subtopic for graph color is derived separately (subtopics.ts).
+    // Theme tags (free-form, not a partition).
     tags: z.array(z.string()).default([]),
+    // Curated subtopic — the graph node's color class. The palette lives in subtopics.ts; this picks
+    // one. Required so every note self-declares its color (no separate slug→color table to maintain).
+    subtopic: z.enum([
+      'foundations',
+      'myopic',
+      'decision-theoretic',
+      'information-theoretic',
+      'cost-aware',
+    ]),
     // Prerequisite slugs → directed edges of the concept DAG.
     requires: z.array(z.string()).default([]),
     // Citation keys; first = derivation-primary. Linked to references.md.

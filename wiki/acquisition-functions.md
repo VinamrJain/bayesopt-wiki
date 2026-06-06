@@ -2,6 +2,7 @@
 title: Acquisition Functions
 slug: acquisition-functions
 tags: [acquisition, taxonomy, decision-theoretic, hub]
+subtopic: foundations
 requires: [problem-setup, gaussian-process-regression]
 sources: [frazier2018, shahriari2016]
 summary: "The decision rule of the BO loop; taxonomy of acquisition strategies."

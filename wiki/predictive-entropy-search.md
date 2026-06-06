@@ -2,6 +2,7 @@
 title: Predictive Entropy Search
 slug: predictive-entropy-search
 tags: [acquisition, information-theoretic, lookahead]
+subtopic: information-theoretic
 requires: [problem-setup, gaussian-process-regression, acquisition-functions, entropy-search]
 sources: [hernandez2014, hennig2012]
 summary: "A cheaper reformulation of entropy search via predictive-distribution symmetry."

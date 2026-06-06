@@ -5,7 +5,7 @@
 // remarkStripTitle). The frontmatter summary is kept as the page <meta description>, not shown.
 import BaseLayout from './BaseLayout.astro';
 import Sidebar from '../components/Sidebar.astro';
-import { subtopicOf } from '../lib/subtopics';
+import { subtopicById } from '../lib/subtopics';
 import type { Graph, GraphNode } from '../lib/graph';
 import type { Subtopic } from '../lib/subtopics';
 import type { MarkdownHeading } from 'astro';
@@ -18,7 +18,7 @@ interface Props {
 }
 
 const { node, graph, subtopics, headings } = Astro.props;
-const sub = subtopicOf(node.slug);
+const sub = subtopicById(node.subtopic);
 ---
 
 <BaseLayout title={`${node.title} · BO concept wiki`} description={node.summary} wide>

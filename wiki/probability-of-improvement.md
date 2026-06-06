@@ -2,6 +2,7 @@
 title: Probability of Improvement
 slug: probability-of-improvement
 tags: [acquisition, myopic, decision-theoretic]
+subtopic: myopic
 requires: [problem-setup, gaussian-process-regression, expected-improvement]
 sources: [shahriari2016, frazier2018, jones98]
 summary: "The oldest improvement acquisition: probability of beating the incumbent."

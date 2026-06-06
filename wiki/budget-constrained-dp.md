@@ -2,6 +2,7 @@
 title: Budget-Constrained BO as a Dynamic Program
 slug: budget-constrained-dp
 tags: [cost-aware, non-myopic, lookahead, decision-theoretic, theory]
+subtopic: cost-aware
 requires: [bo-as-dynamic-program, cost-aware-bo, ei-per-unit-cost]
 sources: [astudillo2021, lam2016, lee2021]
 summary: "Cost-aware BO under a total-budget cap as a random-horizon dynamic program."

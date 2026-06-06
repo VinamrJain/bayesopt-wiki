@@ -2,6 +2,7 @@
 title: GP-UCB and the Optimism Principle
 slug: gp-ucb
 tags: [acquisition, optimistic, bandit, theory-adjacent]
+subtopic: myopic
 requires: [problem-setup, gaussian-process-regression]
 sources: [srinivas2010, frazier2018]
 summary: "Optimism-in-the-face-of-uncertainty: the regret-bearing upper-confidence-bound rule."

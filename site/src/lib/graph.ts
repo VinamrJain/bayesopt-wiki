@@ -10,7 +10,7 @@
 // concept — i.e. how many list it in their `requires` — not its own prerequisite count.
 
 import type { CollectionEntry } from 'astro:content';
-import { subtopicId, subtopicOf } from './subtopics';
+import { subtopicById } from './subtopics';
 
 export interface GraphNode {
   slug: string;
@@ -68,8 +68,8 @@ export function buildGraph(entries: CollectionEntry<'notes'>[]): Graph {
       title: d.title,
       summary: d.summary,
       grade: d.grade,
-      subtopic: subtopicId(d.slug),
-      color: subtopicOf(d.slug).color,
+      subtopic: d.subtopic,
+      color: subtopicById(d.subtopic).color,
       dependents: 0,
       requires: (d.requires ?? []).filter((r) => slugSet.has(r)),
       tags: d.tags ?? [],

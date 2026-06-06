@@ -5,7 +5,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import ConceptGraph from '../components/ConceptGraph.astro';
 import { getCollection } from 'astro:content';
 import { buildGraph, visualGraph } from '../lib/graph';
-import { SUBTOPICS, subtopicOf } from '../lib/subtopics';
+import { SUBTOPICS, subtopicById } from '../lib/subtopics';
 import { TRACKS } from '../lib/tracks';
 
 const entries = await getCollection('notes');
@@ -51,7 +51,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <p class="section-sub">Guided reading orders by subtopic. Each assumes Foundations first.</p>
     <div class="track-cards">
       {TRACKS.map((t) => {
-        const color = subtopicOf(t.slugs[0]).color;
+        const color = subtopicById(t.id).color;
         return (
           <a class="track-card" href={`${base}/tracks/${t.id}`} style={`--accent:${color}`}>
             <h3>{t.label}</h3>

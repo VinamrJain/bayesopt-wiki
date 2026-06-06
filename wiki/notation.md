@@ -2,6 +2,7 @@
 title: Notation
 slug: notation
 tags: [reference]
+subtopic: foundations
 requires: []
 sources: [frazier2018, snoek2012]
 summary: "Canonical symbol table for the whole wiki."

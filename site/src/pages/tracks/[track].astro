@@ -5,7 +5,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import ConceptGraph from '../../components/ConceptGraph.astro';
 import { getCollection } from 'astro:content';
 import { buildGraph } from '../../lib/graph';
-import { SUBTOPICS, subtopicOf } from '../../lib/subtopics';
+import { SUBTOPICS, subtopicById } from '../../lib/subtopics';
 import { TRACKS } from '../../lib/tracks';
 
 export async function getStaticPaths() {
@@ -16,7 +16,7 @@ const { track } = Astro.props;
 const entries = await getCollection('notes');
 const graph = buildGraph(entries);
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const accent = subtopicOf(track.slugs[0]).color;
+const accent = subtopicById(track.id).color;
 
 // Induced subgraph over the track's concepts.
 const set = new Set(track.slugs);

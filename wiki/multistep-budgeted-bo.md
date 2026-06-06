@@ -2,6 +2,7 @@
 title: Budgeted Multi-Step Expected Improvement
 slug: multistep-budgeted-bo
 tags: [cost-aware, non-myopic, lookahead, acquisition]
+subtopic: cost-aware
 requires: [budget-constrained-dp, expected-improvement, cost-models]
 sources: [astudillo2021, lam2016, lee2021, wilson2018]
 summary: "Budgeted multi-step EI (B-MS-EI): non-myopic cost-aware lookahead via the budget DP."

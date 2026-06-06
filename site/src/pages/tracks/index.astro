@@ -3,7 +3,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
 import { buildGraph } from '../../lib/graph';
-import { subtopicOf } from '../../lib/subtopics';
+import { subtopicById } from '../../lib/subtopics';
 import { TRACKS } from '../../lib/tracks';
 
 const entries = await getCollection('notes');
@@ -20,7 +20,7 @@ const titleOf = (slug: string) => graph.bySlug.get(slug)?.title ?? slug;
     </p>
 
     {TRACKS.map((t) => {
-      const color = subtopicOf(t.slugs[0]).color;
+      const color = subtopicById(t.id).color;
       return (
         <section class="track-block" style={`--accent:${color}`}>
           <h2><a href={`${base}/tracks/${t.id}`}>{t.label}</a></h2>

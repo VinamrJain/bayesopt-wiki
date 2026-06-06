@@ -2,6 +2,7 @@
 title: Max-Value Entropy Search
 slug: max-value-entropy-search
 tags: [acquisition, information-theoretic, lookahead]
+subtopic: information-theoretic
 requires: [problem-setup, gaussian-process-regression, acquisition-functions, entropy-search]
 sources: [wang2017mes]
 summary: "Information-theoretic acquisition targeting the max-value, not its location."
