@@ -76,6 +76,23 @@ convention. Where a source differs, its mapping lives in that note's crosswalk, 
 | $\beta_t$ | UCB exploration weight (see [[gp-ucb]]) |
 | $p_\star(x\mid\mathcal D_n)$ | posterior probability that $x$ is the global maximizer, $P_n\big(x\in\operatorname*{arg\,max}_{x'\in A}f(x')\big)$ — a **global** functional of the posterior over $f$, not of the marginal at $x$; sampled by [[thompson-sampling-bo]], its entropy targeted by [[entropy-search]] / [[predictive-entropy-search]] |
 
+## Dynamic programming
+
+Shared by the decision-theoretic tier ([[bo-as-dynamic-program]], [[value-of-information]]) and the
+budgeted DP family ([[budget-constrained-dp]], [[multistep-budgeted-bo]]). A note may refine an
+entry locally (e.g. the random-horizon value function) in a short delta.
+
+| Symbol | Meaning |
+|---|---|
+| $S^n$ | **state of knowledge** after $n$ evaluations: the posterior the data $\mathcal D_n$ induces ([[gaussian-process-regression]]); interchangeable with $\mathcal D_n$ as the state (the posterior is the sufficient statistic) |
+| $V^n(s)$ | **optimal value function**: best achievable expected terminal utility from state $s$ with $N-n$ evaluations left (finite horizon); $V^{\pi,n}$ is the value of policy $\pi$. The random-horizon analogue is $V^\pi(\mathcal D),\,V^*(\mathcal D)$ (see [[budget-constrained-dp]]) |
+| $V^*$ | optimal value, $V^*=\max_\pi V^\pi$ |
+| $\pi=(\pi_n,\dots,\pi_{N-1})$ | a **policy**: each $\pi_k:S^k\mapsto x_{k+1}\in A$ maps the current state to the next point |
+| $Q_n(x\mid\mathcal D)$ | **$n$-step state–action value**: expected gain in terminal utility from evaluating $x$ first, then acting optimally for $n-1$ more steps, from state $\mathcal D$ (see [[multistep-budgeted-bo]]) |
+| $u(\mathcal D_n)$ | **terminal utility** on the final state: best observed value $\max_{(x,y)\in\mathcal D_n}y$ (equals the incumbent $f^*_n$ when observations are noise-free) |
+| $s(\mathcal D_n)$ | **total cost** spent, $\sum_{(x,y,z)\in\mathcal D_n}z$ with $z=c(x)$ observed alongside $y$; the budget constraint is $s(\mathcal D_n)\le B$ |
+| $r_n,\ r(\mathcal D_{n-1},\mathcal D_n)$ | **per-stage reward**: utility increase $u(\mathcal D_n)-u(\mathcal D_{n-1})\ge 0$ (the telescoped form of terminal utility) |
+
 ## Cost-aware Bayesian optimization
 
 Shared by the cost-aware tier ([[cost-aware-bo]], [[ei-per-unit-cost]], [[cost-cooling-carbo]],

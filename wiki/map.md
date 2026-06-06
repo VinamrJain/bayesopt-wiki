@@ -48,6 +48,7 @@ are secondary (attribution, crosswalk, gap-fill). Full bibliography in
 | [[bo-as-dynamic-program\|Bayesian Optimization as a Dynamic Program]] | BO as a finite-horizon sequential decision process; parent frame of myopic rules. | decision-theoretic · lookahead · non-myopic · theory | [[problem-setup]] · [[gaussian-process-regression]] · [[acquisition-functions]] · [[value-of-information]] · [[expected-improvement]] | lam2016&#9656; · frazier2018 · frazier2009kg · astudillo2021 | derivation | 2026-06-06 ✓ |
 | [[budget-constrained-dp\|Budget-Constrained BO as a Dynamic Program]] | Cost-aware BO under a total-budget cap as a random-horizon dynamic program. | cost-aware · non-myopic · lookahead · decision-theoretic · theory | [[bo-as-dynamic-program]] · [[cost-aware-bo]] · [[ei-per-unit-cost]] | astudillo2021&#9656; · lam2016 · lee2021 | derivation | 2026-06-06 ✓ |
 | [[multistep-budgeted-bo\|Budgeted Multi-Step Expected Improvement]] | Budgeted multi-step EI (B-MS-EI): non-myopic cost-aware lookahead via the budget DP. | cost-aware · non-myopic · lookahead · acquisition | [[budget-constrained-dp]] · [[expected-improvement]] · [[cost-models]] | astudillo2021&#9656; · lam2016 · lee2021 · wilson2018 | derivation | 2026-06-06 ✓ |
+| [[ego-convergence-rates\|Convergence Rates of EGO / Expected Improvement]] | EI's simple-regret rate in the fixed-kernel RKHS: near-minimax $n^{-(\\nu\\wedge1)/d}$, optimal $n^{-\\nu/d}$ with an $\\epsilon$-greedy fix; MLE hyperparameters can break it. | theory · convergence | [[expected-improvement]] · [[problem-setup]] · [[gaussian-process-regression]] | bull2011&#9656; | derivation | — |
 | [[cost-cooling-carbo\|Cost Cooling and CArBO]] | Annealing the cost penalty over the budget (cost-cooling) and CArBO initialization. | cost-aware · acquisition · myopic | [[ei-per-unit-cost]] · [[expected-improvement]] · [[cost-aware-bo]] | lee2020&#9656; | derivation | 2026-06-06 ✓ |
 | [[cost-models\|Cost Models]] | Modeling unknown evaluation cost c(x), typically a log-GP, as a second surrogate. | cost-aware · surrogate | [[gaussian-process-regression]] · [[cost-aware-bo]] | lee2020&#9656; · lee2021 · snoek2012 | concept | 2026-06-06 ✓ |
 | [[cost-aware-bo\|Cost-Aware Bayesian Optimization]] | Budgeting real evaluation cost, not iteration count; the cost-aware formulations and family map. | cost-aware · acquisition · taxonomy | [[acquisition-functions]] · [[expected-improvement]] | lee2020&#9656; · shahriari2016 · snoek2012 · xie2025 · xie2024 | concept | 2026-06-06 ✓ |
@@ -59,6 +60,7 @@ are secondary (attribution, crosswalk, gap-fill). Full bibliography in
 | [[gp-hyperparameters\|GP Hyperparameters]] | Fitting GP kernel/mean hyperparameters: MLE, MAP, fully-Bayesian marginalization. | surrogate · bayesian-model · inference | [[gaussian-process-regression]] · [[problem-setup]] | snoek2012&#9656; · frazier2018 | derivation | 2026-06-06 ✓ |
 | [[gp-ucb\|GP-UCB and the Optimism Principle]] | Optimism-in-the-face-of-uncertainty: the regret-bearing upper-confidence-bound rule. | acquisition · optimistic · bandit · theory-adjacent | [[problem-setup]] · [[gaussian-process-regression]] | srinivas2010&#9656; · frazier2018 | derivation | 2026-06-06 ✓ |
 | [[knowledge-gradient\|Knowledge Gradient]] | One-step value-of-information on the global max; EI's lookahead cousin. | acquisition · lookahead · decision-theoretic · value-of-information | [[problem-setup]] · [[gaussian-process-regression]] · [[expected-improvement]] · [[value-of-information]] | frazier2009kg&#9656; · frazier2018 | derivation | 2026-06-06 ✓ |
+| [[gp-bandit-lower-bounds\|Lower Bounds for GP Bandit Optimization]] | Algorithm-independent Ω-lower bounds on simple and cumulative regret for noisy RKHS bandits, the converse to GP-UCB's upper bounds. | theory · regret · lower-bounds | [[regret-gp-bandits]] · [[gp-ucb]] · [[problem-setup]] | scarlett2017&#9656; | derivation | — |
 | [[max-value-entropy-search\|Max-Value Entropy Search]] | Information-theoretic acquisition targeting the max-value, not its location. | acquisition · information-theoretic · lookahead | [[problem-setup]] · [[gaussian-process-regression]] · [[acquisition-functions]] · [[entropy-search]] | wang2017mes&#9656; | derivation | 2026-06-06 ✓ |
 | [[nonmyopic-cost-constrained-bo\|Nonmyopic Cost-Constrained BO (CMDP Rollout)]] | Cost-constrained BO as a fixed-horizon CMDP solved by rollout. | cost-aware · non-myopic · lookahead · decision-theoretic | [[bo-as-dynamic-program]] · [[cost-aware-bo]] · [[ei-per-unit-cost]] · [[budget-constrained-dp]] | lee2021&#9656; · lam2016 · astudillo2021 | derivation | 2026-06-06 ✓ |
 | [[notation\|Notation]] | Canonical symbol table for the whole wiki. | reference | — | frazier2018&#9656; · snoek2012 | reference | 2026-06-06 ✓ |
@@ -66,6 +68,7 @@ are secondary (attribution, crosswalk, gap-fill). Full bibliography in
 | [[predictive-entropy-search\|Predictive Entropy Search]] | A cheaper reformulation of entropy search via predictive-distribution symmetry. | acquisition · information-theoretic · lookahead | [[problem-setup]] · [[gaussian-process-regression]] · [[acquisition-functions]] · [[entropy-search]] | hernandez2014&#9656; · hennig2012 | derivation | 2026-06-06 ✓ |
 | [[probability-of-improvement\|Probability of Improvement]] | The oldest improvement acquisition: probability of beating the incumbent. | acquisition · myopic · decision-theoretic | [[problem-setup]] · [[gaussian-process-regression]] · [[expected-improvement]] | shahriari2016&#9656; · frazier2018 · jones98 | derivation | 2026-06-06 ✓ |
 | [[problem-setup\|Problem Setup]] | Black-box derivative-free global optimization: the problem BO solves. | foundations · problem-formulation | — | frazier2018&#9656; · jones98 | concept | 2026-06-06 ✓ |
+| [[regret-gp-bandits\|Regret Bounds for GP Bandits]] | Proof that GP-UCB is no-regret: instantaneous regret ≤ posterior width, summed into the information gain γ_T. | theory · regret | [[gp-ucb]] · [[problem-setup]] · [[gaussian-process-regression]] | srinivas2010&#9656; | derivation | — |
 | [[thompson-sampling-bo\|Thompson Sampling (Bayesian Optimization)]] | Randomized acquisition: act greedily on a posterior sample of the objective. | acquisition · randomized · information-theoretic | [[problem-setup]] · [[gaussian-process-regression]] | shahriari2016&#9656; | derivation | 2026-06-06 ✓ |
 | [[value-of-information\|Value of Information]] | The decision-theoretic quantity underneath every acquisition; the VoI frame. | acquisition · decision-theoretic · myopic · lookahead | [[problem-setup]] · [[gaussian-process-regression]] · [[expected-improvement]] · [[acquisition-functions]] | frazier2018&#9656; · frazier2009kg | derivation | 2026-06-06 ✓ |
 <!-- autogen:registry:end -->
@@ -98,6 +101,9 @@ graph TD
     cost-aware-bo --> cost-cooling-carbo
     gaussian-process-regression --> cost-models
     cost-aware-bo --> cost-models
+    expected-improvement --> ego-convergence-rates
+    problem-setup --> ego-convergence-rates
+    gaussian-process-regression --> ego-convergence-rates
     expected-improvement --> ei-per-unit-cost
     cost-aware-bo --> ei-per-unit-cost
     problem-setup --> entropy-search
@@ -108,6 +114,9 @@ graph TD
     gaussian-process-regression --> expected-improvement
     problem-setup --> expected-improvement
     problem-setup --> gaussian-process-regression
+    regret-gp-bandits --> gp-bandit-lower-bounds
+    gp-ucb --> gp-bandit-lower-bounds
+    problem-setup --> gp-bandit-lower-bounds
     gaussian-process-regression --> gp-hyperparameters
     problem-setup --> gp-hyperparameters
     problem-setup --> gp-ucb
@@ -138,6 +147,9 @@ graph TD
     problem-setup --> probability-of-improvement
     gaussian-process-regression --> probability-of-improvement
     expected-improvement --> probability-of-improvement
+    gp-ucb --> regret-gp-bandits
+    problem-setup --> regret-gp-bandits
+    gaussian-process-regression --> regret-gp-bandits
     problem-setup --> thompson-sampling-bo
     gaussian-process-regression --> thompson-sampling-bo
     problem-setup --> value-of-information
@@ -180,9 +192,6 @@ Concepts scoped but not yet written. Forward-links to these from existing notes 
 linter treats them as known, not broken). Remove an entry once its note lands; add one when a new
 source or gap motivates it.
 
-- `regret-gp-bandits` — GP-UCB regret upper bounds; sublinear cumulative regret under a GP prior (srinivas2010).
-- `ego-convergence-rates` — convergence rates of EGO/EI-style methods under smoothness assumptions (bull2011).
-- `gp-bandit-lower-bounds` — information-theoretic regret lower bounds; near-optimality of UCB-type methods (scarlett2017).
 - `parallel-batch-bo` — batch/parallel point selection; q-EI and parallel knowledge gradient (wang2016qei, wu2019takg).
 - `multi-fidelity-bo` — optimization across continuous fidelity/approximation levels (kandasamy2017).
 - `noisy-evaluations` — acquisition and inference under observation noise (snoek2012, frazier2018).

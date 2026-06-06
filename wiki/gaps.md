@@ -6,11 +6,7 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | gap | note | description | severity |
 |-----|------|-------------|----------|
 | budget-constrained-dp-2 | [[budget-constrained-dp]] | The symbol B is defined incorrectly in the canonical notation.md and the note silently inherits the contradiction. nota… | blocker |
-| expected-improvement-1 | [[expected-improvement]] | Broken wikilink [[ego-convergence-rates]] (line 168). No such note exists in wiki/; the convergence-theory note bull201… | blocker |
 | expected-improvement-2 | [[expected-improvement]] | Broken wikilink [[parallel-batch-bo]] (lines 168-169). No parallel-batch-bo.md (nor any batch/parallel note) exists in… | blocker |
-| gp-hyperparameters-1 | [[gp-hyperparameters]] | [[ego-convergence-rates]] (Relation to other notes, 'Convergence' bullet, line 205) is a broken wikilink — no wiki/ego-… | blocker |
-| problem-setup-1 | [[problem-setup]] | [[ego-convergence-rates]] is a broken wikilink — no such note exists in wiki/ (the only matching file is CONVENTIONS.md… | blocker |
-| acquisition-functions-1 | [[acquisition-functions]] | Two wikilinks have no target note: [[ego-convergence-rates]] (line 71, Improvement family 'Guarantee' cell) and [[regre… | gap |
 | acquisition-functions-2 | [[acquisition-functions]] | The four-families table (line 74) labels the Information/lookahead 'Scores x by' as 'entropy of p_⋆ for ES/MES'. Per no… | gap |
 | xconn-3 | [[bo-as-dynamic-program]] | [cross-note: bo-as-dynamic-program, gp-ucb, thompson-sampling-bo] The DP-parent note frames myopic acquisitions as one-… | gap |
 | xterm-1 | [[bo-as-dynamic-program]] | [cross-note: bo-as-dynamic-program, budget-constrained-dp, cost-aware-stopping, notation] 'Incumbent' / 'terminal utili… | gap |
@@ -65,6 +61,8 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | cost-models-3 | [[cost-models]] | Source citations use a brittle line-number reference ('lee2020, line 216', note line 42) and a slightly loose section r… | nit |
 | cost-models-4 | [[cost-models]] | The note describes lee2021's base policy as 'normalizes its base acquisition (EIpu) by c(x)' (line 172). This is slight… | nit |
 | xconn-9 | [[cost-models]] | [cross-note: cost-models, cost-aware-bo, gaussian-process-regression] Reviewer suggested cost-models->cost-aware-bo and… | nit |
+| ego-convergence-rates-3 | [[ego-convergence-rates]] | r_n (simple regret here) collides with notation.md's canonical per-stage DP reward r_n; a pre-existing overload (proble… | nit |
+| ego-convergence-rates-4 | [[ego-convergence-rates]] | [[gp-hyperparameters]] is linked heavily but is not in requires:; defensible as a "see also" relation per CONVENTIONS (… | nit |
 | ei-per-unit-cost-2 | [[ei-per-unit-cost]] | Lines 102-105 add a mechanistic narrative not present in lee2020: 'as EI concentrates around the optimum (because the p… | nit |
 | ei-per-unit-cost-3 | [[ei-per-unit-cost]] | Line 104: grammatical error 'and it steer allocations toward cheap regions' (subject-verb agreement; should be 'steers'… | nit |
 | entropy-search-1 | [[entropy-search]] | Section-number citations to Hennig are inconsistently precise. The note cites '(hennig2012, S1.3)' twice (lines 68, 180… | nit |
@@ -78,14 +76,12 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | gaussian-process-regression-3 | [[gaussian-process-regression]] | The note cites srinivas2010 in the crosswalk and Relation section but never surfaces the cross-link to [[gp-ucb]], even… | nit |
 | gaussian-process-regression-4 | [[gaussian-process-regression]] | The computation remark states O(n^3) per fit and O(n^2) per prediction as the scaling bottleneck. This is correct and s… | nit |
 | gp-hyperparameters-3 | [[gp-hyperparameters]] | Body line 149 attributes the slice sampler to '(snoek2012; Neal, 2003)', but snoek2012 actually cites Murray & Adams (2… | nit |
-| gp-ucb-1 | [[gp-ucb]] | The note links to [[regret-gp-bandits]] three times (the deferred proof, the regret-bound statement, and the closing 'f… | nit |
 | gp-ucb-3 | [[gp-ucb]] | The Theorem 2 description says the finite-D log\|D\| 'is replaced by a discretization argument and beta_t picks up an add… | nit |
 | gp-ucb-4 | [[gp-ucb]] | The 'upper quantile' claim is asserted but its quantitative meaning is left implicit. srinivas2010 ties beta_t^{1/2} to… | nit |
 | knowledge-gradient-2 | [[knowledge-gradient]] | The note's 'When KG wins' / exotic-settings list (noisy, derivative, multi-fidelity, environmental) and the one-step-op… | nit |
 | knowledge-gradient-3 | [[knowledge-gradient]] | The note attributes KG's positive value for measurements that lift the posterior-mean max 'even when the sampled value… | nit |
 | max-value-entropy-search-3 | [[max-value-entropy-search]] | Lemma/theorem numbering does not match the source. The note cites 'Lemma 1' (L121 for monotone g; L200 for the EST/UCB/… | nit |
 | max-value-entropy-search-4 | [[max-value-entropy-search]] | Noisy-case truncation glossed. The note frames conditioning on f*=y_* as 'f(x)≤y_*, so y is truncated to (−∞,y_*]'. Str… | nit |
-| max-value-entropy-search-5 | [[max-value-entropy-search]] | [[regret-gp-bandits]] (L208, L258) targets a note that does not exist in wiki/ (only listed as a planned node in map.md… | nit |
 | multistep-budgeted-bo-1 | [[multistep-budgeted-bo]] | Lines 54 and 155 use \arg\max ($x_{n+1}\in\arg\max_{x\in A}Q_N$ and B-MS-EI $=\arg\max_x Q_N$). \arg and \max are both… | nit |
 | multistep-budgeted-bo-2 | [[multistep-budgeted-bo]] | The note asserts 'increasing N approaches the budgeted optimum V* (since V_N→V*)' (line 56) and again in the crosswalk,… | nit |
 | multistep-budgeted-bo-3 | [[multistep-budgeted-bo]] | The 'Relation to other notes' bullet says the budget-scheduling section 'borrows the base-policy idea that the lee2021… | nit |
@@ -93,7 +89,6 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | nonmyopic-cost-constrained-bo-2 | [[nonmyopic-cost-constrained-bo]] | lee2021's actual motivation for going non-myopic is that naive EIpu is biased toward cheap points and fails badly when… | nit |
 | nonmyopic-cost-constrained-bo-3 | [[nonmyopic-cost-constrained-bo]] | lam2016 is in the sources: frontmatter but contributes no derivation to the body — it appears only as a one-line lineag… | nit |
 | nonmyopic-cost-constrained-bo-4 | [[nonmyopic-cost-constrained-bo]] | Equations use \arg\max (lines 61, 109, 112) whereas notation.md's canonical operator is \operatorname*{arg\,max}. \arg\… | nit |
-| notation-3 | [[notation]] | Dangling wikilink [[regret-gp-bandits]] (lines 113, plus referenced from gp-ucb, max-value-entropy-search, gaussian-pro… | nit |
 | pandoras-box-gittins-index-1 | [[pandoras-box-gittins-index]] | Citation locator error: the one-box indifference derivation is cited as 'xie2024, App. A.1' (line 57), but App. A in xi… | nit |
 | pandoras-box-gittins-index-2 | [[pandoras-box-gittins-index]] | Citation locator error: the λ→0 UCB limit is cited as 'xie2024, §3.4' (line 114) and '§3.4' (crosswalk table, line 175)… | nit |
 | pandoras-box-gittins-index-3 | [[pandoras-box-gittins-index]] | Line 91 asserts 'α^PBGI_t(x)=f(x) at evaluated points.' This is a correct consequence of the open-box/fair-value readin… | nit |
@@ -106,6 +101,7 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | probability-of-improvement-5 | [[probability-of-improvement]] | Optional context (not a note error): the EI closed form the note states in 'Relation to EI' (ΔΦ(Δ/σ)+σφ(Δ/σ)) is the co… | nit |
 | problem-setup-4 | [[problem-setup]] | Lines 109-110: best-observed arg max and best-posterior-mean arg max 'coincide in the noise-free case asymptotically'.… | nit |
 | problem-setup-5 | [[problem-setup]] | Pseudocode (lines 71-75) reindexes Frazier's Algorithm 1 from x_n / y_n=f(x_n) / increment-n to x_{n+1} / y_{n+1} / set… | nit |
+| regret-gp-bandits-3 | [[regret-gp-bandits]] | The crosswalk omits the feasible-set ↔ decision-set (A ↔ D) row that gp-ucb.md's crosswalk carries; srinivas2010 writes… | nit |
 | thompson-sampling-bo-4 | [[thompson-sampling-bo]] | Mild over-attribution in the 'Standard routes to approximate sample paths (§IV-C)' subsection. §IV-C only references sp… | nit |
 | thompson-sampling-bo-5 | [[thompson-sampling-bo]] | Missing cross-link to [[predictive-entropy-search]] in the body despite it being highly relevant: shahriari2016 §IV-C n… | nit |
 | thompson-sampling-bo-6 | [[thompson-sampling-bo]] | Frontmatter tags include 'information-theoretic' while subtopic is 'myopic'. This is internally consistent with the wik… | nit |
