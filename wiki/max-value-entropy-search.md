@@ -154,10 +154,12 @@ $$
 $$
 
 > **Remark — approximation quality.** The independence assumption is a hand-wave: GP values
-> at nearby $x$ are positively correlated, so treating them as independent over-estimates
-> $\Pr[f^*<z]$ and therefore produces samples that are stochastically **upper bounds** on the
-> true max. Wang & Jegelka note (citing Slepian's lemma) that when $k(x,x')\ge 0$ this is
-> provably an over-estimate, and that using over-estimates of $f^*$ still yields vanishing
+> at nearby $x$ are positively correlated, so treating them as independent **under-estimates**
+> $\Pr[f^*<z]$ — the product $\prod_x\Phi(\gamma_z(x))$ of sub-unit factors falls below the
+> true, positively-associated max-CDF — and therefore produces samples that stochastically
+> **dominate** the true max, i.e. upper bounds on $f^*$. Wang & Jegelka note (citing Slepian's
+> lemma) that when $k(x,x')\ge 0$ the product is provably a lower bound on the true CDF
+> (equivalently, an over-estimate of $f^*$), and that using over-estimates of $f^*$ still yields vanishing
 > regret (`wang2017mes`, §3.1 and Theorem 1). The approximation is exact in the i.i.d. limit
 > as grid resolution increases, but the i.i.d. assumption never holds exactly for a correlated
 > GP.

@@ -128,7 +128,7 @@ the one-step [[value-of-information]] (subtracting the known $u(S^n)$ changes no
 | [[entropy-search\|ES]] / [[predictive-entropy-search\|PES]] | $-H\big(p_\star(\cdot\mid\mathcal D_n)\big)$ | certainty about the **maximizer location** |
 | [[max-value-entropy-search\|MES]] | $-H\big(p(f^*\mid\mathcal D_n)\big)$ | certainty about the **maximum value** |
 
-This is the reconciliation the Tier-1 notes were built against: each says it is "the one-step
+This is the reconciliation each one-step note refers back to: each says it is "the one-step
 truncation of this DP under terminal reward $u$," and this table is the single place all those
 $u$'s line up. Reading the acquisitions as **one truncated DP under five utilities** — rather
 than five unrelated formulas — is the cleanest organizing view of the myopic family

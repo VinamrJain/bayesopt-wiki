@@ -145,4 +145,4 @@ the two surrogates are mathematically identical models under different terminolo
 | $\alpha_n(x)$, acquisition function | "figure of merit" / expected improvement $\mathrm{E}[I(\mathbf{x})]$ | same concept; `jones98` uses only EI |
 | Space-filling initial design | Latin hypercube of $\approx 10d$ points | `jones98` recommends $n_0 = 10d$; `frazier2018` leaves $n_0$ open |
 | Budget $N$, iterate while $n \le N$ | Stopping rule: stop when $\mathrm{E}[I] < 1\%$ of current best | `jones98` uses a data-driven stopping rule; `frazier2018` uses a fixed budget |
-| Return best observed or best $\mu_n$ | Return minimum of DACE surface after convergence | `jones98`'s branch-and-bound maximizes EI exactly; `frazier2018` defers inner optimization to continuous solvers |
+| Return best observed or best $\mu_n$ | Return best observed point (incumbent $f_{\min}$) at the $\mathrm{E}[I]<1\%$ stop | `jones98` reports the incumbent, *not* the DACE-surface minimum (which it explicitly rejects as ignoring model uncertainty); matches `frazier2018`'s best-observed branch |

@@ -6,16 +6,10 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | gap | note | description | severity |
 |-----|------|-------------|----------|
 | budget-constrained-dp-2 | [[budget-constrained-dp]] | The symbol B is defined incorrectly in the canonical notation.md and the note silently inherits the contradiction. nota… | blocker |
-| cost-models-1 | [[cost-models]] | The note states (lines 78-79) under the independence assumption: 'No standard workaround exists in the sources availabl… | blocker |
 | expected-improvement-1 | [[expected-improvement]] | Broken wikilink [[ego-convergence-rates]] (line 168). No such note exists in wiki/; the convergence-theory note bull201… | blocker |
 | expected-improvement-2 | [[expected-improvement]] | Broken wikilink [[parallel-batch-bo]] (lines 168-169). No parallel-batch-bo.md (nor any batch/parallel note) exists in… | blocker |
 | gp-hyperparameters-1 | [[gp-hyperparameters]] | [[ego-convergence-rates]] (Relation to other notes, 'Convergence' bullet, line 205) is a broken wikilink — no wiki/ego-… | blocker |
-| max-value-entropy-search-1 | [[max-value-entropy-search]] | Gumbel-section sign error. The note states the mean-field independence assumption 'over-estimates Pr[f*<z] and therefor… | blocker |
-| probability-of-improvement-1 | [[probability-of-improvement]] | The pathology box (lines 67-70) claims a point with Δ_n=0.1, σ_n=100 "scores the same" as one with Δ_n=0.1, σ_n=0.11. T… | blocker |
 | problem-setup-1 | [[problem-setup]] | [[ego-convergence-rates]] is a broken wikilink — no such note exists in wiki/ (the only matching file is CONVENTIONS.md… | blocker |
-| problem-setup-2 | [[problem-setup]] | Crosswalk row (line 148) states jones98's EGO returns the 'minimum of DACE surface after convergence'. This is wrong: E… | blocker |
-| thompson-sampling-bo-1 | [[thompson-sampling-bo]] | Section attribution for the 'four practical virtues' is wrong. The note cites shahriari2016 §IV-A twice (lines 84 and 9… | blocker |
-| thompson-sampling-bo-2 | [[thompson-sampling-bo]] | Origin/crosswalk section misattributes two more locations. The note says shahriari2016 'traces the history (§VIII-A)' o… | blocker |
 | acquisition-functions-1 | [[acquisition-functions]] | Two wikilinks have no target note: [[ego-convergence-rates]] (line 71, Improvement family 'Guarantee' cell) and [[regre… | gap |
 | acquisition-functions-2 | [[acquisition-functions]] | The four-families table (line 74) labels the Information/lookahead 'Scores x by' as 'entropy of p_⋆ for ES/MES'. Per no… | gap |
 | xconn-3 | [[bo-as-dynamic-program]] | [cross-note: bo-as-dynamic-program, gp-ucb, thompson-sampling-bo] The DP-parent note frames myopic acquisitions as one-… | gap |
@@ -52,7 +46,6 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 | acquisition-functions-4 | [[acquisition-functions]] | The note writes GP-UCB as μ_n+β_n^{1/2}σ_n (lines 60, 72, 95). shahriari2016 eq(45) writes μ_n+β_nσ_n (no square root);… | nit |
 | acquisition-functions-5 | [[acquisition-functions]] | The PI 'margin ξ' knob (lines 71, 94, 100) is the Lizotte/Brochu PI convention; neither frazier2018 nor shahriari2016 i… | nit |
 | bo-as-dynamic-program-1 | [[bo-as-dynamic-program]] | The boxed terminal-utility Bellman recursion (V^N(s)=u(s); V^n(s)=max_x E[V^{n+1}(S^{n+1})\|...]) is cited as '(lam2016,… | nit |
-| bo-as-dynamic-program-2 | [[bo-as-dynamic-program]] | Line 131 contains a build-process tier label: 'This is the reconciliation the Tier-1 notes were built against'. 'Tier-1… | nit |
 | bo-as-dynamic-program-3 | [[bo-as-dynamic-program]] | The note attributes the N=n+1 optimality claim to 'frazier2009kg, Remark 1'. Remark 1 states only 'When N=1, the KG pol… | nit |
 | bo-as-dynamic-program-4 | [[bo-as-dynamic-program]] | 'Rollout is a one-step-lookahead policy that provably improves on its base policy, and empirically beats greedy EI/PI/U… | nit |
 | bo-as-dynamic-program-5 | [[bo-as-dynamic-program]] | astudillo2021 is in the sources frontmatter but its distinctive material (random-horizon MDP, stopping time N_B, stocha… | nit |

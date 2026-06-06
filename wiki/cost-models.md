@@ -75,9 +75,11 @@ treated as independent processes sharing only $x$ as input. This is an assumptio
 convenience — it decouples inference and keeps the joint model tractable. It is *misspecified*
 whenever cost and quality are correlated: e.g. in neural architecture search, larger models
 are simultaneously slower (higher $c$) and more accurate (higher $f$). Under such correlation,
-the independence model underutilizes a real signal and can produce suboptimal queries. No
-standard workaround exists in the sources available; flagging this as an open modeling
-assumption.
+the independence model underutilizes a real signal and can produce suboptimal queries. The
+cited sources note this coupling *can* be captured jointly via multi-task / multi-output GPs
+(`snoek2012` points to multi-task GP learning; cf. Swersky et al. 2013's multi-task cost-aware
+entropy search, noted in `lee2020`), but the black-box default keeps the two GPs independent
+for tractability — a known joint-modeling alternative exists, but is rarely used.
 
 ## lee2020's low-variance / extrapolating cost models
 

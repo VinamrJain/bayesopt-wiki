@@ -64,9 +64,14 @@ by a substantial margin. This discounts nearby points and pushes the acquisition
 regions where $\mu_n(x)$ is meaningfully larger than $f^*_n+\xi$, buying exploration at
 the cost of optimism about how large the improvement will be.
 
-> **Pathology.** Even with $\xi>0$, PI has no analogue of EI's $\sigma_n\varphi(\cdot)$
-> term, so posterior uncertainty earns no direct reward: a point with $\Delta_n=0.1$ and
-> $\sigma_n=100$ scores the same as one with $\Delta_n=0.1$ and $\sigma_n=0.11$. In
+> **Pathology.** PI has no analogue of EI's $\sigma_n\varphi(\cdot)$ uncertainty bonus —
+> and worse, at a fixed margin $\Delta_n>0$ it actively *penalizes* uncertainty, since
+> $\mathrm{PI}=\Phi(\Delta_n/\sigma_n)$ decreases in $\sigma_n$. A point with $\Delta_n=0.1,\
+> \sigma_n=100$ scores $\Phi(0.001)\approx0.50$, while $\Delta_n=0.1,\ \sigma_n=0.11$ scores
+> $\Phi(0.91)\approx0.82$: PI prefers the *tighter* bet just over the incumbent and shuns the
+> high-uncertainty region. EI does the opposite — at the same $\Delta=0.1$, $\mathrm{EI}\approx
+> 39.9$ when $\sigma=100$ versus $\approx0.11$ when $\sigma=0.11$, rewarding the very
+> uncertainty PI penalizes. In
 > practice, setting $\tau=f^*_n$ (i.e. $\xi=0$) causes PI to cluster evaluations near the
 > current best and stall (`shahriari2016`, §V-A, citing [81]). The exploitation bias is
 > noted even by Kushner himself, who introduced a separate global/local tradeoff parameter
