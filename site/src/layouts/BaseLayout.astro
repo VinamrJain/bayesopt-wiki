@@ -14,11 +14,14 @@ interface Props {
 const { title, description = 'A concept-deduplicated wiki for Bayesian optimization.', wide = false } =
   Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+// Absolute canonical URL for this page (Astro.site = SITE_URL); also used for social cards.
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
 const nav = [
   { href: `${base}/`, label: 'Home' },
   { href: `${base}/graph`, label: 'Graph' },
   { href: `${base}/tracks`, label: 'Tracks' },
   { href: `${base}/references`, label: 'References' },
+  { href: `${base}/search`, label: 'Search' },
 ];
 ---
 
@@ -29,7 +32,17 @@ const nav = [
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <title>{title}</title>
+    <link rel="canonical" href={canonical} />
     <link rel="icon" href={`${base}/favicon.svg`} />
+    {/* Social cards (Open Graph + Twitter). No image asset — summary card. */}
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bayesian Optimization concept wiki" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
     {/* Set theme before paint to avoid a flash. */}
     <script is:inline>
       (() => {

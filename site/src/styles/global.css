@@ -332,6 +332,19 @@ a.src:hover { color: var(--fg); border-color: var(--fg-faint); text-decoration: 
 .ref-summary { margin: 0.3rem 0; color: var(--fg-muted); font-size: 0.92rem; }
 .ref-links { margin: 0.3rem 0 0; display: flex; flex-wrap: wrap; gap: 0.8rem; font-size: 0.86rem; }
 
+/* ---- Search (Pagefind) -------------------------------------------------------------------- */
+.search-page { max-width: var(--max-content); }
+.search-page .pagefind-ui {
+  --pagefind-ui-primary: #4c9be8;
+  --pagefind-ui-text: var(--fg);
+  --pagefind-ui-background: var(--bg-soft);
+  --pagefind-ui-border: var(--border-soft);
+  --pagefind-ui-tag: var(--bg-inset);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: var(--radius);
+  --pagefind-ui-font: var(--font-sans);
+}
+
 /* ---- Responsive --------------------------------------------------------------------------- */
 @media (max-width: 900px) {
   .note-grid { grid-template-columns: 1fr; }
