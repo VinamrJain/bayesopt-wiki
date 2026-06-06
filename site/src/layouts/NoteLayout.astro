@@ -1,7 +1,8 @@
 ---
 // Note page layout: a two-column grid of rendered note content + the right sidebar nav rail.
-// The slug header (subtopic chip + summary) sits above the content; <slot/> receives the rendered
-// markdown (<Content/>) from the [slug] page.
+// The slug header (subtopic chip + title) sits above the content; <slot/> receives the rendered
+// markdown (<Content/>) from the [slug] page, with its duplicate leading H1 stripped (see
+// remarkStripTitle). The frontmatter summary is kept as the page <meta description>, not shown.
 import BaseLayout from './BaseLayout.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { subtopicOf } from '../lib/subtopics';
@@ -26,7 +27,6 @@ const sub = subtopicOf(node.slug);
       <header class="note-header">
         <span class="subtopic-chip" style={`--chip:${sub.color}`}>{sub.label}</span>
         <h1>{node.title}</h1>
-        <p class="note-summary">{node.summary}</p>
       </header>
       <div class="note-body">
         <slot />

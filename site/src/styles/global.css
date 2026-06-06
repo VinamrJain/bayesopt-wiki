@@ -126,7 +126,6 @@ code, pre, kbd { font-family: var(--font-mono); }
   padding: 0.15rem 0.7rem;
 }
 .note-header h1 { font-size: 2.1rem; line-height: 1.15; margin: 0.7rem 0 0.4rem; letter-spacing: -0.01em; }
-.note-summary { color: var(--fg-muted); font-size: 1.06rem; margin: 0; }
 
 /* ---- Note prose --------------------------------------------------------------------------- */
 .note-body { font-size: 1.02rem; }
