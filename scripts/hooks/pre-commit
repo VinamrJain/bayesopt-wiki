@@ -10,5 +10,7 @@ set -e
 if git diff --cached --name-only | grep -Eq '^(wiki/|references\.md)'; then
     python3 scripts/build_index.py
     git add wiki/map.md
-    [ -f wiki/gaps.md ] && git add wiki/gaps.md
+    # `if` (not `&&`): under `set -e` a false trailing test would abort the commit
+    # whenever gaps.md is absent (it doesn't exist until a reflection pass runs).
+    if [ -f wiki/gaps.md ]; then git add wiki/gaps.md; fi
 fi
