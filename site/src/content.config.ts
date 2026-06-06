@@ -4,8 +4,10 @@
 // with an explicit `base`. Each note is one concept; its frontmatter is the structured source of
 // truth that also drives the concept graph (see src/lib/graph.ts) and the build_index.py registry.
 //
-// Exclusions:
+// Exclusions (the `**/*.md` glob recurses, so every non-note generated file must be named here):
 //   - map.md          → index page, lacks grade/reviewed → would break the schema.
+//   - gaps.md         → generated open-gaps board (build_index.py), no frontmatter at all.
+//   - reviews/**      → per-note review logs, a different frontmatter shape (note/last_reviewed/…).
 //   - CONVENTIONS.md  → its frontmatter is a stray copy of another note's (a content bug), not a note.
 //   notation.md IS a real note (grade: reference) and stays in.
 
@@ -15,7 +17,7 @@ import { glob } from 'astro/loaders';
 const notes = defineCollection({
   loader: glob({
     base: '../wiki',
-    pattern: ['**/*.md', '!map.md', '!CONVENTIONS.md'],
+    pattern: ['**/*.md', '!map.md', '!gaps.md', '!reviews/**', '!CONVENTIONS.md'],
   }),
   schema: z.object({
     title: z.string(),
