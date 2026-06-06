@@ -1,0 +1,54 @@
+---
+// Bibliography page. Renders every citation key from references.md as an anchored entry
+// (#<key>) so per-note source chips can deep-link to the full academic citation and paper links.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { loadReferences } from '../lib/references';
+
+const refs = loadReferences();
+
+// Group by topic, preserving first-seen topic order.
+const groups: { topic: string; items: typeof refs }[] = [];
+for (const r of refs) {
+  let g = groups.find((x) => x.topic === r.topic);
+  if (!g) {
+    g = { topic: r.topic, items: [] };
+    groups.push(g);
+  }
+  g.items.push(r);
+}
+---
+
+<BaseLayout title="References · BO wiki" description="Bibliography for the Bayesian optimization concept wiki.">
+  <section class="references">
+    <h1>References</h1>
+    <p class="section-sub">
+      Sources cited across the wiki. Each note's metadata links here by citation key.
+    </p>
+
+    {groups.map((g) => (
+      <div class="ref-group">
+        <h2>{g.topic}</h2>
+        {g.items.map((r) => (
+          <article class="ref-entry" id={r.key}>
+            <div class="ref-key"><code>{r.key}</code></div>
+            <div class="ref-body">
+              <p class="ref-cite">
+                <span class="ref-authors">{r.authors}</span>.
+                <span class="ref-title"> {r.title}</span>.
+                <span class="ref-venue"> {r.venue}</span>.
+              </p>
+              {r.summary && <p class="ref-summary">{r.summary}</p>}
+              {r.links.length > 0 && (
+                <p class="ref-links">
+                  {r.links.map((l) => (
+                    <a href={l.url} target="_blank" rel="noopener noreferrer">{l.label}</a>
+                  ))}
+                </p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    ))}
+  </section>
+</BaseLayout>

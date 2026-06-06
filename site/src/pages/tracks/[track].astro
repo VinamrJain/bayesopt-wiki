@@ -43,7 +43,6 @@ const nodeOf = (slug: string) => graph.bySlug.get(slug);
               <div class="step-body">
                 <a class="step-title" href={`${base}/notes/${slug}`}>{n?.title ?? slug}</a>
                 {n && <p class="step-summary">{n.summary}</p>}
-                {n && <span class={`grade grade-${n.grade}`}>{n.grade}</span>}
               </div>
             </li>
           );

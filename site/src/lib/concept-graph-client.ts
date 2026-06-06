@@ -27,7 +27,6 @@ interface RawNode {
   slug: string;
   title: string;
   summary: string;
-  grade: string;
   subtopic: string;
   color: string;
   dependents: number;
@@ -103,14 +102,14 @@ function runForceLayout(
   return sim;
 }
 
+// Declutter: in the full graph, persistently label only the foundational hub nodes (those at least
+// this many notes depend on); every other label appears on hover. Tune this cutoff to taste. Mini-
+// graphs (focusSlug set) are small, so they always show all labels.
+const LABEL_HUB_MIN_DEPENDENTS = 4;
+
 let radiusScale: (n: number) => number = () => 8;
 function radius(d: RawNode): number {
   return radiusScale(d.dependents);
-}
-
-// Stubs are dimmed; all other grades render at full strength.
-function gradeOpacity(grade: string): number {
-  return grade === 'stub' ? 0.45 : 1;
 }
 
 function renderGraph(root: HTMLElement, cfg: Config): void {
@@ -192,9 +191,11 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
     .append('circle')
     .attr('r', (d) => radius(d))
     .attr('fill', (d) => d.color)
-    .attr('fill-opacity', (d) => gradeOpacity(d.grade))
     .attr('class', 'cg-circle');
 
+  // Hubs (or every node in a mini-graph) keep a persistent label; the rest reveal theirs on hover.
+  const isHub = (d: RawNode) => !!focusSlug || d.dependents >= LABEL_HUB_MIN_DEPENDENTS;
+  nodeG.classed('cg-hub', (d) => isHub(d));
   nodeG
     .append('text')
     .attr('class', 'cg-label')
@@ -221,6 +222,8 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
 
   function highlight(active: Set<string>) {
     nodeG.classed('cg-dim', (d) => !active.has(d.slug));
+    // Reveal labels for the hovered neighborhood (even non-hub nodes).
+    nodeG.classed('cg-label-show', (d) => active.has(d.slug));
     linkSel.classed('cg-dim', (l) => {
       const s = (l.source as SimNode).slug ?? (l.source as string);
       const t = (l.target as SimNode).slug ?? (l.target as string);
@@ -229,6 +232,7 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
   }
   function clearHighlight() {
     nodeG.classed('cg-dim', false);
+    nodeG.classed('cg-label-show', false);
     linkSel.classed('cg-dim', false);
   }
 
@@ -279,7 +283,7 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
   if (cfg.controls) buildControls(root, svg, nodeG, linkSel, cfg, neighbors, zoomBehavior);
 }
 
-// ── Controls: subtopic legend toggle, grade filter, search-to-highlight ───────────────────────
+// ── Controls: subtopic legend toggle + search-to-highlight ────────────────────────────────────
 function buildControls(
   root: HTMLElement,
   svg: Selection<SVGSVGElement, unknown, null, undefined>,
@@ -302,7 +306,6 @@ function buildControls(
 
   // Subtopic legend (click to toggle).
   const activeSubtopics = new Set(cfg.subtopics.map((s) => s.id));
-  const activeGrades = new Set(cfg.nodes.map((n) => n.grade));
 
   const legend = document.createElement('div');
   legend.className = 'cg-legend';
@@ -327,29 +330,6 @@ function buildControls(
   });
   panel.appendChild(legend);
 
-  // Grade filter.
-  const grades = [...new Set(cfg.nodes.map((n) => n.grade))].sort();
-  if (grades.length > 1) {
-    const gradeWrap = document.createElement('div');
-    gradeWrap.className = 'cg-grades';
-    grades.forEach((g) => {
-      const label = document.createElement('label');
-      label.className = 'cg-grade';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = true;
-      cb.addEventListener('change', () => {
-        if (cb.checked) activeGrades.add(g);
-        else activeGrades.delete(g);
-        applyFilter();
-      });
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(' ' + g));
-      gradeWrap.appendChild(label);
-    });
-    panel.appendChild(gradeWrap);
-  }
-
   // Reset zoom.
   const reset = document.createElement('button');
   reset.className = 'cg-reset';
@@ -362,7 +342,7 @@ function buildControls(
   root.insertBefore(panel, root.firstChild);
 
   function visible(d: SimNode): boolean {
-    return activeSubtopics.has(d.subtopic) && activeGrades.has(d.grade);
+    return activeSubtopics.has(d.subtopic);
   }
   function applyFilter() {
     nodeG.style('display', (d) => (visible(d) ? null : 'none'));

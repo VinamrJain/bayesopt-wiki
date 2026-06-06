@@ -33,14 +33,16 @@ const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
   <section class="side-card meta-card">
     <h2 class="side-h">Metadata</h2>
     <dl class="meta">
-      <dt>Coverage</dt>
-      <dd><span class={`grade grade-${node.grade}`}>{node.grade}</span></dd>
       <dt>Reviewed</dt>
       <dd>{node.reviewed ?? '—'}</dd>
       <dt>Sources</dt>
       <dd class="sources">
         {node.sources.map((s, i) => (
-          <span class={i === 0 ? 'src src-primary' : 'src'} title={i === 0 ? 'derivation-primary' : 'source'}>{s}</span>
+          <a
+            class={i === 0 ? 'src src-primary' : 'src'}
+            href={`${base}/references#${s}`}
+            title={i === 0 ? 'derivation-primary source' : 'source'}
+          >{s}</a>
         ))}
       </dd>
     </dl>
