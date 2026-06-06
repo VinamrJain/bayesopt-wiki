@@ -2,8 +2,9 @@
 
 House style for the Bayesian-optimization concept-wiki. Every note — lead- or
 subagent-authored — conforms to this. Read alongside [[notation]] (the canonical symbol
-table) and `wiki/build/source-routing.md` (the binding synthesis mandate and note↔source
-routing). This file governs *form*; `source-routing.md` governs *content sourcing*.
+table) and [[map]] (the index: concept registry, prerequisite graph, and per-note source
+coverage). This file governs note *form* and the *synthesis mandate* (below); the recurring
+conceptual-review pass that enforces them is the `wiki-reflection` skill.
 
 ## What a note is
 
@@ -95,8 +96,39 @@ connections are a first-class deliverable, mirrored in [[map]].
   explicit *Remark* — this is encouraged, not optional (see EI's treatment of the tutorial's
   compact closed form for the exemplar).
 
-## Synthesis, not transcription (pointer)
+## Synthesis mandate
 
-The binding mandate lives in `wiki/build/source-routing.md`: find the cleanest/simplest
-derivation, interrogate claims, make connections. This conventions file is downstream of it.
-When form and synthesis conflict, synthesis wins — but both should rarely conflict.
+A note is **synthesis, not transcription**. For every note:
+
+- **Find the cleanest derivation.** Where sources differ in approach, take (or construct) the
+  shortest path to the insight, and relegate a messier original to a crosswalk remark. (The
+  exemplar derives Expected Improvement from the improvement-function chain in `frazier2018`,
+  not the kriging algebra in `jones98`.)
+- **Interrogate claims.** State hidden assumptions explicitly; flag hand-waves and notation that
+  obscures the idea, rather than inheriting the fog.
+- **Make connections.** Surface cross-note structure — one acquisition as the one-step case of
+  another, an upper bound against its matching lower bound. Connections are a first-class
+  deliverable, carried in each note's interpretation/relation section and mirrored in [[map]].
+
+When form and synthesis conflict, synthesis wins.
+
+## Review pass and the mechanical tier
+
+A drafted note is not finished; it is reviewed before it is trusted. The **conceptual** review
+— mathematical correctness (re-derive, don't just read), pedagogy, writing, completeness, and
+connections — is run by the `wiki-reflection` skill, which records findings in a per-note review
+log under `wiki/reviews/` and stamps the `reviewed` field surfaced in [[map]].
+
+The **mechanical tier** is enforced here and by `scripts/build_index.py` plus the pre-commit
+hook. These checks are auto-fixable and need no human gate:
+
+- **Rendering.** Stock KaTeX/MathJax primitives only; no `\newcommand` or paper-preamble macros
+  (see *Markup*). A note must render standalone.
+- **Notation hygiene.** No symbol collisions; resolve a clash in a shared symbol upstream in
+  [[notation]] before dependent notes inherit it. `sources:` lists only keys whose material
+  actually appears in the body.
+- **Link and frontmatter validity.** `[[wikilinks]]`, `requires:`, and `sources:` keys resolve;
+  the index linter blocks a commit otherwise.
+- **Artifact scrub.** No build-process labels left in prose — tier or batch names, draft markers,
+  or references to a planning or build session. Notes read as finished reference material, not
+  as the trail of how they were assembled.

@@ -9,7 +9,7 @@ Project ops and in-progress work. Wiki build handoff: `~/.claude/handoffs/Bayesi
 | `references.md` | Anyone | Bibliography: keys, authors, links, one-paragraph contribution. **No** agent tiers, parse status, or session jargon. |
 | `MEMORY.md` | Agents | Project ops: doc roles, git, sources, context-rot. **Not** the build plan. |
 | `CLAUDE.md` | Agents | Repo conventions. |
-| `wiki/build/source-routing.md` | Agents | **Authoritative** wiki build plan: note map, routing, synthesis mandate, model rules, session batches. |
+| `wiki/map.md` | Agents + humans | The index: concept registry, prerequisite graph, learning tracks, planned concepts. **Authoritative for routing and per-note source coverage.** |
 
 Writing style: same bar as `~/.claude/memory/feedback_skill-writing-generic.md` and concept-wiki pattern in `~/.claude/memory/reference_concept-wiki-synthesis.md`.
 
@@ -17,7 +17,7 @@ Writing style: same bar as `~/.claude/memory/feedback_skill-writing-generic.md` 
 
 No remote. Atomic commits; prefixes `wiki:` `raw:` `fix:` `chore:`. Undo with `git revert`, not `reset --hard`. Stage paths explicitly. No secrets (`.env`); no remotes/push unless asked.
 
-Tracks: `raw/**/*.tex`, `raw/**/*.bib`, trustworthy `raw/**/*.md`; plus `references.md`, `wiki/`. Ignores figures, styles, scripts, data, PDFs — see `.gitignore`.
+Tracks: `raw/**/*.tex`, `raw/**/*.bib`, trustworthy `raw/**/*.md`; plus `references.md`, `wiki/`, and `scripts/`. Ignores OS/editor cruft, Python caches, secrets, PDFs, and `_archive/` — see `.gitignore`.
 
 Background sessions: bg-isolation guard disabled via `.claude/settings.json` (`worktree.bgIsolation: none`) so doc edits land in the main checkout. Read at session start — fresh session honors it, mid-session toggling does not.
 
@@ -35,7 +35,10 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 
 ## Wiki build — status
 
-Plan, routing table, synthesis mandate, model rules, and session batches all live in **`wiki/build/source-routing.md`**.
+Routing and per-note source coverage live in **`wiki/map.md`** (the index). The synthesis
+mandate moved into `wiki/CONVENTIONS.md`; the conceptual review pass is the `wiki-reflection`
+skill. The original build plan (note map, routing table, model rules, session batches) is
+retired to `_archive/source-routing.md` as a historical record.
 
 **Progress:** Tier 0 + Tier 1 + S2 + S3a + S3b done.
 - S0a ✅ `3b7289c` — `CONVENTIONS.md`, `notation.md`, `gaussian-process-regression.md`, `expected-improvement.md` (exemplar).
