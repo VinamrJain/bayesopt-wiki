@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, expected-improvement]
 sources: [shahriari2016, frazier2018, jones98]
 summary: "The oldest improvement acquisition: probability of beating the incumbent."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Probability of Improvement

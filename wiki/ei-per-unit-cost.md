@@ -7,7 +7,7 @@ requires: [expected-improvement, cost-aware-bo]
 sources: [snoek2012, lee2020, xie2024]
 summary: "The simplest cost-aware acquisition: expected improvement divided by cost."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # EI Per Unit Cost

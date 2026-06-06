@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, acquisition-functions, en
 sources: [wang2017mes]
 summary: "Information-theoretic acquisition targeting the max-value, not its location."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Max-Value Entropy Search

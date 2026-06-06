@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, expected-improvement, acq
 sources: [frazier2018, frazier2009kg]
 summary: "The decision-theoretic quantity underneath every acquisition; the VoI frame."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Value of Information

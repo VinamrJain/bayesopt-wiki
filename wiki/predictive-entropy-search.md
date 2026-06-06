@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, acquisition-functions, en
 sources: [hernandez2014, hennig2012]
 summary: "A cheaper reformulation of entropy search via predictive-distribution symmetry."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Predictive Entropy Search

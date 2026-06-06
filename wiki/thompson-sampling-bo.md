@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression]
 sources: [shahriari2016]
 summary: "Randomized acquisition: act greedily on a posterior sample of the objective."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Thompson Sampling (Bayesian Optimization)

@@ -1,0 +1,16 @@
+---
+note: predictive-entropy-search
+last_reviewed: 2026-06-06
+verdict: open-gaps
+open_gaps: 4
+reviewer: claude-opus-4-8 (reflection-sweep reviewer subagent)
+scope: sweep
+---
+
+## 2026-06-06 — sweep (inaugural full-wiki reflection)
+sources read: wiki/predictive-entropy-search.md, wiki/notation.md, wiki/entropy-search.md, raw/hernandez_lobato_2014_pes/esbald.tex, raw/hernandez_lobato_2014_pes/macros.sty, raw/hernandez_lobato_2014_pes/sections/introduction.tex, raw/hernandez_lobato_2014_pes/sections/method.tex, raw/hernandez_lobato_2014_pes/sections/sampling.tex, raw/hernandez_lobato_2014_pes/sections/predictiveEntropy.tex, raw/hernandez_lobato_2014_pes/sections/integration.tex, raw/hernandez_lobato_2014_pes/sections/samplingAppendix.tex, references.md
+
+- [predictive-entropy-search-1] nit (open) — Crosswalk line 236 uses the non-canonical operator \arg\min ($\mathbf x_{\mathrm{opt}}\in\arg\min f$). KaTeX renders \arg as a normal upright operator without the under-limit, drifting from the wiki's canonical \operatorname*{arg\,min} (used correctly on the same line for arg max). Replace \arg\min with \operatorname*{arg\,min} for consistency with notation.md and the adjacent \operatorname*{arg\,max}.
+- [predictive-entropy-search-2] gap (open) — The note presents C1.1 as fixing the off-diagonal Hessian to zero (upper[∇²f(x*)]=0) but omits the paper's explicit practical refinement (predictiveEntropy.tex, last paragraph): fixing it to exactly zero 'can also produce poor predictions when the actual f does not satisfy this constraint,' so the authors instead fix upper[∇²f(x*)] to upper[∇²f^{(i)}(x*)] from the sampled spectral function f^{(i)} used to draw x*^{(i)}. This couples the sampling and EP stages and is a genuine correctness-relevant detail the note's Remark could note alongside the s>10^{-10} heuristic it already cites. Add one sentence to the C1/Remark block noting that upper[∇²f(x*)] is fixed to the value from the sampled function f^{(i)} (not zero) to avoid poor predictions when f violates the zero-off-diagonal assumption (hernandez2014, §3.1).
+- [predictive-entropy-search-3] nit (open) — The complexity paragraph reports O[M(n+d+d(d-1)/2)^3] precompute but omits the paper's stated reduction to O[M(n+d)^3] obtained by ignoring the derivative 'observations' imposed on upper[∇²f(x*)] by C1.1 (integration.tex). Minor, but it is the lever explaining why the d(d-1)/2 term is optional. Optionally add that dropping the off-diagonal-Hessian derivative observations reduces precompute to O[M(n+d)^3] (hernandez2014, §3.3).
+- [predictive-entropy-search-4] nit (open) — The note attributes the MI-symmetry reformulation to PES, but hernandez2014 (method.tex) credits the symmetric-information rearrangement to Houlsby et al. 2012 (BALD) and the underlying active-data-collection objective to MacKay 1992; PES's novelty is the predictive-entropy approximation, not the symmetry identity itself. The symmetry is a textbook MI property so this is not a math error, but the note's framing ('PES ... reorders the computation using the symmetry') could read as if PES originates the trick. Optionally note that the symmetric-MI decomposition follows Houlsby et al. 2012 (BALD)/MacKay 1992 as cited by hernandez2014, with PES's contribution being the tractable predictive-entropy approximation.

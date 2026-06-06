@@ -7,7 +7,7 @@ requires: [cost-aware-bo, ei-per-unit-cost, expected-improvement, budget-constra
 sources: [xie2024, astudillo2021]
 summary: "Pandora's-box Gittins fair-value acquisition (PBGI); optimal index, small-lambda to UCB limit."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Pandora's Box Gittins Index (PBGI)

@@ -7,7 +7,7 @@ requires: [gaussian-process-regression, problem-setup]
 sources: [snoek2012, frazier2018]
 summary: "Fitting GP kernel/mean hyperparameters: MLE, MAP, fully-Bayesian marginalization."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # GP Hyperparameters

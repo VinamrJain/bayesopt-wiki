@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, acquisition-functions, va
 sources: [hennig2012, frazier2018]
 summary: "Information-theoretic acquisition: sample to reduce entropy of the optimizer location."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Entropy Search

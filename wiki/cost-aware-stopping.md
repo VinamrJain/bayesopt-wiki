@@ -7,7 +7,7 @@ requires: [cost-aware-bo, pandoras-box-gittins-index, ei-per-unit-cost, expected
 sources: [xie2025, xie2024, astudillo2021]
 summary: "When to stop under cost-per-sample: the PBGI/LogEIPC rule plus cost-adjusted-regret theory."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Cost-Aware Stopping (PBGI / LogEIPC)

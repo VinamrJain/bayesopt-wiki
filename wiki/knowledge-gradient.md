@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, expected-improvement, val
 sources: [frazier2009kg, frazier2018]
 summary: "One-step value-of-information on the global max; EI's lookahead cousin."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Knowledge Gradient

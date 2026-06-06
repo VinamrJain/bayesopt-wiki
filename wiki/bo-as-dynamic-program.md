@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression, acquisition-functions, va
 sources: [lam2016, frazier2018, frazier2009kg, astudillo2021]
 summary: "BO as a finite-horizon sequential decision process; parent frame of myopic rules."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Bayesian Optimization as a Dynamic Program

@@ -7,7 +7,7 @@ requires: [bo-as-dynamic-program, cost-aware-bo, ei-per-unit-cost, budget-constr
 sources: [lee2021, lam2016, astudillo2021]
 summary: "Cost-constrained BO as a fixed-horizon CMDP solved by rollout."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Nonmyopic Cost-Constrained BO (CMDP Rollout)

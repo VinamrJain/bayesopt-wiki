@@ -7,7 +7,7 @@ requires: [ei-per-unit-cost, expected-improvement, cost-aware-bo]
 sources: [lee2020]
 summary: "Annealing the cost penalty over the budget (cost-cooling) and CArBO initialization."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Cost Cooling and CArBO

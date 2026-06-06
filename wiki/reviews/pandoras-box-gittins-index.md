@@ -1,0 +1,17 @@
+---
+note: pandoras-box-gittins-index
+last_reviewed: 2026-06-06
+verdict: open-gaps
+open_gaps: 5
+reviewer: claude-opus-4-8 (reflection-sweep reviewer subagent)
+scope: sweep
+---
+
+## 2026-06-06 — sweep (inaugural full-wiki reflection)
+sources read: raw/xie_2024_pandora_gittins_bo/Pandora-BayesOpt.tex (full, incl. App. B theory/proofs), raw/astudillo_2021_multi_step_budgeted_bo/main_content.tex (full), wiki/pandoras-box-gittins-index.md, wiki/notation.md
+
+- [pandoras-box-gittins-index-1] nit (open) — Citation locator error: the one-box indifference derivation is cited as 'xie2024, App. A.1' (line 57), but App. A in xie2024 is 'Illustrations' (A.1 = synthetic-function viz). The indifference argument E[max(f-g,0)]=c lives in App. B.1 'Additional intuition on Pandora's Box' (\subsection at tex line 539, eq gittins_indifference at line 554). Change 'App. A.1' to 'App. B.1' (or just 'App. B') in the line-57 parenthetical.
+- [pandoras-box-gittins-index-2] nit (open) — Citation locator error: the λ→0 UCB limit is cited as 'xie2024, §3.4' (line 114) and '§3.4' (crosswalk table, line 175). Section 3 of xie2024 has only three subsections (§3.1 Pandora's Box, §3.2 solving it, §3.3 the acquisition-function class); there is no §3.4. The small-λ limit is stated in §3.3 (the 'Qualitative behavior' paragraph) and derived in App. B.3 'Small-cost limit of PBGI acquisition function' (tex line 630). Replace both '§3.4' locators with '§3.3 / App. B.3' (or 'App. B.3').
+- [pandoras-box-gittins-index-3] nit (open) — Line 91 asserts 'α^PBGI_t(x)=f(x) at evaluated points.' This is a correct consequence of the open-box/fair-value reading (an open box's Gittins index is its known reward; σ_t→0 collapses EI), but xie2024 does not state it for the BO posterior plug-in — it is the note's own (sound) extension, presented as if sourced. Either drop the clause or flag it as an implication of the box analogy (e.g. 'an evaluated point behaves like an open box, with index equal to its observed value'), so it is not read as a quoted result.
+- [pandoras-box-gittins-index-4] nit (open) — The note's central framing — PBGI exactly solves a spatially-simplified DP, as EI exactly solves a temporally-simplified (one-step) DP — invites a link to [[knowledge-gradient]], which xie2024 uses as a non-myopic baseline (tex line 383) and which is the other canonical 'solve a simplified BO decision problem' acquisition. The note connects to EI, EIpu, UCB, and multistep-budgeted-bo but not KG. Optionally add a one-line cross-link to [[knowledge-gradient]] in the 'Relation to other notes' section situating PBGI's spatial-DP simplification against KG's value-of-information DP.
+- [xconn-1] gap (open) — [cross-note: pandoras-box-gittins-index, budget-constrained-dp] Asymmetric link on the cost-aware DP/budget spine. pandoras-box-gittins-index links budget-constrained-dp (4 mentions, including the budget-equivalence Thm 2 which is the formal bridge between the PBGI lambda cost-scaling and the budget-constrained DP), but budget-constrained-dp does NOT link back to pandoras-box-gittins-index. The reviewer flagged this same suggested link from the budget-constrained-dp side. Add a [[pandoras-box-gittins-index]] cross-link from budget-constrained-dp, ideally near the truncation/cost-coordinate-state discussion, noting PBGI's Thm 2 budget-equivalence as the index-policy counterpart to the SSP-DP formulation.

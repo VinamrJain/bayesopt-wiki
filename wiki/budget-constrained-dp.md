@@ -7,7 +7,7 @@ requires: [bo-as-dynamic-program, cost-aware-bo, ei-per-unit-cost]
 sources: [astudillo2021, lam2016, lee2021]
 summary: "Cost-aware BO under a total-budget cap as a random-horizon dynamic program."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Budget-Constrained BO as a Dynamic Program

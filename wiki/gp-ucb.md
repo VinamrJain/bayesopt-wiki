@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression]
 sources: [srinivas2010, frazier2018]
 summary: "Optimism-in-the-face-of-uncertainty: the regret-bearing upper-confidence-bound rule."
 grade: derivation
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # GP-UCB and the Optimism Principle

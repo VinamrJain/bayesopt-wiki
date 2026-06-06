@@ -7,7 +7,7 @@ requires: [problem-setup, gaussian-process-regression]
 sources: [frazier2018, shahriari2016]
 summary: "The decision rule of the BO loop; taxonomy of acquisition strategies."
 grade: concept
-reviewed: null
+reviewed: 2026-06-06
 ---
 
 # Acquisition Functions
