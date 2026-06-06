@@ -10,4 +10,5 @@ set -e
 if git diff --cached --name-only | grep -Eq '^(wiki/|references\.md)'; then
     python3 scripts/build_index.py
     git add wiki/map.md
+    [ -f wiki/gaps.md ] && git add wiki/gaps.md
 fi
