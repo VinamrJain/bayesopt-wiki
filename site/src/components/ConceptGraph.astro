@@ -1,0 +1,51 @@
+---
+// Concept-graph island. Server-renders a container + a JSON config blob; the client module
+// (src/lib/concept-graph-client.ts) hydrates every instance on the page into a d3 force graph.
+//
+// Used in two modes (one component):
+//   - hero:  full graph with controls (homepage, /graph)         → controls=true, focusSlug=null
+//   - mini:  1-hop local neighborhood, no controls (note sidebar) → controls=false, focusSlug=<slug>
+//
+// All inputs are plain serializable arrays (no Maps) so they survive JSON embedding.
+import type { GraphNode, GraphEdge } from '../lib/graph';
+import type { Subtopic } from '../lib/subtopics';
+
+interface Props {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  subtopics: Subtopic[];
+  focusSlug?: string | null;
+  controls?: boolean;
+  height?: number;
+}
+
+const { nodes, edges, subtopics, focusSlug = null, controls = false, height = 560 } = Astro.props;
+
+// Trim to exactly what the client needs (keeps the embedded JSON small).
+const config = {
+  nodes: nodes.map((n) => ({
+    slug: n.slug,
+    title: n.title,
+    summary: n.summary,
+    grade: n.grade,
+    subtopic: n.subtopic,
+    color: n.color,
+    dependents: n.dependents,
+  })),
+  edges: edges.map((e) => ({ source: e.source, target: e.target })),
+  subtopics,
+  focusSlug,
+  controls,
+  height,
+};
+---
+
+<div class="concept-graph" data-concept-graph style={`min-height:${height}px`}>
+  <script class="cg-config" type="application/json" set:html={JSON.stringify(config)} />
+  {nodes.length === 0 && <p class="cg-empty">No concepts to display.</p>}
+</div>
+
+<script>
+  import { initConceptGraphs } from '../lib/concept-graph-client';
+  initConceptGraphs();
+</script>

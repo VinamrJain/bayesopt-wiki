@@ -1,0 +1,28 @@
+---
+// Full-page concept graph — the same hero component given the whole viewport.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ConceptGraph from '../components/ConceptGraph.astro';
+import { getCollection } from 'astro:content';
+import { buildGraph } from '../lib/graph';
+import { SUBTOPICS } from '../lib/subtopics';
+
+const entries = await getCollection('notes');
+const graph = buildGraph(entries);
+---
+
+<BaseLayout title="Concept graph · BO wiki" wide>
+  <section class="graph-page">
+    <h1>Concept graph</h1>
+    <p class="section-sub">
+      The full prerequisite DAG. Edges point prerequisite → dependent (read the source of an arrow
+      first). Filter by subtopic or coverage, search to highlight, drag to rearrange.
+    </p>
+    <ConceptGraph
+      nodes={graph.nodes}
+      edges={graph.edges}
+      subtopics={SUBTOPICS}
+      controls={true}
+      height={720}
+    />
+  </section>
+</BaseLayout>

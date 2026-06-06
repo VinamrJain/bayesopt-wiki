@@ -1,0 +1,16 @@
+[project]
+name = "bo-wiki-site"
+description = "Astro static site publishing the Bayesian-Optimization concept-wiki (interactive D3 prerequisite graph) to GitHub Pages."
+channels = ["conda-forge"]
+platforms = ["osx-arm64"]
+
+# Project-local, reproducible Node toolchain (isolated from the system Node).
+# npm manages node_modules under this pinned Node; pixi tasks wrap the npm scripts.
+[dependencies]
+nodejs = "22.*"
+
+[tasks]
+install = "npm install"
+dev = "npm run dev"
+build = "npm run build"
+preview = "npm run preview"

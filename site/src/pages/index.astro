@@ -1,0 +1,60 @@
+---
+// Homepage: graph hero (the star + primary nav) + human entry scaffolding (intro, track cards) so
+// the site answers "where do I start?" and not just "here is a beautiful graph."
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ConceptGraph from '../components/ConceptGraph.astro';
+import { getCollection } from 'astro:content';
+import { buildGraph } from '../lib/graph';
+import { SUBTOPICS, subtopicOf } from '../lib/subtopics';
+import { TRACKS } from '../lib/tracks';
+
+const entries = await getCollection('notes');
+const graph = buildGraph(entries);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<BaseLayout title="Bayesian Optimization — concept wiki" wide>
+  <section class="hero">
+    <div class="hero-intro">
+      <h1>Bayesian Optimization</h1>
+      <p>
+        A concept-deduplicated wiki: {graph.nodes.length} self-contained, derivation-driven notes on
+        Bayesian optimization, wired into a prerequisite graph. Each node is one concept — hover to
+        see its summary, click to read it. Node <strong>size</strong> is how foundational a concept
+        is (how many others build on it); <strong>color</strong> is its subtopic.
+      </p>
+      <p class="hero-cta">
+        Start with a <a href={`${base}/tracks`}>learning track</a>, explore the
+        <a href={`${base}/graph`}>full graph</a>, or jump into
+        <a href={`${base}/notes/problem-setup`}>the problem setup</a>.
+      </p>
+    </div>
+
+    <div class="hero-graph">
+      <ConceptGraph
+        nodes={graph.nodes}
+        edges={graph.edges}
+        subtopics={SUBTOPICS}
+        controls={true}
+        height={560}
+      />
+    </div>
+  </section>
+
+  <section class="tracks-section">
+    <h2>Learning tracks</h2>
+    <p class="section-sub">Guided reading orders by subtopic. Each assumes Foundations first.</p>
+    <div class="track-cards">
+      {TRACKS.map((t) => {
+        const color = subtopicOf(t.slugs[0]).color;
+        return (
+          <a class="track-card" href={`${base}/tracks/${t.id}`} style={`--accent:${color}`}>
+            <h3>{t.label}</h3>
+            <p>{t.description}</p>
+            <span class="track-count">{t.slugs.length} notes →</span>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+</BaseLayout>

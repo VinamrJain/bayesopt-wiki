@@ -1,0 +1,25 @@
+{
+  "name": "bo-wiki-site",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.6.0",
+    "d3": "^7.9.0",
+    "katex": "^0.16.11",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0",
+    "unist-util-visit": "^5.0.0"
+  },
+  "devDependencies": {
+    "@pagefind/default-ui": "^1.1.1",
+    "@types/d3": "^7.4.3",
+    "pagefind": "^1.1.1"
+  }
+}

@@ -1,0 +1,66 @@
+---
+// Site shell: <head> (KaTeX CSS, global styles, theme bootstrap), top nav, and a slot for content.
+// Theme defaults to dark (the graph palette is tuned for dark); a toggle persists to localStorage.
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  // wide = full-bleed content area without the note sidebar grid (homepage, graph, tracks).
+  wide?: boolean;
+}
+
+const { title, description = 'A concept-deduplicated wiki for Bayesian optimization.', wide = false } =
+  Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const nav = [
+  { href: `${base}/`, label: 'Home' },
+  { href: `${base}/graph`, label: 'Graph' },
+  { href: `${base}/tracks`, label: 'Tracks' },
+];
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" href={`${base}/favicon.svg`} />
+    {/* Set theme before paint to avoid a flash. */}
+    <script is:inline>
+      (() => {
+        const t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={`${base}/`}>Bayesian Optimization<span class="brand-sub">concept wiki</span></a>
+      <nav class="site-nav">
+        {nav.map((n) => <a href={n.href}>{n.label}</a>)}
+        <button id="theme-toggle" class="theme-toggle" aria-label="Toggle color theme" title="Toggle theme">◐</button>
+      </nav>
+    </header>
+
+    <main class={wide ? 'site-main wide' : 'site-main'}>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <span>Generated from <code>wiki/*.md</code> · derivation-driven concept notes</span>
+    </footer>
+
+    <script is:inline>
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const el = document.documentElement;
+        const next = el.dataset.theme === 'dark' ? 'light' : 'dark';
+        el.dataset.theme = next;
+        localStorage.setItem('theme', next);
+      });
+    </script>
+  </body>
+</html>

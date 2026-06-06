@@ -1,0 +1,24 @@
+---
+// One static page per concept note, routed on the frontmatter `slug`. Renders the markdown body
+// (KaTeX + wikilinks already wired in astro.config) inside NoteLayout, with the full graph available
+// to the sidebar for prereqs / read-next / backlinks / mini-graph.
+import { getCollection, render } from 'astro:content';
+import NoteLayout from '../../layouts/NoteLayout.astro';
+import { buildGraph } from '../../lib/graph';
+import { SUBTOPICS } from '../../lib/subtopics';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('notes');
+  return entries.map((entry) => ({ params: { slug: entry.data.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const entries = await getCollection('notes');
+const graph = buildGraph(entries); // cheap at this corpus size; avoids passing Maps through props
+const node = graph.bySlug.get(entry.data.slug)!;
+const { Content, headings } = await render(entry);
+---
+
+<NoteLayout node={node} graph={graph} subtopics={SUBTOPICS} headings={headings}>
+  <Content />
+</NoteLayout>

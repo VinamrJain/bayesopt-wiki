@@ -1,0 +1,37 @@
+---
+// Note page layout: a two-column grid of rendered note content + the right sidebar nav rail.
+// The slug header (subtopic chip + summary) sits above the content; <slot/> receives the rendered
+// markdown (<Content/>) from the [slug] page.
+import BaseLayout from './BaseLayout.astro';
+import Sidebar from '../components/Sidebar.astro';
+import { subtopicOf } from '../lib/subtopics';
+import type { Graph, GraphNode } from '../lib/graph';
+import type { Subtopic } from '../lib/subtopics';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  node: GraphNode;
+  graph: Graph;
+  subtopics: Subtopic[];
+  headings: MarkdownHeading[];
+}
+
+const { node, graph, subtopics, headings } = Astro.props;
+const sub = subtopicOf(node.slug);
+---
+
+<BaseLayout title={`${node.title} · BO concept wiki`} description={node.summary}>
+  <div class="note-grid">
+    <article class="note">
+      <header class="note-header">
+        <span class="subtopic-chip" style={`--chip:${sub.color}`}>{sub.label}</span>
+        <h1>{node.title}</h1>
+        <p class="note-summary">{node.summary}</p>
+      </header>
+      <div class="note-body">
+        <slot />
+      </div>
+    </article>
+    <Sidebar node={node} graph={graph} subtopics={subtopics} headings={headings} />
+  </div>
+</BaseLayout>

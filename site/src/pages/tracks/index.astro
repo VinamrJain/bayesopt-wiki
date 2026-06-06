@@ -1,0 +1,37 @@
+---
+// Tracks index: the curated guided reading paths, each linking to its dedicated track page.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+import { buildGraph } from '../../lib/graph';
+import { subtopicOf } from '../../lib/subtopics';
+import { TRACKS } from '../../lib/tracks';
+
+const entries = await getCollection('notes');
+const graph = buildGraph(entries);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const titleOf = (slug: string) => graph.bySlug.get(slug)?.title ?? slug;
+---
+
+<BaseLayout title="Learning tracks · BO wiki" wide>
+  <section class="tracks-index">
+    <h1>Learning tracks</h1>
+    <p class="section-sub">
+      Curated reading orders through the concept graph. Each assumes the Foundations track first.
+    </p>
+
+    {TRACKS.map((t) => {
+      const color = subtopicOf(t.slugs[0]).color;
+      return (
+        <section class="track-block" style={`--accent:${color}`}>
+          <h2><a href={`${base}/tracks/${t.id}`}>{t.label}</a></h2>
+          <p>{t.description}</p>
+          <ol class="track-path">
+            {t.slugs.map((s) => (
+              <li><a href={`${base}/notes/${s}`}>{titleOf(s)}</a></li>
+            ))}
+          </ol>
+        </section>
+      );
+    })}
+  </section>
+</BaseLayout>

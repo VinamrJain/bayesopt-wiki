@@ -1,0 +1,98 @@
+---
+// Per-note right sidebar. Every block is derived from data we already have (frontmatter + the graph
+// + rendered headings) — each is a real navigation aid:
+//   metadata card · local mini-graph · prerequisites · read-next (inverse requires) · backlinks · ToC
+import ConceptGraph from './ConceptGraph.astro';
+import { dependentsOf, localNeighborhood, type Graph, type GraphNode } from '../lib/graph';
+import type { Subtopic } from '../lib/subtopics';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  node: GraphNode;
+  graph: Graph;
+  subtopics: Subtopic[];
+  headings: MarkdownHeading[];
+}
+
+const { node, graph, subtopics, headings } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (slug: string) => `${base}/notes/${slug}`;
+const titleOf = (slug: string) => graph.bySlug.get(slug)?.title ?? slug;
+
+const prereqs = node.requires;
+const readNext = dependentsOf(graph, node.slug);
+const backlinks = (graph.backlinks.get(node.slug) ?? []).filter(
+  (s) => !prereqs.includes(s) && !readNext.includes(s),
+);
+const mini = localNeighborhood(graph, node.slug);
+// ToC: h2/h3 only (h1 is the note title).
+const toc = headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+<aside class="note-sidebar">
+  <section class="side-card meta-card">
+    <h2 class="side-h">Metadata</h2>
+    <dl class="meta">
+      <dt>Coverage</dt>
+      <dd><span class={`grade grade-${node.grade}`}>{node.grade}</span></dd>
+      <dt>Reviewed</dt>
+      <dd>{node.reviewed ?? '—'}</dd>
+      <dt>Sources</dt>
+      <dd class="sources">
+        {node.sources.map((s, i) => (
+          <span class={i === 0 ? 'src src-primary' : 'src'} title={i === 0 ? 'derivation-primary' : 'source'}>{s}</span>
+        ))}
+      </dd>
+    </dl>
+  </section>
+
+  {mini.nodes.length > 1 && (
+    <section class="side-card">
+      <h2 class="side-h">Local map</h2>
+      <ConceptGraph
+        nodes={mini.nodes}
+        edges={mini.edges}
+        subtopics={subtopics}
+        focusSlug={node.slug}
+        controls={false}
+        height={240}
+      />
+    </section>
+  )}
+
+  {prereqs.length > 0 && (
+    <section class="side-card">
+      <h2 class="side-h">Prerequisites</h2>
+      <ul class="side-list">
+        {prereqs.map((s) => <li><a href={href(s)}>{titleOf(s)}</a></li>)}
+      </ul>
+    </section>
+  )}
+
+  {readNext.length > 0 && (
+    <section class="side-card">
+      <h2 class="side-h">Read next</h2>
+      <ul class="side-list">
+        {readNext.map((s) => <li><a href={href(s)}>{titleOf(s)}</a></li>)}
+      </ul>
+    </section>
+  )}
+
+  {backlinks.length > 0 && (
+    <section class="side-card">
+      <h2 class="side-h">Linked from</h2>
+      <ul class="side-list">
+        {backlinks.map((s) => <li><a href={href(s)}>{titleOf(s)}</a></li>)}
+      </ul>
+    </section>
+  )}
+
+  {toc.length > 0 && (
+    <section class="side-card toc-card">
+      <h2 class="side-h">On this page</h2>
+      <ul class="toc">
+        {toc.map((h) => <li class={`toc-${h.depth}`}><a href={`#${h.slug}`}>{h.text}</a></li>)}
+      </ul>
+    </section>
+  )}
+</aside>

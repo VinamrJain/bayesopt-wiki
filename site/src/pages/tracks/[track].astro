@@ -1,0 +1,64 @@
+---
+// One page per learning track: the ordered reading path as numbered cards, plus a graph of just
+// the track's concepts (induced subgraph) so the subpath is visible in isolation.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ConceptGraph from '../../components/ConceptGraph.astro';
+import { getCollection } from 'astro:content';
+import { buildGraph } from '../../lib/graph';
+import { SUBTOPICS, subtopicOf } from '../../lib/subtopics';
+import { TRACKS } from '../../lib/tracks';
+
+export async function getStaticPaths() {
+  return TRACKS.map((t) => ({ params: { track: t.id }, props: { track: t } }));
+}
+
+const { track } = Astro.props;
+const entries = await getCollection('notes');
+const graph = buildGraph(entries);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const accent = subtopicOf(track.slugs[0]).color;
+
+// Induced subgraph over the track's concepts.
+const set = new Set(track.slugs);
+const subNodes = graph.nodes.filter((n) => set.has(n.slug));
+const subEdges = graph.edges.filter((e) => set.has(e.source) && set.has(e.target));
+const nodeOf = (slug: string) => graph.bySlug.get(slug);
+---
+
+<BaseLayout title={`${track.label} · BO wiki`} description={track.description} wide>
+  <section class="track-page" style={`--accent:${accent}`}>
+    <header class="track-head">
+      <a class="back" href={`${base}/tracks`}>← all tracks</a>
+      <h1>{track.label}</h1>
+      <p class="section-sub">{track.description}</p>
+    </header>
+
+    <div class="track-layout">
+      <ol class="track-steps">
+        {track.slugs.map((slug, i) => {
+          const n = nodeOf(slug);
+          return (
+            <li class="track-step">
+              <span class="step-n">{i + 1}</span>
+              <div class="step-body">
+                <a class="step-title" href={`${base}/notes/${slug}`}>{n?.title ?? slug}</a>
+                {n && <p class="step-summary">{n.summary}</p>}
+                {n && <span class={`grade grade-${n.grade}`}>{n.grade}</span>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+
+      <aside class="track-graph">
+        <ConceptGraph
+          nodes={subNodes}
+          edges={subEdges}
+          subtopics={SUBTOPICS}
+          controls={false}
+          height={420}
+        />
+      </aside>
+    </div>
+  </section>
+</BaseLayout>
