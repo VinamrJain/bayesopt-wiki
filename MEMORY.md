@@ -14,9 +14,11 @@ Project ops and in-progress work. Wiki build handoff: `~/.claude/handoffs/Bayesi
 
 Writing style: same bar as `~/.claude/memory/feedback_skill-writing-generic.md` and concept-wiki pattern in `~/.claude/memory/reference_concept-wiki-synthesis.md`.
 
-## Git (local only)
+## Git
 
-No remote. Atomic commits; prefixes `wiki:` `raw:` `fix:` `chore:`. Undo with `git revert`, not `reset --hard`. Stage paths explicitly. No secrets (`.env`); no remotes/push unless asked.
+Remote: `origin` → `github.com/VinamrJain/bayesopt-wiki` (GitHub Pages target). Atomic commits; prefixes `wiki:` `raw:` `fix:` `chore:` `site:` `docs:` `ci:`. Undo with `git revert`, not `reset --hard`. Stage paths explicitly. No secrets (`.env`); don't push unless asked.
+
+**Deploy flow:** push to `main` triggers `.github/workflows/deploy.yml`, which builds the Astro site from `site/` (`npm ci && npm run build` → astro + Pagefind) and publishes `site/dist` to GitHub Pages at <https://vinamrjain.github.io/bayesopt-wiki/>. The project-page base (`BASE_PATH=/bayesopt-wiki/`, `SITE_URL`) is set in the workflow env. Pages source must be set to "GitHub Actions" in repo settings.
 
 Tracks: `raw/**/*.tex`, `raw/**/*.bib`, trustworthy `raw/**/*.md`; plus `references.md`, `wiki/`, and `scripts/`. Ignores OS/editor cruft, Python caches, secrets, PDFs, and `_archive/` — see `.gitignore`.
 
