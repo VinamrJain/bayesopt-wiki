@@ -77,19 +77,22 @@ function runForceLayout(
   height: number,
   focusSlug: string | null,
 ): Simulation<SimNode, undefined> {
+  // Spread the full graph out generously so every node's label has room (decluttering by space,
+  // not by hiding labels): strong repulsion, long links, and a large collision radius that reserves
+  // horizontal room for the label text. Mini-graphs (focusSlug) stay compact.
   const sim = forceSimulation<SimNode>(nodes)
     .force(
       'link',
       forceLink<SimNode, SimLink>(links)
         .id((d) => (d as SimNode).slug)
-        .distance(focusSlug ? 70 : 90)
-        .strength(0.45),
+        .distance(focusSlug ? 70 : 135)
+        .strength(focusSlug ? 0.45 : 0.28),
     )
-    .force('charge', forceManyBody().strength(focusSlug ? -240 : -520))
+    .force('charge', forceManyBody().strength(focusSlug ? -240 : -1150))
     .force('center', forceCenter(width / 2, height / 2))
-    .force('collide', forceCollide<SimNode>().radius((d) => radius(d) + 6))
-    .force('x', forceX(width / 2).strength(0.04))
-    .force('y', forceY(height / 2).strength(0.06));
+    .force('collide', forceCollide<SimNode>().radius((d) => radius(d) + (focusSlug ? 8 : 28)))
+    .force('x', forceX(width / 2).strength(0.03))
+    .force('y', forceY(height / 2).strength(0.05));
 
   // Pin the focus node (mini-graph) at center for a stable local view.
   if (focusSlug) {
@@ -101,11 +104,6 @@ function runForceLayout(
   }
   return sim;
 }
-
-// Declutter: in the full graph, persistently label only the foundational hub nodes (those at least
-// this many notes depend on); every other label appears on hover. Tune this cutoff to taste. Mini-
-// graphs (focusSlug set) are small, so they always show all labels.
-const LABEL_HUB_MIN_DEPENDENTS = 4;
 
 let radiusScale: (n: number) => number = () => 8;
 function radius(d: RawNode): number {
@@ -193,9 +191,6 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
     .attr('fill', (d) => d.color)
     .attr('class', 'cg-circle');
 
-  // Hubs (or every node in a mini-graph) keep a persistent label; the rest reveal theirs on hover.
-  const isHub = (d: RawNode) => !!focusSlug || d.dependents >= LABEL_HUB_MIN_DEPENDENTS;
-  nodeG.classed('cg-hub', (d) => isHub(d));
   nodeG
     .append('text')
     .attr('class', 'cg-label')
@@ -222,8 +217,6 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
 
   function highlight(active: Set<string>) {
     nodeG.classed('cg-dim', (d) => !active.has(d.slug));
-    // Reveal labels for the hovered neighborhood (even non-hub nodes).
-    nodeG.classed('cg-label-show', (d) => active.has(d.slug));
     linkSel.classed('cg-dim', (l) => {
       const s = (l.source as SimNode).slug ?? (l.source as string);
       const t = (l.target as SimNode).slug ?? (l.target as string);
@@ -232,7 +225,6 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
   }
   function clearHighlight() {
     nodeG.classed('cg-dim', false);
-    nodeG.classed('cg-label-show', false);
     linkSel.classed('cg-dim', false);
   }
 
@@ -280,18 +272,45 @@ function renderGraph(root: HTMLElement, cfg: Config): void {
     return axis === 'x' ? (s.x ?? 0) + dx * ratio : (s.y ?? 0) + dy * ratio;
   }
 
-  if (cfg.controls) buildControls(root, svg, nodeG, linkSel, cfg, neighbors, zoomBehavior);
+  // Once the layout settles, frame the whole spread-out graph in view (it may be larger than the
+  // viewport after spreading). Fit only on the first settle, not after drag-induced re-settles.
+  let fitted = false;
+  sim.on('end', () => {
+    if (fitted) return;
+    fitted = true;
+    fitToView();
+  });
+
+  function fitToView(): void {
+    if (!nodes.length) return;
+    const xs = nodes.map((n) => n.x ?? 0);
+    const ys = nodes.map((n) => n.y ?? 0);
+    // Asymmetric padding: extra room on the right for labels, which extend past each node.
+    const minX = Math.min(...xs) - 60;
+    const maxX = Math.max(...xs) + 170;
+    const minY = Math.min(...ys) - 40;
+    const maxY = Math.max(...ys) + 40;
+    const bw = Math.max(1, maxX - minX);
+    const bh = Math.max(1, maxY - minY);
+    const k = Math.min(width / bw, height / bh, 1.1);
+    const tx = width / 2 - (k * (minX + maxX)) / 2;
+    const ty = height / 2 - (k * (minY + maxY)) / 2;
+    svg
+      .transition()
+      .duration(450)
+      .call(zoomBehavior.transform as any, zoomIdentity.translate(tx, ty).scale(k));
+  }
+
+  if (cfg.controls) buildControls(root, nodeG, linkSel, cfg, fitToView);
 }
 
 // ── Controls: subtopic legend toggle + search-to-highlight ────────────────────────────────────
 function buildControls(
   root: HTMLElement,
-  svg: Selection<SVGSVGElement, unknown, null, undefined>,
   nodeG: Selection<SVGGElement, SimNode, SVGGElement, unknown>,
   linkSel: Selection<SVGLineElement, SimLink, SVGGElement, unknown>,
   cfg: Config,
-  _neighbors: Map<string, Set<string>>,
-  zoomBehavior: any,
+  resetView: () => void,
 ): void {
   const panel = document.createElement('div');
   panel.className = 'cg-controls';
@@ -330,13 +349,11 @@ function buildControls(
   });
   panel.appendChild(legend);
 
-  // Reset zoom.
+  // Reset to the fitted (auto-framed) view.
   const reset = document.createElement('button');
   reset.className = 'cg-reset';
   reset.textContent = 'Reset view';
-  reset.addEventListener('click', () => {
-    svg.transition().duration(400).call(zoomBehavior.transform, zoomIdentity);
-  });
+  reset.addEventListener('click', resetView);
   panel.appendChild(reset);
 
   root.insertBefore(panel, root.firstChild);

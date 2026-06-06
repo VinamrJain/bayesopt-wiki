@@ -20,7 +20,7 @@ const { node, graph, subtopics, headings } = Astro.props;
 const sub = subtopicOf(node.slug);
 ---
 
-<BaseLayout title={`${node.title} · BO concept wiki`} description={node.summary}>
+<BaseLayout title={`${node.title} · BO concept wiki`} description={node.summary} wide>
   <div class="note-grid">
     <article class="note">
       <header class="note-header">

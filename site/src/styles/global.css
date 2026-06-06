@@ -6,7 +6,7 @@
 
 :root {
   --max-content: 720px;
-  --max-wide: 1180px;
+  --max-wide: 1280px;
   --sidebar-w: 290px;
   --radius: 10px;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -101,15 +101,6 @@ code, pre, kbd { font-family: var(--font-mono); }
 
 .site-main { max-width: var(--max-content); margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 .site-main.wide { max-width: var(--max-wide); }
-
-.site-footer {
-  border-top: 1px solid var(--border-soft);
-  color: var(--fg-faint);
-  font-size: 0.82rem;
-  text-align: center;
-  padding: 1.5rem;
-}
-.site-footer code { color: var(--fg-muted); }
 
 /* ---- Note page grid ----------------------------------------------------------------------- */
 .note-grid {
@@ -274,17 +265,14 @@ a.src:hover { color: var(--fg); border-color: var(--fg-faint); text-decoration: 
 .cg-label {
   font-family: var(--font-sans); font-size: 11px; fill: var(--fg-muted);
   pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; stroke-linejoin: round;
-  opacity: 0; transition: opacity 0.12s ease;
+  transition: opacity 0.12s ease;
 }
-/* Persistent labels for hub nodes (and all nodes in a mini-graph); others reveal on hover. */
-.cg-node.cg-hub .cg-label,
-.cg-node.cg-label-show .cg-label { opacity: 1; }
 .cg-focus .cg-circle { stroke: var(--fg); stroke-width: 2.5px; }
 .cg-focus .cg-label { fill: var(--fg); font-weight: 600; }
 .cg-dim { opacity: 0.12; }
 .cg-node.cg-nomatch { opacity: 0.12; }
 .cg-node.cg-match .cg-circle { stroke: var(--fg); stroke-width: 2.5px; }
-.cg-node.cg-match .cg-label { fill: var(--fg); font-weight: 700; opacity: 1; }
+.cg-node.cg-match .cg-label { fill: var(--fg); font-weight: 700; }
 
 /* graph controls */
 .cg-controls {
