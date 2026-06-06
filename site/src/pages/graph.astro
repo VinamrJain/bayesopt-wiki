@@ -3,11 +3,11 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ConceptGraph from '../components/ConceptGraph.astro';
 import { getCollection } from 'astro:content';
-import { buildGraph } from '../lib/graph';
+import { buildGraph, visualGraph } from '../lib/graph';
 import { SUBTOPICS } from '../lib/subtopics';
 
 const entries = await getCollection('notes');
-const graph = buildGraph(entries);
+const graph = visualGraph(buildGraph(entries));
 ---
 
 <BaseLayout title="Concept graph · BO wiki" wide>

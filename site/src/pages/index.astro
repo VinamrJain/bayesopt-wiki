@@ -4,12 +4,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ConceptGraph from '../components/ConceptGraph.astro';
 import { getCollection } from 'astro:content';
-import { buildGraph } from '../lib/graph';
+import { buildGraph, visualGraph } from '../lib/graph';
 import { SUBTOPICS, subtopicOf } from '../lib/subtopics';
 import { TRACKS } from '../lib/tracks';
 
 const entries = await getCollection('notes');
-const graph = buildGraph(entries);
+const graph = visualGraph(buildGraph(entries));
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
@@ -18,10 +18,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <div class="hero-intro">
       <h1>Bayesian Optimization</h1>
       <p>
-        A concept-deduplicated wiki: {graph.nodes.length} self-contained, derivation-driven notes on
-        Bayesian optimization, wired into a prerequisite graph. Each node is one concept — hover to
-        see its summary, click to read it. Node <strong>size</strong> is how foundational a concept
-        is (how many others build on it); <strong>color</strong> is its subtopic.
+        A concept wiki compiling notes on
+        Bayesian optimization, wired into a prerequisite graph.
       </p>
       <p class="hero-cta">
         Start with a <a href={`${base}/tracks`}>learning track</a>, explore the
@@ -30,14 +28,21 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </p>
     </div>
 
-    <div class="hero-graph">
-      <ConceptGraph
-        nodes={graph.nodes}
-        edges={graph.edges}
-        subtopics={SUBTOPICS}
-        controls={true}
-        height={640}
-      />
+    <div class="hero-graph-col">
+      <div class="hero-graph">
+        <ConceptGraph
+          nodes={graph.nodes}
+          edges={graph.edges}
+          subtopics={SUBTOPICS}
+          controls={true}
+          height={640}
+        />
+      </div>
+      <p class="graph-caption">
+        Each node is one concept — hover for its summary, click to read it. Node
+        <strong>size</strong> is how foundational it is (how many notes build on it);
+        <strong>color</strong> is its subtopic.
+      </p>
     </div>
   </section>
 

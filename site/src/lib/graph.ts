@@ -108,6 +108,20 @@ export function buildGraph(entries: CollectionEntry<'notes'>[]): Graph {
   return { nodes: [...bySlug.values()], edges, bySlug, backlinks };
 }
 
+// Slugs that exist as notes but are intentionally hidden from the visual graph. `notation` is the
+// canonical symbol table (a reference note); it has no prerequisite edges, so it would otherwise
+// float as an unconnected, unclickable orphan.
+const GRAPH_HIDDEN = new Set<string>(['notation']);
+
+/** The full graph minus nodes hidden from visualization, with their dangling edges pruned. */
+export function visualGraph(graph: Graph): Graph {
+  const nodes = graph.nodes.filter((n) => !GRAPH_HIDDEN.has(n.slug));
+  const keep = new Set(nodes.map((n) => n.slug));
+  const edges = graph.edges.filter((e) => keep.has(e.source) && keep.has(e.target));
+  const bySlug = new Map(nodes.map((n) => [n.slug, n]));
+  return { nodes, edges, bySlug, backlinks: graph.backlinks };
+}
+
 /** Notes that directly require `slug` (its dependents / "read-next" candidates). */
 export function dependentsOf(graph: Graph, slug: string): string[] {
   return graph.edges.filter((e) => e.source === slug).map((e) => e.target).sort();

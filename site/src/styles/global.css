@@ -212,12 +212,15 @@ a.src:hover { color: var(--fg); border-color: var(--fg-faint); text-decoration: 
 .hero-intro h1 { font-size: 2.6rem; line-height: 1.05; margin: 0 0 1rem; letter-spacing: -0.02em; }
 .hero-intro p { color: var(--fg-muted); font-size: 1.04rem; }
 .hero-cta { font-size: 0.98rem; }
+.hero-graph-col { min-width: 0; }
 .hero-graph {
   background: radial-gradient(ellipse at center, color-mix(in srgb, var(--bg-soft) 70%, transparent), transparent 75%);
   border: 1px solid var(--border-soft);
   border-radius: 16px;
   overflow: hidden;
 }
+.graph-caption { color: var(--fg-muted); font-size: 0.85rem; line-height: 1.5; margin: 0.8rem 0 0; }
+.graph-caption strong { color: var(--fg); font-weight: 600; }
 
 .tracks-section h2, .tracks-index h1, .graph-page h1, .track-head h1 { font-size: 1.7rem; margin: 0 0 0.4rem; }
 .section-sub { color: var(--fg-muted); margin: 0 0 1.4rem; }
