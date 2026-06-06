@@ -5,7 +5,6 @@ Concept gaps still open across the wiki, aggregated from per-note review logs (`
 
 | gap | note | description | severity |
 |-----|------|-------------|----------|
-| budget-constrained-dp-2 | [[budget-constrained-dp]] | The symbol B is defined incorrectly in the canonical notation.md and the note silently inherits the contradiction. nota… | blocker |
 | expected-improvement-2 | [[expected-improvement]] | Broken wikilink [[parallel-batch-bo]] (lines 168-169). No parallel-batch-bo.md (nor any batch/parallel note) exists in… | blocker |
 | acquisition-functions-2 | [[acquisition-functions]] | The four-families table (line 74) labels the Information/lookahead 'Scores x by' as 'entropy of p_⋆ for ES/MES'. Per no… | gap |
 | xconn-3 | [[bo-as-dynamic-program]] | [cross-note: bo-as-dynamic-program, gp-ucb, thompson-sampling-bo] The DP-parent note frames myopic acquisitions as one-… | gap |

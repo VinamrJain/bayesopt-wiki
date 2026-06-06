@@ -119,16 +119,16 @@ express (EIpu picks the same point whether $c\equiv10^{-4}$ or $10^{6}$). It tun
   $c(x)$ — PBGI auto-tunes UCB's confidence parameter, weighting high variance more than EI does.
 
 `xie2024` (Thm 2, via Lagrangian relaxation) ties $\lambda$ to a budget: for an **expected budget**
-$E[\sum c(x_t)]\le B$ ([[budget-constrained-dp]]) that is feasible and active
-($\min_x c<B<\sum_x c$), there **exists** a $\lambda>0$ for which maximizing
+$E[\sum c(x_t)]\le \tau$ ([[nonmyopic-cost-constrained-bo]]) that is feasible and active
+($\min_x c<\tau<\sum_x c$), there **exists** a $\lambda>0$ for which maximizing
 $\alpha^{\mathrm{PBGI}}$ with costs $\lambda c(x)$ is Bayesian-optimal — larger $\lambda$ matching
 smaller budgets. The theorem gives only *existence* (the optimal $\lambda$ solves an implicit convex
-problem); [[cost-aware-stopping]] turns it into an **explicit** choice $\lambda=U/(B-C)$ via a
+problem); [[cost-aware-stopping]] turns it into an **explicit** choice $\lambda=U/(\tau-C)$ via a
 spend bound. Three usage modes (`xie2024`, §3.3):
 
 | Mode | Role of $\lambda$ |
 |---|---|
-| **Budget-constrained** | $\lambda$ tuned (or set by the budget rule) to match $B$ |
+| **Budget-constrained** | $\lambda$ tuned (or set by the budget rule) to match $\tau$ |
 | **Cost-per-sample** | $\lambda$ a *fixed* unit-conversion constant (objective↔cost units) |
 | **Adaptive decay (PBGI-D)** | $\lambda_t$ decayed by factor $\beta>1$ whenever the [[cost-aware-stopping\|stopping rule]] would trigger; robust to mis-set $\lambda$ |
 
@@ -155,7 +155,7 @@ stochastic cost affects performance but not the optimal strategy (`xie2024`, Thm
   weight — a principled auto-tuning of $\beta_t$.
 - **[[cost-aware-stopping]].** Owns the **stopping rule** that completes the Gittins policy (and
   makes it optimal) and the cost-adjusted-regret guarantees; this note owns the **acquisition**.
-- **[[budget-constrained-dp]].** Supplies the expected-budget setting $\lambda$ is tuned against;
+- **[[nonmyopic-cost-constrained-bo]].** Supplies the expected-budget setting $\lambda$ is tuned against;
   PBGI is a cheap myopic-looking surrogate that nonetheless prices the budget through $\lambda$.
 - **[[cost-aware-bo]].** PBGI is the cost-per-sample branch's acquisition, alongside LogEIPC.
 
@@ -170,6 +170,6 @@ PBGI-D; Weitzman (1979) and Gittins are the classical sources for the index and 
 | $\alpha^\star(x)=g$ s.t. $\mathrm{EI}_f(x;g)=c(x)$ | eq. (Gittins index) | fair value; decreasing-in-$g$ root |
 | $\alpha^{\mathrm{PBGI}}_t(x)$ with $\mathrm{EI}_{f\mid\mathcal D_t}(x;g)=\lambda c(x)$ | eq. (PBGI) | posterior plugged in; $\lambda$ scales cost |
 | stop when $f^*_t\ge\max_x\alpha^{\mathrm{PBGI}}_t(x)$ | Gittins stopping rule | completed in [[cost-aware-stopping]] |
-| $\lambda$ risk knob; budget-existence (Thm 2) | $\lambda$, Thm 2 | explicit $\lambda=U/(B-C)$ in [[cost-aware-stopping]] |
+| $\lambda$ risk knob; budget-existence (Thm 2) | $\lambda$, Thm 2 | explicit $\lambda=U/(\tau-C)$ in [[cost-aware-stopping]] |
 | PBGI-D: decay $\lambda_t/\beta$ on stop-trigger | PBGI-D | adaptive-decay variant |
 | small-$\lambda$ UCB limit | §3.4 | auto-tuned [[gp-ucb]] |

@@ -117,11 +117,11 @@ Positive minimum cost guarantees you cannot evaluate forever.
 ## Using it under a budget, and in practice
 
 **Budget compliance via cost scaling.** The rule extends to an **expected budget**
-$E[\sum c(x_t)]\le B$ ([[budget-constrained-dp]]) by rescaling costs by $\lambda$. PBGI's
+$E[\sum c(x_t)]\le \tau$ ([[nonmyopic-cost-constrained-bo]]) by rescaling costs by $\lambda$. PBGI's
 budget-equivalence ([[pandoras-box-gittins-index]]; `xie2024`, Thm 2) guarantees *some* optimal
 $\lambda$ exists, but only implicitly; `xie2025`'s spend bound $U+C$ makes it **explicit** —
-$\lambda=U/(B-C)$ (for $B>C$) keeps the *unscaled* expected spend within $B$. If that under-spends,
-pair with the decaying-$\lambda$ **PBGI-D** variant, initialized at $\lambda_0=U/(B-C)$ (`xie2025`).
+$\lambda=U/(\tau-C)$ (for $\tau>C$) keeps the *unscaled* expected spend within $\tau$. If that under-spends,
+pair with the decaying-$\lambda$ **PBGI-D** variant, initialized at $\lambda_0=U/(\tau-C)$ (`xie2025`).
 In the cost-per-sample setting, by contrast, $\lambda$ is a *given* unit-conversion constant
 (seconds-to-accuracy), not tuned.
 
@@ -141,13 +141,13 @@ over a moving window before letting it fire (`xie2025`, §4.2).
   optimality; this note completes the policy with the **stopping rule** that makes it optimal, and
   adds the cost-adjusted-regret guarantee.
 - **[[cost-aware-bo]].** The cost-per-sample / cost-adjusted-regret branch of the hub; the stopping
-  time $T$ here is the hub's $T$, distinct from the hard budget $\tau$ ([[notation]]).
+  time $T$ here is the hub's $T$, distinct from the hard budget $B$ ([[notation]]).
 - **[[ei-per-unit-cost]].** LogEIPC *is* EIpu in the log domain (same $\arg\max$); this note is where
   the EI-vs-cost comparison becomes a *stop test* rather than a ranking.
 - **[[expected-improvement]].** Both the fair-value equation $\mathrm{EI}(x;g)=c(x)$ and the stop
   test reuse EI with a *variable* baseline $g$ (vs. EI's fixed incumbent).
 - **[[budget-constrained-dp]] / [[multistep-budgeted-bo]] / [[nonmyopic-cost-constrained-bo]].** The
-  budget-constrained siblings; the cost-scaling $\lambda=U/(B-C)$ is the bridge that lets this
+  budget-constrained siblings; the cost-scaling $\lambda=U/(\tau-C)$ is the bridge that lets this
   cost-per-sample method honor an expected budget too.
 - **[[cost-models]].** Supplies the $\log c$ GP and the log-normal mean used when cost is unknown.
 
@@ -167,5 +167,5 @@ lemma, and the cost-adjusted-regret guarantee. Conveniently `xie2024` already wo
 | $\mathrm{EI}_t(x)\le c(x)\ \forall x$ | $\mathrm{EI}_{f}(x;y^*)\le c(x)$ | identical stop test |
 | $\max_x\alpha^{\mathrm{LogEIPC}}_t\le0$ | same | log of EI/c $\le1$ |
 | $U=E[\max_x f]-\mu(x_1)$, $C=c(x_1)$ | $U=\mu(x_1)-E[\min_x f]$, $C=c(x_1)$ | improvement potential; sign-flipped |
-| budget scaling $\lambda=U/(B-C)$ | same | for expected-budget compliance |
-| stopping time $T$ | $\tau$ (their symbol) | renamed to avoid clash with budget $\tau$ ([[notation]]) |
+| budget scaling $\lambda=U/(\tau-C)$ | same | for expected-budget compliance |
+| stopping time $T$ | $\tau$ (their symbol) | renamed to avoid clash with the expected-budget $\tau$ ([[notation]]) |

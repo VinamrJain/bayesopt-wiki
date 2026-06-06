@@ -12,7 +12,7 @@ reviewed: 2026-06-06
 
 # Cost-Aware Bayesian Optimization
 
-Standard BO measures its budget in **iteration count** — each call to $f$ consumes one unit regardless of what it costs in wall-clock time, energy, or money. This is a clean abstraction but a leaky one: when evaluation cost varies across the domain (neural-network training time grows quadratically with layer size; SVM runtime scales with iteration count), counting iterations conflates cheap and expensive evaluations and the convergence picture becomes misleading. Cost-aware BO breaks that abstraction by tracking cumulative **real cost** and asks for the best $f$-value achievable within a total cost budget $\tau$ (`lee2020`, `shahriari2016`). The cost-aware symbols ($c(x)$, $\tau$, $\tau_{\mathrm{init}}$, $\tau_k$, $\alpha_k$) follow [[notation]].
+Standard BO measures its budget in **iteration count** — each call to $f$ consumes one unit regardless of what it costs in wall-clock time, energy, or money. This is a clean abstraction but a leaky one: when evaluation cost varies across the domain (neural-network training time grows quadratically with layer size; SVM runtime scales with iteration count), counting iterations conflates cheap and expensive evaluations and the convergence picture becomes misleading. Cost-aware BO breaks that abstraction by tracking cumulative **real cost** and asks for the best $f$-value achievable within a total cost budget $B$ (`lee2020`, `shahriari2016`). The cost-aware symbols ($c(x)$, $B$, $B_{\mathrm{init}}$, $s_k$, $\alpha_k$, and the expected-budget $\tau$) follow [[notation]].
 
 ## The problem — two formulations
 
@@ -23,12 +23,12 @@ Let $c: A \to \mathbb{R}_{>0}$ be a cost function (possibly known, more often bl
 $$
 \text{find } x^* \in \operatorname*{arg\,max}_{x\in A} f(x)
 \quad\text{subject to}\quad
-\sum_{n} c(x_n) \le \tau
+\sum_{n} c(x_n) \le B
 $$
 
-(or, when costs are random, the *expected*-budget version $E[\sum_n c(x_n)] \le B$, `xie2025`). The feasibility constraint is on **cumulative cost**, not iteration count; when $c$ is constant the two coincide and cost-aware methods reduce to their standard counterparts.
+(or, when costs are random, the *expected*-budget version $E[\sum_n c(x_n)] \le \tau$, `xie2025`). The feasibility constraint is on **cumulative cost**, not iteration count; when $c$ is constant the two coincide and cost-aware methods reduce to their standard counterparts.
 
-**Cost-per-sample (cost-adjusted regret).** Alternatively, fold cost into the objective additively and let the horizon be an adaptive *stopping time* $T$ (distinct from the budget $\tau$ — see [[notation]]). In the maximization convention, minimize the expected **cost-adjusted simple regret** (`xie2025`)
+**Cost-per-sample (cost-adjusted regret).** Alternatively, fold cost into the objective additively and let the horizon be an adaptive *stopping time* $T$ (distinct from the hard budget $B$ — see [[notation]]). In the maximization convention, minimize the expected **cost-adjusted simple regret** (`xie2025`)
 
 $$
 \mathcal{R}_c = E\Big[\underbrace{f^* - \max_{1\le n\le T} f(x_n)}_{\text{simple regret}} \;+\; \underbrace{\textstyle\sum_{n=1}^{T} c(x_n)}_{\text{cumulative cost}}\Big],
@@ -44,7 +44,7 @@ The cost $c(x)$ is typically **not** observed before evaluating $x$ (otherwise t
 
 ## Why vanilla BO fails and naive fixes are insufficient
 
-A vanilla acquisition like $\mathrm{EI}_n$ treats each candidate $x$ identically regardless of $c(x)$. Given a fixed budget $\tau$, spending it on expensive evaluations leaves fewer iterations than spending it on cheap ones — but EI cannot see this: it measures benefit at $x$ against the next single evaluation, not against the remaining *cost* pool. If the optimum happens to be expensive, EI may stumble upon it; if it is cheap, EI wastes budget on costly evaluations that get there no faster.
+A vanilla acquisition like $\mathrm{EI}_n$ treats each candidate $x$ identically regardless of $c(x)$. Given a fixed budget $B$, spending it on expensive evaluations leaves fewer iterations than spending it on cheap ones — but EI cannot see this: it measures benefit at $x$ against the next single evaluation, not against the remaining *cost* pool. If the optimum happens to be expensive, EI may stumble upon it; if it is cheap, EI wastes budget on costly evaluations that get there no faster.
 
 The most obvious fix — normalizing the acquisition by cost — is **EI per unit cost (EIpu)**:
 
@@ -64,8 +64,8 @@ Multi-fidelity and multi-task methods (grey-box) discovered this principle indep
 
 Cost-aware **black-box** BO imports this principle without the grey-box scaffolding. The challenge is that neither "cheap" nor "close to the optimum" is known in advance — both must be inferred from data. The "early and cheap, late and expensive" strategy then decomposes into two coupled sub-problems:
 
-1. **Initial design.** Use a cost-constrained space-filling design (budget $\tau_{\mathrm{init}}$) to build a useful surrogate *cheaply*. More evaluations within $\tau_{\mathrm{init}}$ → better surrogate than a standard equally-spaced design would yield.
-2. **Optimization phase.** After warm-start, acquire with a rule that starts cost-sensitive (like EIpu) and gradually depreciates the cost model as the budget is spent — transitioning toward plain EI by the time $\tau$ is nearly exhausted, when the optimum must be found regardless of cost.
+1. **Initial design.** Use a cost-constrained space-filling design (budget $B_{\mathrm{init}}$) to build a useful surrogate *cheaply*. More evaluations within $B_{\mathrm{init}}$ → better surrogate than a standard equally-spaced design would yield.
+2. **Optimization phase.** After warm-start, acquire with a rule that starts cost-sensitive (like EIpu) and gradually depreciates the cost model as the budget is spent — transitioning toward plain EI by the time $B$ is nearly exhausted, when the optimum must be found regardless of cost.
 
 This decomposition is the skeleton of [[cost-cooling-carbo]] (CArBO). The cost model that both phases rely on is a separate concern — see [[cost-models]].
 
@@ -93,10 +93,10 @@ $\mathrm{EIpu}$ is the simplest cost-aware acquisition and appears already in `s
 $$
 \mathrm{EI\text{-}cool}_k(x) := \frac{\mathrm{EI}_n(x)}{c(x)^{\,\alpha_k}},
 \qquad
-\alpha_k = \frac{\tau - \tau_k}{\tau - \tau_{\mathrm{init}}},
+\alpha_k = \frac{B - s_k}{B - B_{\mathrm{init}}},
 $$
 
-where $\tau_k$ is cumulative cost spent at iteration $k$. When $\tau_k = \tau_{\mathrm{init}}$ (just after warm-start), $\alpha_k=1$ and EI-cool is EIpu. When $\tau_k \to \tau$ (budget nearly exhausted), $\alpha_k\to 0$ and EI-cool collapses to plain EI. The [[cost-cooling-carbo]] note derives this and the cost-effective initial design algorithm in full.
+where $s_k$ is cumulative cost spent at iteration $k$. When $s_k = B_{\mathrm{init}}$ (just after warm-start), $\alpha_k=1$ and EI-cool is EIpu. When $s_k \to B$ (budget nearly exhausted), $\alpha_k\to 0$ and EI-cool collapses to plain EI. The [[cost-cooling-carbo]] note derives this and the cost-effective initial design algorithm in full.
 
 ## The other branch: non-myopic, budget-constrained DP
 
@@ -124,9 +124,9 @@ These methods correctly account for the fact that an expensive evaluation now fo
 |---|---|---|
 | $f^*_n = \max_{m\le n} f(x_m)$ | $y^* = f(x_{\min})$, current minimum | sign flip |
 | $\mathrm{EI}_n(x) = E_n[(f(x)-f^*_n)^+]$ | $\mathrm{EI}(x) = E[\max(y^*-f(x),0)]$ | improvement toward max vs. min |
-| $\tau$ (total cost budget) | $\tau$ (same symbol, same meaning) | no change |
-| $\tau_{\mathrm{init}}$ (initial-design budget) | $\tau_{\mathrm{init}}$ (same) | no change |
-| $\alpha_k$ (cost-cooling exponent) | $\alpha = (\tau-\tau_k)/(\tau-\tau_{\mathrm{init}})$ | same formula; subscripted by iteration $k$ here |
+| $B$ (hard total cost budget) | $\tau$ (`lee2020`'s total budget) | our $B\leftarrow$ `lee2020`'s $\tau$ |
+| $B_{\mathrm{init}}$ (initial-design budget) | $\tau_{\mathrm{init}}$ | our $B_{\mathrm{init}}\leftarrow\tau_{\mathrm{init}}$ |
+| $\alpha_k$ (cost-cooling exponent) | $\alpha = (\tau-\tau_k)/(\tau-\tau_{\mathrm{init}})$ | same formula; our $B\leftarrow\tau$, $s_k\leftarrow\tau_k$; subscripted by iteration $k$ here |
 | $\log c(x)$ (log-cost, GP surrogate target) | $\gamma(x)$ in `lee2020` | renamed here to avoid collision with $\gamma_T$ (max info-gain) in [[notation]] |
 
 `snoek2012` introduces EIpu as "EI per second" with cost modeled via a warped GP on $\log c(x)$; the notation matches the canonical convention here already.
