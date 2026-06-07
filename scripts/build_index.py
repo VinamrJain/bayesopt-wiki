@@ -25,6 +25,11 @@ Diagnostics (warn-only; printed, never block a commit):
     on the conceptual axes); excludes prereq pairs — already encoded in the
     `requires:` DAG and rendered in the graph — and reference-grade hub notes
     (e.g. notation) that are linked one-way by convention
+  - notes absent from every curated learning track (map.md 'Learning tracks'):
+    they have a note page and a graph node but are unreachable from the tracks
+    navigation; reference-grade hub notes (e.g. notation) are excluded as they
+    are intentionally track-less. Detection is mechanical; the fix (which track,
+    what reading order) is editorial.
 
 Usage:
   python3 scripts/build_index.py          # rewrite map.md autogen regions + lint
@@ -137,6 +142,39 @@ def load_planned():
     return planned
 
 
+def load_track_slugs():
+    """Slugs that appear in a curated learning track in map.md's 'Learning tracks'
+    section, collected from the [[wikilinks]] under it. A note absent from this
+    set is unreachable from the tracks navigation (see orphan_track_warnings).
+    The section runs from its '## ' heading to the next '## ' heading; the
+    '### Track: ...' subheadings within it do not toggle it off."""
+    if not MAP.exists():
+        return set()
+    slugs, in_section = set(), False
+    for ln in MAP.read_text().split("\n"):
+        if ln.startswith("## "):
+            in_section = "learning track" in ln.lower()
+            continue
+        if in_section:
+            for raw in WIKILINK_RE.findall(ln):
+                tgt = link_target(raw)
+                if tgt:
+                    slugs.add(tgt)
+    return slugs
+
+
+def orphan_track_warnings(notes, track_slugs):
+    """Concept notes that appear in no curated learning track. Such a note has a
+    note page and a graph node but is unreachable from the tracks navigation —
+    the failure mode where a freshly added note never gets slotted into a track.
+    Reference-grade hub notes (e.g. notation) are excluded: they are
+    intentionally track-less. Returns a sorted list of orphan slugs."""
+    return sorted(
+        slug for slug, n in notes.items()
+        if n["fm"].get("grade") != "reference" and slug not in track_slugs
+    )
+
+
 def lint(notes, ref_keys, planned):
     errors, forward = [], []
     stems = all_note_stems() | {"map"}
@@ -201,13 +239,22 @@ def reciprocity_warnings(notes):
     return warnings
 
 
-def print_diagnostics(forward, recip, detail=False):
-    """Warn-only diagnostics: forward-refs ranked by inbound count, and lateral
-    cross-links missing a reciprocal back-edge. Never affects the exit code.
+def print_diagnostics(forward, recip, orphans, detail=False):
+    """Warn-only diagnostics: forward-refs ranked by inbound count, lateral
+    cross-links missing a reciprocal back-edge, and notes in no learning track.
+    Never affects the exit code.
 
     Forward-refs print in full (short, high-value: names the next stub to write).
     The reciprocity list can be long, so it prints a one-line summary by default
-    and the full enumeration only when `detail` is set (the --links flag)."""
+    and the full enumeration only when `detail` is set (the --links flag).
+    Orphan-track notes print in full (short, high-value: each names a note to
+    slot into a track)."""
+    if orphans:
+        print(f"note: {len(orphans)} note(s) in no learning track (have a page + "
+              "graph node but are unreachable from tracks nav; add each to a track "
+              "in map.md 'Learning tracks'):")
+        for slug in orphans:
+            print(f"  - {slug}")
     if forward:
         inbound = collections.Counter(tgt for _, tgt in forward)
         srcs = collections.defaultdict(list)
@@ -345,7 +392,8 @@ def main():
         for e in errors:
             print("  - " + e, file=sys.stderr)
         sys.exit(1)
-    print_diagnostics(forward, reciprocity_warnings(notes), detail=links)
+    print_diagnostics(forward, reciprocity_warnings(notes),
+                      orphan_track_warnings(notes, load_track_slugs()), detail=links)
     if links:
         return  # --links is an audit view: full diagnostics, no map.md rewrite
 
