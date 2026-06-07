@@ -18,6 +18,10 @@ _archive/
 # Wiki tooling
 wiki/.obsidian/
 
+# Claude Code local agent config (settings, hooks, permissions). Kept local, not
+# committed. Git-ignoring does NOT affect Claude — it reads these from disk by path.
+.claude/
+
 # raw/: track only LaTeX source, bib, and good parsed md
 raw/**
 !raw/**/
