@@ -3,7 +3,7 @@ title: Regret Bounds for GP Bandits
 slug: regret-gp-bandits
 summary: "Proof that GP-UCB is no-regret: instantaneous regret ≤ posterior width, summed into the information gain γ_T."
 tags: [theory, regret]
-subtopic: foundations
+subtopic: theory
 requires: [gp-ucb, problem-setup, gaussian-process-regression]
 sources: [srinivas2010]
 grade: derivation

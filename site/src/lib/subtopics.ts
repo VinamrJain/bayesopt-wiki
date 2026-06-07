@@ -19,6 +19,7 @@ export const SUBTOPICS: Subtopic[] = [
   { id: 'decision-theoretic', label: 'Decision-theoretic & lookahead', color: '#bc8cff' }, // purple
   { id: 'information-theoretic', label: 'Information-theoretic', color: '#e3a008' }, // amber
   { id: 'cost-aware', label: 'Cost-aware', color: '#f87171' }, // red
+  { id: 'theory', label: 'Regret theory & convergence', color: '#2dd4bf' }, // teal
 ];
 
 const FALLBACK: Subtopic = { id: 'other', label: 'Other', color: '#8b949e' }; // grey

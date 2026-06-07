@@ -3,7 +3,7 @@ title: Convergence Rates of EGO / Expected Improvement
 slug: ego-convergence-rates
 summary: "EI's simple-regret rate in the fixed-kernel RKHS: near-minimax $n^{-(\\nu\\wedge1)/d}$, optimal $n^{-\\nu/d}$ with an $\\epsilon$-greedy fix; MLE hyperparameters can break it."
 tags: [theory, convergence]
-subtopic: foundations
+subtopic: theory
 requires: [expected-improvement, problem-setup, gaussian-process-regression]
 sources: [bull2011]
 grade: derivation

@@ -3,7 +3,7 @@ title: Lower Bounds for GP Bandit Optimization
 slug: gp-bandit-lower-bounds
 summary: "Algorithm-independent Ω-lower bounds on simple and cumulative regret for noisy RKHS bandits, the converse to GP-UCB's upper bounds."
 tags: [theory, regret, lower-bounds]
-subtopic: foundations
+subtopic: theory
 requires: [regret-gp-bandits, gp-ucb, problem-setup]
 sources: [scarlett2017]
 grade: derivation
