@@ -38,26 +38,12 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
   cross-refs. `--check` verifies both are current without writing. The pre-commit hook runs it on
   any `wiki/` or `references.md` commit.
 
-## Site (`site/`)
-Interactive Astro static site that publishes the wiki: a D3 force-directed prerequisite graph,
-KaTeX-rendered note pages, learning tracks, full-text search (Pagefind), and a bibliography. Live at
-<https://vinamrjain.github.io/bayesopt-wiki/>; pushing `main` redeploys via GitHub Actions. `wiki/*.md`
-stays the single source of truth — the site reads frontmatter + `[[wikilinks]]` at build, never writes
-notes. Run locally with `cd site && pixi run dev`; search needs a real build (`pixi run build &&
-pixi run preview`), not dev. See `site/README.md` for architecture/deploy.
-- **Adding a note is self-contained:** write `wiki/<slug>.md` with valid frontmatter and the page,
-  graph node, edges, backlinks, ToC, and search entry all derive automatically. The node color comes
-  from the `subtopic` frontmatter field — no code edit. The only optional curation is adding the slug
-  to a learning track in `site/src/lib/tracks.ts` (reading order is editorial, kept centralized).
-- The `notation` note is intentionally hidden from the visual graph (a reference note with no prereq
-  edges) via `visualGraph()` in `site/src/lib/graph.ts`; it remains a reachable note page.
-
 ## Ops
 `MEMORY.md` — git habits, PDF parse order, env constraints (concise).
 
 ## Status
 Wiki built (24 notes, reflection logs + gaps board generated). Site complete and **live** on GitHub
 Pages (graph, note pages, tracks, Pagefind search, references; auto-deploys on push to `main`). The
-build phase is done — ongoing work is **content**: adding/refining wiki notes (see Site § for the
-add-a-note flow). Original design prompt:
+build phase is done — ongoing work is **content**: adding/refining wiki notes (see `MEMORY.md`'s
+Site § for the add-a-note flow). Original design prompt:
 `~/.claude/handoffs/Bayesian-Optimization-*-concept-wiki-design.md`.

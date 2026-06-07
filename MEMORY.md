@@ -36,6 +36,20 @@ Model quality degrades once a session exceeds ~**120–150k tokens**: notation d
 
 **Mitigations:** writer subagents read heavy sources in their own context; the lead session accumulates only finished notes + reconciliation; **≤~90k loaded docs** per session; handoff at batch boundaries; resume from handoff + git, not chat history. Never load all of `raw/` in one session (~590k tokens total corpus).
 
+## Site (`site/`)
+Interactive Astro static site that publishes the wiki: a D3 force-directed prerequisite graph,
+KaTeX-rendered note pages, learning tracks, full-text search (Pagefind), and a bibliography. Live at
+<https://vinamrjain.github.io/bayesopt-wiki/>; pushing `main` redeploys via GitHub Actions. `wiki/*.md`
+stays the single source of truth — the site reads frontmatter + `[[wikilinks]]` at build, never writes
+notes. Run locally with `cd site && pixi run dev`; search needs a real build (`pixi run build &&
+pixi run preview`), not dev. See `site/README.md` for architecture/deploy.
+- **Adding a note is self-contained:** write `wiki/<slug>.md` with valid frontmatter and the page,
+  graph node, edges, backlinks, ToC, and search entry all derive automatically. The node color comes
+  from the `subtopic` frontmatter field — no code edit. The only optional curation is adding the slug
+  to a learning track in `site/src/lib/tracks.ts` (reading order is editorial, kept centralized).
+- The `notation` note is intentionally hidden from the visual graph (a reference note with no prereq
+  edges) via `visualGraph()` in `site/src/lib/graph.ts`; it remains a reachable note page.
+
 ## Wiki build — status
 
 Routing and per-note source coverage live in **`wiki/map.md`** (the index). The synthesis
