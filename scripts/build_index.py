@@ -18,10 +18,21 @@ Lint (non-zero exit blocks a commit):
   - every `requires:` slug resolves to an existing note
   - every `sources:` key exists in references.md
 
+Diagnostics (warn-only; printed, never block a commit):
+  - forward-references to planned (unwritten) notes, ranked by inbound count
+    (the highest-inbound planned target is the highest-value next stub to write)
+  - lateral cross-links lacking a reciprocal back-edge (candidate missing links
+    on the conceptual axes); excludes prereq pairs — already encoded in the
+    `requires:` DAG and rendered in the graph — and reference-grade hub notes
+    (e.g. notation) that are linked one-way by convention
+
 Usage:
   python3 scripts/build_index.py          # rewrite map.md autogen regions + lint
   python3 scripts/build_index.py --check   # lint + verify map.md is up to date; no write
+  python3 scripts/build_index.py --links   # audit view: full reciprocity + forward-ref
+                                           # diagnostics, no write
 """
+import collections
 import pathlib
 import re
 import sys
@@ -137,7 +148,7 @@ def lint(notes, ref_keys, planned):
             if not tgt or tgt in stems:
                 continue
             if tgt in planned:
-                forward.append(f"{name}: [[{tgt}]]")
+                forward.append((name, tgt))
             else:
                 errors.append(f"{name}: broken wikilink [[{tgt}]]")
         for req in n["fm"].get("requires", []):
@@ -147,6 +158,75 @@ def lint(notes, ref_keys, planned):
             if src not in ref_keys:
                 errors.append(f"{name}: source key '{src}' missing from references.md")
     return errors, forward
+
+
+# --------------------------------------------------------------------- diagnostics
+def body_link_graph(notes):
+    """slug -> set of body-wikilink targets that are existing notes (excludes
+    self-links, map, and links to planned/unwritten slugs)."""
+    links = {}
+    for slug, n in notes.items():
+        tgts = set()
+        for raw in WIKILINK_RE.findall(n["path"].read_text()):
+            tgt = link_target(raw)
+            if tgt and tgt in notes and tgt != slug:
+                tgts.add(tgt)
+        links[slug] = tgts
+    return links
+
+
+def reciprocity_warnings(notes):
+    """Lateral body-link asymmetries: A links to B but B has no link back to A.
+    Returns a sorted list of (a, b) candidate missing back-edges.
+
+    Two classes of asymmetry are correct by design and therefore skipped:
+      - prereq pairs (A,B in a `requires:` relation, either direction) — that
+        connection is already encoded in the DAG and rendered in the graph;
+      - reference-grade hub notes (e.g. notation) at either endpoint — they are
+        linked one-way by convention and should not be reciprocated.
+    What remains are lateral conceptual links (the DP-spine, optimism, and
+    information axes, etc.) where a missing back-edge is a real candidate gap."""
+    links = body_link_graph(notes)
+    reqs = {s: set(n["fm"].get("requires", [])) for s, n in notes.items()}
+    hub = {s for s, n in notes.items() if n["fm"].get("grade") == "reference"}
+    warnings = []
+    for a in sorted(links):
+        for b in sorted(links[a]):
+            if a in hub or b in hub:
+                continue
+            if b in reqs.get(a, ()) or a in reqs.get(b, ()):
+                continue
+            if a not in links.get(b, set()):
+                warnings.append((a, b))
+    return warnings
+
+
+def print_diagnostics(forward, recip, detail=False):
+    """Warn-only diagnostics: forward-refs ranked by inbound count, and lateral
+    cross-links missing a reciprocal back-edge. Never affects the exit code.
+
+    Forward-refs print in full (short, high-value: names the next stub to write).
+    The reciprocity list can be long, so it prints a one-line summary by default
+    and the full enumeration only when `detail` is set (the --links flag)."""
+    if forward:
+        inbound = collections.Counter(tgt for _, tgt in forward)
+        srcs = collections.defaultdict(list)
+        for name, tgt in forward:
+            srcs[tgt].append(name[:-3] if name.endswith(".md") else name)
+        print(f"note: {len(forward)} forward-reference(s) to {len(inbound)} planned "
+              "(unwritten) note(s), by inbound count (highest = best next stub):")
+        for tgt, cnt in sorted(inbound.items(), key=lambda kv: (-kv[1], kv[0])):
+            print(f"  - [[{tgt}]]  <- {cnt} ref(s): {', '.join(sorted(srcs[tgt]))}")
+    if recip:
+        if detail:
+            print(f"note: {len(recip)} lateral cross-link(s) without a reciprocal "
+                  "back-edge (candidate missing links; warn-only):")
+            for a, b in recip:
+                print(f"  - {a} -> {b}  (no [[{a}]] back-link in {b})")
+        else:
+            print(f"note: {len(recip)} lateral cross-link(s) lack a reciprocal "
+                  "back-edge (candidate missing links) — run "
+                  "`python3 scripts/build_index.py --links` to list")
 
 
 # ----------------------------------------------------------------------------- render
@@ -254,6 +334,7 @@ def render_gaps(gaps):
 # ----------------------------------------------------------------------------- main
 def main():
     check = "--check" in sys.argv
+    links = "--links" in sys.argv
     notes = load_notes()
     ref_keys = load_ref_keys()
     planned = load_planned()
@@ -264,10 +345,9 @@ def main():
         for e in errors:
             print("  - " + e, file=sys.stderr)
         sys.exit(1)
-    if forward:
-        print(f"note: {len(forward)} forward-reference(s) to planned (unwritten) notes:")
-        for f in forward:
-            print("  - " + f)
+    print_diagnostics(forward, reciprocity_warnings(notes), detail=links)
+    if links:
+        return  # --links is an audit view: full diagnostics, no map.md rewrite
 
     if not MAP.exists():
         sys.exit("ERROR: wiki/map.md does not exist (create it with autogen markers first)")
