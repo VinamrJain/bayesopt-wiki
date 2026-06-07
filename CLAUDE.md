@@ -18,7 +18,7 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
   header, never the full block.
 - **Filenames.** kebab-case concept slugs, flat in `wiki/`. No number prefixes.
 - **Frontmatter.** `title`, `slug`, `summary` (one-line, feeds the index), `tags` (theme),
-  `subtopic` (one of `foundations|myopic|decision-theoretic|information-theoretic|cost-aware`; drives
+  `subtopic` (one of `foundations|myopic|decision-theoretic|information-theoretic|cost-aware|theory`; drives
   the site graph node color), `requires:` (prerequisite-slug DAG), `sources:` (citation keys; first =
   derivation-primary), `grade` (derivation | concept | reference), `reviewed` (date | null; stamped by
   the reflection pass). Inline `[[wikilinks]]`; `wiki/map.md` is the index + graph.
