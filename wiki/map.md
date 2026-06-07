@@ -183,8 +183,9 @@ Curated reading orders. Each assumes the [foundations](#track-foundations) track
 [[nonmyopic-cost-constrained-bo]] → *(cost-per-sample)* [[pandoras-box-gittins-index]] →
 [[cost-aware-stopping]]
 
-<!-- Track: regret & convergence theory — add when those notes land
-[[gp-ucb]] → regret-gp-bandits → gp-bandit-lower-bounds → ego-convergence-rates -->
+### Track: regret & convergence theory
+Worst-case guarantees for GP bandits; assumes [[gp-ucb]].
+[[regret-gp-bandits]] → [[ego-convergence-rates]] → [[gp-bandit-lower-bounds]]
 
 ## Planned concepts
 

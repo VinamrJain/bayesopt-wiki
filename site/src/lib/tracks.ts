@@ -61,6 +61,13 @@ export const TRACKS: Track[] = [
       'cost-aware-stopping',
     ],
   },
+  {
+    id: 'theory',
+    label: 'Regret theory & convergence',
+    description:
+      'Worst-case guarantees for GP bandits (assumes GP-UCB): the GP-UCB regret upper bound, EI / EGO convergence rates, and matching algorithm-independent lower bounds.',
+    slugs: ['regret-gp-bandits', 'ego-convergence-rates', 'gp-bandit-lower-bounds'],
+  },
 ];
 
 export const trackById = (id: string): Track | undefined => TRACKS.find((t) => t.id === id);
