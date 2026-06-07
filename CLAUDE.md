@@ -35,14 +35,32 @@ and LLM agents. Pattern: cross-project memory `concept-wiki-synthesis`.
   Needs network (arXiv may be sandbox-blocked; run with `!` if so).
 - `scripts/build_index.py` — regenerate `wiki/map.md` autogen regions (concept registry + prereq
   graph) and `wiki/gaps.md` (open-gaps board, aggregated from `wiki/reviews/`), and lint
-  cross-refs. `--check` verifies both are current without writing. The pre-commit hook runs it on
-  any `wiki/` or `references.md` commit.
+  cross-refs. `--check` verifies both are current without writing; `--links` is an audit view of the
+  warn-only diagnostics (forward-ref ranking by inbound count + lateral-reciprocity candidates). The
+  pre-commit hook runs it on any `wiki/` or `references.md` commit. New diagnostics must be
+  **warn-only** (print, never `sys.exit`) — the hook runs under `set -e`, so a non-zero exit aborts
+  the commit; hard-error only on true breakage (broken links / unknown requires / missing sources).
+
+## Parallel sessions (multi-agent isolation)
+Multiple sessions on this repo must not share a working tree (concurrent checkouts/indexes corrupt
+each other). Each parallel session works in its own **git worktree** on a task branch
+(`EnterWorktree`, or `git worktree add`); the repo `settings.json` deny-list carries in. Partition
+work by **disjoint note files** so sessions collide only on the generated index.
+- **Generated files (`wiki/map.md` autogen regions + `wiki/gaps.md`) — regenerate, don't merge.**
+  They are pure functions of note frontmatter / `wiki/reviews/` and carry no original information, so
+  they're loss-free to re-derive. On a merge conflict: remove the conflict markers (take either side —
+  `splice()` is not conflict-marker-aware), run `python scripts/build_index.py`, then commit. The
+  pre-commit hook also re-derives on the merge commit, and `--check` catches any drift.
+- **Exception — `map.md` curated regions** (intro, Learning tracks, Planned concepts, Cross-cutting
+  connections) are hand-written and are NOT recovered by regeneration. If both branches edited them,
+  hand-merge those regions normally *first*, then regenerate the autogen regions.
+- Verify (`build_index.py --check`) before merging a task branch to `main`; remove the worktree after.
 
 ## Ops
 `MEMORY.md` — git habits, PDF parse order, env constraints (concise).
 
 ## Status
-Wiki built (24 notes, reflection logs + gaps board generated). Site complete and **live** on GitHub
+Wiki built (27 notes, reflection logs + gaps board generated). Site complete and **live** on GitHub
 Pages (graph, note pages, tracks, Pagefind search, references; auto-deploys on push to `main`). The
 build phase is done — ongoing work is **content**: adding/refining wiki notes (see `MEMORY.md`'s
 Site § for the add-a-note flow). Original design prompt:
