@@ -33,6 +33,7 @@ const notes = defineCollection({
       'decision-theoretic',
       'information-theoretic',
       'cost-aware',
+      'theory',
     ]),
     // Prerequisite slugs → directed edges of the concept DAG.
     requires: z.array(z.string()).default([]),
